@@ -1,4 +1,6 @@
-# PLANNING.md — Datamuse + Free Dictionary API Integration
+# PLANNING.md — Legacy Datamuse + Free Dictionary API Integration
+
+> **Scope override — 22 September 2026:** Billien now uses only Free Dictionary API for explicit word searches. Datamuse discovery, autocomplete, cached word pools, and related API routes have been removed. The remainder of this document is retained as historical planning context and must not override the active PRD scope or `README.md` setup.
 
 ## 1. Goal
 

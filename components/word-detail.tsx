@@ -37,12 +37,14 @@ function Meaning({ meaning }: { meaning: DictionaryMeaning }) {
 export function WordDetail({
   word,
   isLoading = false,
+  errorMessage = null,
   isSaving = false,
   onRemember,
   onSignIn,
 }: {
   word: DetailWord | null;
   isLoading?: boolean;
+  errorMessage?: string | null;
   isSaving?: boolean;
   onRemember?: () => void;
   onSignIn?: () => void;
@@ -50,6 +52,10 @@ export function WordDetail({
   if (isLoading) return <div className="detail-empty">
     <p className="eyebrow">Dictionary detail</p>
     <p>Loading the selected word…</p>
+  </div>;
+  if (errorMessage) return <div className="detail-empty">
+    <p className="eyebrow">Dictionary detail</p>
+    <p className="detail-error">{errorMessage}</p>
   </div>;
   if (!word) return <div className="detail-empty">
     <p className="eyebrow">Word detail</p>

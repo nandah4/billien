@@ -51,14 +51,3 @@ export type StreakDay = {
   learned_count: number;
   review_count: number;
 };
-
-export type DiscoveryWord = {
-  word: string;
-  score: number;
-};
-
-export type DiscoverPage = {
-  items: DiscoveryWord[];
-  nextCursor: string | null;
-  hasMore: boolean;
-};

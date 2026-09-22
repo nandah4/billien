@@ -1,6 +1,6 @@
 # PRD + Technical Implementation Guide — EN Words Personal Vocabulary App
 
-> **Scope override — 21 September 2026:** The product is now **Billien**, a multi-user application backed by Neon. The earlier single-user/Supabase/no-login constraints are superseded. Guests may discover words, while Add to Remember, Random/Flip review, and streak require a logged-in Neon Auth user and are isolated by user ID. See `README.md` and `neon/schema.sql` for the active setup.
+> **Scope override — 22 September 2026:** The product is now **Billien**, a multi-user application backed by Neon. The earlier single-user/Supabase/no-login constraints are superseded. Guests may search an exact word through Free Dictionary API. Add to Remember, Random/Flip review, and streak require a Google OAuth sign-in through Neon Auth and are isolated by user ID. Datamuse discovery, autocomplete, and the discovery feed are out of scope. See `README.md` and `neon/schema.sql` for the active setup.
 
 > **Document role:** This file is the primary source of truth for both product behavior and technical implementation. A coding model/agent should be able to create the project from an empty folder by following this file without inventing additional architecture.
 

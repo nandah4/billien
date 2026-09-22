@@ -1,6 +1,7 @@
 import type { DictionaryEntry } from "@/lib/types";
 
 const BASE_URL = "https://api.dictionaryapi.dev/api/v2/entries/en";
+const TIMEOUT_MS = 8_000;
 
 export async function lookupWord(rawWord: string): Promise<DictionaryEntry[]> {
   const word = rawWord.trim().toLowerCase();
@@ -8,10 +9,16 @@ export async function lookupWord(rawWord: string): Promise<DictionaryEntry[]> {
     throw new Error("Please enter a valid English word.");
   }
 
-  const response = await fetch(`${BASE_URL}/${encodeURIComponent(word)}`, {
-    headers: { Accept: "application/json" },
-    next: { revalidate: 60 * 60 * 24 * 7 },
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}/${encodeURIComponent(word)}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate: 60 * 60 * 24 * 7 },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+  } catch {
+    throw new Error("Dictionary request timed out. Please try again.");
+  }
   if (!response.ok) {
     if (response.status === 404) throw new Error("Word not found.");
     throw new Error("Dictionary service is unavailable.");
