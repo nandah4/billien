@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-full flex flex-col"><QueryProvider>{children}</QueryProvider></body>
+      <body className="flex min-h-dvh min-w-80 flex-col overflow-hidden bg-paper font-[var(--font-geist-sans)] text-[15px] text-ink"><QueryProvider>{children}</QueryProvider></body>
     </html>
   );
 }
