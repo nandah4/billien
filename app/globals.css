@@ -1,30 +1,63 @@
 @import "tailwindcss";
 
 @theme {
-  --color-paper: #f4f2ed;
+  /* Surfaces */
+  --color-canvas: #f4f5f7;
   --color-surface: #ffffff;
-  --color-panel: #f8f7f3;
-  --color-detail: #faf9f6;
-  --color-soft: #ece9e1;
-  --color-hover: #efede7;
-  --color-notice: #e8e5dd;
-  --color-focus-surface: #fffdf2;
-  --color-streak: #fff9d9;
-  --color-ink: #111111;
-  --color-ink-hover: #3b3b3b;
-  --color-line: #181818;
-  --color-line-soft: #aaaaaa;
-  --color-muted: #656565;
-  --color-placeholder: #777777;
-  --color-coral: #f05a3c;
-  --color-focus: #e7c900;
-  --color-danger: #b42318;
-  --color-danger-soft: #fff7f6;
-  --color-danger-hover: #8e1b13;
-  --color-success: #176b3a;
-  --color-success-hover: #0c4f29;
+  --color-subtle: #fafafa;
+  --color-sunken: #f8fafc;
+  --color-hover: #f4f4f5;
+
+  /* Borders & dividers */
+  --color-line: #e4e4e7;
+  --color-line-soft: #f1f5f9;
+
+  /* Text */
+  --color-ink: #09090b;
+  --color-ink-soft: #3f3f46;
+  --color-muted: #64748b;
+  --color-faint: #94a3b8;
+  --color-placeholder: #a1a1aa;
+
+  /* Primary action */
+  --color-primary: #18181b;
+  --color-primary-hover: #27272a;
+
+  /* Workspace accent */
+  --color-accent: #7c3aed;
+  --color-accent-hover: #6d28d9;
+  --color-accent-soft: #f5f3ff;
+  --color-accent-line: #ddd6fe;
+
+  /* Feedback badges */
+  --color-hard: #dc2626;
+  --color-hard-soft: #fee2e2;
+  --color-medium: #d97706;
+  --color-medium-soft: #fef3c7;
+  --color-easy: #16a34a;
+  --color-easy-soft: #dcfce7;
+
+  --color-focus: #7c3aed;
+
+  /* Google brand marks */
   --color-google-blue: #4285f4;
   --color-google-green: #34a853;
   --color-google-yellow: #fbbc05;
   --color-google-red: #ea4335;
+}
+
+body {
+  font-family:
+    var(--font-inter, ui-sans-serif),
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Keep the app free of page-level horizontal overflow on narrow viewports. */
+html,
+body {
+  overflow-x: hidden;
 }
