@@ -61,3 +61,32 @@ html,
 body {
   overflow-x: hidden;
 }
+
+/*
+ * Workspace split: the left column, plus a detail track that collapses to zero
+ * when no word is selected so the left column takes the full width. Both tracks
+ * stay declared so the browser can interpolate between them; the component sets
+ * --detail-track / --detail-gap. Below `lg` the columns stack instead.
+ */
+.detail-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--detail-gap, 0rem);
+  transition:
+    grid-template-columns 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    gap 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (min-width: 64rem) {
+  .detail-split {
+    grid-template-columns:
+      minmax(0, 1.55fr)
+      var(--detail-track, minmax(0, 0fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .detail-split {
+    transition: none;
+  }
+}

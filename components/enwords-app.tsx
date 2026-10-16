@@ -1,15 +1,16 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FormEvent, useMemo, useRef, useState } from "react";
+import { FormEvent, useMemo, useState, type CSSProperties } from "react";
 import { useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  Bookmark,
   Brain,
   Check,
   ChevronLeft,
   ChevronRight,
+  Compass,
   Flame,
   LogIn,
   LogOut,
@@ -25,6 +26,7 @@ import type {
   SavedWord,
 } from "@/lib/types";
 import { DISCOVERY_WORDS } from "@/lib/discovery";
+import { AuthModal } from "@/components/auth-modal";
 import { WordDetail } from "@/components/word-detail";
 import { authClient } from "@/lib/auth-client";
 
@@ -36,7 +38,8 @@ type ApiEnvelope<T> = {
 };
 
 type PosBucket = "noun" | "verb" | "adjective" | "other";
-type FilterId = "all" | PosBucket | "saved";
+type FilterId = "all" | PosBucket;
+type View = "discovery" | "remembered";
 
 type LibraryWord = {
   key: string;
@@ -102,8 +105,8 @@ export function EnWordsApp() {
   const queryClient = useQueryClient();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
-  const searchInputRef = useRef<HTMLInputElement | null>(null);
 
+  const [view, setView] = useState<View>("discovery");
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterId>("all");
   const [page, setPage] = useState(1);
@@ -119,11 +122,10 @@ export function EnWordsApp() {
   const [drillIndex, setDrillIndex] = useState(0);
   const [drillFlipped, setDrillFlipped] = useState(false);
   const [drillComplete, setDrillComplete] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
 
   const signedIn = Boolean(session?.user);
-  const sessionLabel = signedIn
-    ? session?.user?.name || "Learner"
-    : "Guest session";
+  const sessionLabel = signedIn ? session?.user?.name || "Learner" : "";
 
   const rememberedWordsQuery = useQuery({
     queryKey: ["remembered-words"],
@@ -162,26 +164,25 @@ export function EnWordsApp() {
     queries: seedWords.map((word) => dictionaryOptions(word)),
   });
 
-  const library: LibraryWord[] = [
-    ...savedWords.map((word) => ({
-      key: word.normalized_word,
-      word: word.word,
-      phonetic: word.phonetic,
-      meanings: word.meanings ?? [],
-      savedWord: word,
-    })),
-    ...seedWords.map((word, index) => {
-      const entry = seedQueries[index]?.data ?? null;
-      return {
-        key: word,
-        word: entry?.word ?? word,
-        phonetic: entry?.phonetic ?? null,
-        meanings: entry?.meanings ?? [],
-        savedWord: null,
-      };
-    }),
-  ];
+  const rememberedItems: LibraryWord[] = savedWords.map((word) => ({
+    key: word.normalized_word,
+    word: word.word,
+    phonetic: word.phonetic,
+    meanings: word.meanings ?? [],
+    savedWord: word,
+  }));
+  const discoveryItems: LibraryWord[] = seedWords.map((word, index) => {
+    const entry = seedQueries[index]?.data ?? null;
+    return {
+      key: word,
+      word: entry?.word ?? word,
+      phonetic: entry?.phonetic ?? null,
+      meanings: entry?.meanings ?? [],
+      savedWord: null,
+    };
+  });
 
+  const viewItems = view === "discovery" ? discoveryItems : rememberedItems;
   const normalizedQuery = query.trim().toLowerCase();
   const posCounts: Record<PosBucket, number> = {
     noun: 0,
@@ -189,32 +190,35 @@ export function EnWordsApp() {
     adjective: 0,
     other: 0,
   };
-  for (const item of library) {
+  for (const item of viewItems) {
     posCounts[posBucket(item.meanings[0]?.partOfSpeech)] += 1;
   }
 
-  const filteredLibrary = library.filter((item) => {
+  const filteredItems = viewItems.filter((item) => {
     if (normalizedQuery && !item.word.toLowerCase().includes(normalizedQuery)) {
       return false;
     }
-    if (filter === "saved") return Boolean(item.savedWord);
     if (filter === "all") return true;
     return posBucket(item.meanings[0]?.partOfSpeech) === filter;
   });
 
-  const pageCount = Math.max(1, Math.ceil(filteredLibrary.length / PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const currentPage = Math.min(page, pageCount);
-  const pageItems = filteredLibrary.slice(
+  const pageItems = filteredItems.slice(
     (currentPage - 1) * PAGE_SIZE,
     currentPage * PAGE_SIZE,
   );
 
   const filters: { id: FilterId; label: string; count: number }[] = [
-    { id: "all", label: "All", count: library.length },
+    { id: "all", label: "All", count: viewItems.length },
     { id: "verb", label: "Verbs", count: posCounts.verb },
     { id: "adjective", label: "Adjectives", count: posCounts.adjective },
     { id: "noun", label: "Nouns", count: posCounts.noun },
-    { id: "saved", label: "Sudah Dihafal", count: savedWords.length },
+  ];
+
+  const views: { id: View; label: string; icon: typeof Compass }[] = [
+    { id: "discovery", label: "Discovery", icon: Compass },
+    { id: "remembered", label: "Remembered", icon: Bookmark },
   ];
 
   const detailWord = selectedSavedWord ?? dictionaryQuery.data ?? null;
@@ -226,7 +230,14 @@ export function EnWordsApp() {
       )
     : null;
   const isListLoading =
-    isSessionPending || (signedIn && rememberedWordsQuery.isLoading);
+    view === "remembered" &&
+    (isSessionPending || (signedIn && rememberedWordsQuery.isLoading));
+  const showSignInPrompt = view === "remembered" && !signedIn;
+  // Keep the detail panel mounted while the lookup is in flight so its loading
+  // state is visible; `selectedName` is set as soon as a word is clicked.
+  const showDetailPanel =
+    drillActive || Boolean(detailWord) || Boolean(selectedName);
+  const showDrillLauncher = view === "remembered" && signedIn && !drillActive;
 
   function selectLibraryWord(item: LibraryWord) {
     setNotice(null);
@@ -251,13 +262,14 @@ export function EnWordsApp() {
     setNotice(null);
   }
 
-  function focusSearch() {
-    searchInputRef.current?.focus();
-    searchInputRef.current?.select();
+  function changeView(next: View) {
+    setView(next);
+    setPage(1);
+    setNotice(null);
   }
 
-  function goToSignIn() {
-    router.push("/auth/sign-in?next=/");
+  function openAuthModal() {
+    setAuthOpen(true);
   }
 
   function closeDrill() {
@@ -275,6 +287,7 @@ export function EnWordsApp() {
       queryClient.removeQueries({ queryKey: ["remembered-words"] });
       queryClient.removeQueries({ queryKey: ["streak"] });
       closeDrill();
+      setAuthOpen(false);
       setSelectedSavedWord(null);
       setSelectedName(null);
       setNotice("Signed out. Your progress remains safely in your account.");
@@ -286,7 +299,7 @@ export function EnWordsApp() {
 
   async function saveWord(name: string) {
     if (!signedIn) {
-      goToSignIn();
+      openAuthModal();
       return null;
     }
     setSavingKey(name);
@@ -326,7 +339,7 @@ export function EnWordsApp() {
 
   async function startDrill() {
     if (!signedIn) {
-      goToSignIn();
+      openAuthModal();
       return;
     }
     setActionLoading(true);
@@ -383,454 +396,517 @@ export function EnWordsApp() {
   }
 
   return (
-    <div className="min-h-dvh bg-canvas px-4 py-5 sm:px-6 sm:py-6">
-      <div className="mx-auto flex w-full max-w-310 flex-col gap-4">
-        <header
-          className={`${cardClass} flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between`}
-        >
-          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-              <span
-                className="size-2 rounded-full bg-accent"
-                aria-hidden="true"
-              />
-              Billien
-            </span>
-            <span
-              className="hidden h-4 w-px bg-line lg:block"
-              aria-hidden="true"
-            />
-            <span className="truncate text-[12px] text-muted">
-              Active Session: {sessionLabel}
-            </span>
-            {signedIn ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-medium-soft px-2.5 py-1 text-[11px] font-semibold text-medium">
-                <Flame size={12} aria-hidden="true" />
-                {streak} day streak
+    <>
+      <div className="flex min-h-dvh flex-col bg-canvas px-4 py-5 sm:px-6 sm:py-6 lg:h-dvh lg:overflow-hidden">
+        <div className="mx-auto flex w-full max-w-310 flex-col gap-4 lg:h-full lg:min-h-0">
+          <header
+            className={`${cardClass} flex shrink-0 flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between`}
+          >
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <span className="text-[13px] font-semibold text-ink">
+                Billien
               </span>
-            ) : null}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              className={primaryButton}
-              type="button"
-              onClick={focusSearch}
-            >
-              <Plus size={15} aria-hidden="true" />
-              Add Custom Word
-            </button>
-            {isSessionPending ? null : signedIn ? (
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 text-[12px] font-semibold text-ink">
-                  <UserRound
-                    size={15}
-                    className="text-faint"
-                    aria-hidden="true"
-                  />
-                  <span className="max-w-35 truncate">{sessionLabel}</span>
-                </span>
-                <button
-                  className={outlineButton}
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => void signOut()}
-                >
-                  <LogOut size={15} aria-hidden="true" />
-                  Sign out
-                </button>
-              </div>
-            ) : (
-              <Link className={outlineButton} href="/auth/sign-in?next=/">
-                <LogIn size={15} aria-hidden="true" />
-                Sign in
-              </Link>
-            )}
-          </div>
-        </header>
-
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-          <section className={cardClass}>
-            <div className="border-b border-line p-4">
-              <form
-                className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 transition focus-within:border-accent focus-within:bg-surface"
-                onSubmit={handleSearchSubmit}
-                role="search"
+              <nav
+                className="flex items-center gap-1 rounded-lg border border-line bg-subtle p-1"
+                aria-label="Word views"
               >
-                <Search
-                  size={16}
-                  className="shrink-0 text-faint"
-                  aria-hidden="true"
-                />
-                <input
-                  ref={searchInputRef}
-                  className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-placeholder"
-                  value={query}
-                  onChange={(event) => {
-                    setQuery(event.target.value);
-                    setPage(1);
-                  }}
-                  placeholder="Search an English word…"
-                  aria-label="Search an English word"
-                />
-                {normalizedQuery ? (
-                  <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-medium text-accent">
-                    Filter: &ldquo;{query.trim()}&rdquo;
-                    <button
-                      className="inline-flex items-center justify-center rounded-full transition hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
-                      type="button"
-                      onClick={() => {
-                        setQuery("");
-                        setPage(1);
-                      }}
-                      aria-label="Clear the search filter"
-                    >
-                      <X size={12} aria-hidden="true" />
-                    </button>
-                  </span>
-                ) : null}
-              </form>
-
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                {filters.map((item) => {
-                  const active = filter === item.id;
+                {views.map((item) => {
+                  const Icon = item.icon;
+                  const active = view === item.id;
                   return (
                     <button
                       key={item.id}
-                      className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                         active
-                          ? "border-primary bg-primary text-surface"
-                          : "border-line bg-surface text-muted hover:bg-hover"
+                          ? "bg-surface text-ink shadow-sm"
+                          : "text-muted hover:text-ink"
                       }`}
                       type="button"
-                      aria-pressed={active}
-                      onClick={() => {
-                        setFilter(item.id);
-                        setPage(1);
-                      }}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => changeView(item.id)}
                     >
+                      <Icon size={14} aria-hidden="true" />
                       {item.label}
-                      <span
-                        className={active ? "text-surface/70" : "text-faint"}
-                      >
-                        {item.count}
-                      </span>
                     </button>
                   );
                 })}
-              </div>
+              </nav>
+              {signedIn ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-medium-soft px-2.5 py-1 text-[11px] font-semibold text-medium">
+                  <Flame size={12} aria-hidden="true" />
+                  {streak} day streak
+                </span>
+              ) : null}
             </div>
 
-            <div className="p-4">
-              {activeError ? (
-                <p
-                  className="mb-3 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
-                  role="alert"
-                >
-                  {activeError}
-                </p>
-              ) : null}
-              {notice ? (
-                <p
-                  className="mb-3 rounded-lg border border-line bg-sunken px-3 py-2 text-[12px] text-ink-soft"
-                  role="status"
-                >
-                  {notice}
-                </p>
-              ) : null}
-
-              {isListLoading && library.length === 0 ? (
-                <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-muted">
-                  <span className="size-2 animate-pulse rounded-full bg-accent" />
-                  Loading your word library…
-                </div>
-              ) : pageItems.length === 0 ? (
-                <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[12px] text-muted">
-                  No words match this view yet.
-                  <br />
-                  Type a word above and press Enter to look it up.
+            <div className="flex flex-wrap items-center gap-2">
+              {isSessionPending ? null : signedIn ? (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 text-[12px] font-semibold text-ink">
+                    <UserRound
+                      size={15}
+                      className="text-faint"
+                      aria-hidden="true"
+                    />
+                    <span className="max-w-35 truncate">{sessionLabel}</span>
+                  </span>
+                  <button
+                    className={primaryButton}
+                    type="button"
+                    disabled={actionLoading}
+                    onClick={() => void signOut()}
+                  >
+                    <LogOut size={15} aria-hidden="true" />
+                    Sign out
+                  </button>
                 </div>
               ) : (
-                <ul className="grid list-none gap-2 p-0">
-                  {pageItems.map((item) => {
-                    const active =
-                      selectedSavedWord?.normalized_word === item.key ||
-                      (!selectedSavedWord && selectedName === item.key);
-                    const part = item.meanings[0]?.partOfSpeech;
-                    const definition = primaryDefinition(item);
-                    return (
-                      <li key={item.key}>
-                        <div
-                          className={`flex items-center gap-3 rounded-xl border p-3 transition ${
-                            active
-                              ? "border-accent bg-accent-soft"
-                              : "border-line bg-surface hover:bg-hover"
-                          }`}
-                        >
-                          <button
-                            className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                            type="button"
-                            onClick={() => selectLibraryWord(item)}
-                          >
-                            <span className="flex flex-wrap items-center gap-2">
-                              <span className="text-[14px] font-semibold text-ink">
-                                {item.word}
-                              </span>
-                              {item.phonetic ? (
-                                <span className="text-[12px] text-muted italic">
-                                  {item.phonetic}
-                                </span>
-                              ) : null}
-                              {part ? (
-                                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-accent-line ring-inset">
-                                  {capitalize(part)}
-                                </span>
-                              ) : null}
-                            </span>
-                            {definition ? (
-                              <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-muted">
-                                {definition}
-                              </span>
-                            ) : null}
-                          </button>
-
-                          {item.savedWord ? (
-                            <span
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-easy-soft text-easy"
-                              title="Sudah dihafal"
-                            >
-                              <Check size={16} aria-hidden="true" />
-                            </span>
-                          ) : (
-                            <button
-                              className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                              type="button"
-                              disabled={savingKey === item.key}
-                              onClick={() => void saveWord(item.word)}
-                              title={`Tandai "${item.word}" sudah hafal`}
-                              aria-label={`Tandai ${item.word} sudah hafal`}
-                            >
-                              <Plus size={16} aria-hidden="true" />
-                            </button>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
+                <button
+                  className={outlineButton}
+                  type="button"
+                  onClick={openAuthModal}
+                >
+                  <LogIn size={15} aria-hidden="true" />
+                  Sign in
+                </button>
               )}
             </div>
+          </header>
 
-            <div className="flex flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-[12px] text-muted">
-                Showing <strong className="text-ink">{pageItems.length}</strong>{" "}
-                of{" "}
-                <strong className="text-ink">{filteredLibrary.length}</strong>{" "}
-                words
-                {savedWords.length > 0 ? (
-                  <>
-                    {" · "}
-                    <span className="font-semibold text-easy">
-                      {savedWords.length} memorised
+          <div
+            className="detail-split lg:min-h-0 lg:flex-1"
+            style={
+              {
+                "--detail-track": showDetailPanel
+                  ? "minmax(0, 1fr)"
+                  : "minmax(0, 0fr)",
+                "--detail-gap": showDetailPanel ? "1rem" : "0rem",
+              } as CSSProperties
+            }
+          >
+            <section
+              className={`${cardClass} flex min-w-0 flex-col lg:min-h-0`}
+            >
+              <div className="shrink-0 border-b border-line p-4">
+                <form
+                  className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 transition focus-within:border-accent focus-within:bg-surface"
+                  onSubmit={handleSearchSubmit}
+                  role="search"
+                >
+                  <Search
+                    size={16}
+                    className="shrink-0 text-faint"
+                    aria-hidden="true"
+                  />
+                  <input
+                    className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-placeholder"
+                    value={query}
+                    onChange={(event) => {
+                      setQuery(event.target.value);
+                      setPage(1);
+                    }}
+                    placeholder="Search an English word…"
+                    aria-label="Search an English word"
+                  />
+                  {normalizedQuery ? (
+                    <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-medium text-accent">
+                      Filter: &ldquo;{query.trim()}&rdquo;
+                      <button
+                        className="inline-flex items-center justify-center rounded-full transition hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+                        type="button"
+                        onClick={() => {
+                          setQuery("");
+                          setPage(1);
+                        }}
+                        aria-label="Clear the search filter"
+                      >
+                        <X size={12} aria-hidden="true" />
+                      </button>
                     </span>
-                  </>
-                ) : null}
-              </p>
-              <div className="flex items-center gap-2">
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                  type="button"
-                  disabled={currentPage <= 1}
-                  onClick={() => setPage((value) => Math.max(1, value - 1))}
-                >
-                  <ChevronLeft size={14} aria-hidden="true" />
-                  Previous
-                </button>
-                <span className="text-[12px] text-muted">
-                  Page {currentPage} of {pageCount}
-                </span>
-                <button
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                  type="button"
-                  disabled={currentPage >= pageCount}
-                  onClick={() =>
-                    setPage((value) => Math.min(pageCount, value + 1))
-                  }
-                >
-                  Next
-                  <ChevronRight size={14} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-          </section>
+                  ) : null}
+                </form>
 
-          <aside className="flex flex-col gap-4">
-            <div className={`${cardClass} p-4`}>
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={drillActive ? "drill" : (detailWord?.word ?? "empty")}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -6 }}
-                  transition={{ duration: 0.18, ease: "easeOut" }}
-                >
-                  {drillActive ? (
-                    <div>
-                      <div className="flex items-center justify-between gap-3">
-                        <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-                          <Brain
-                            size={16}
-                            className="text-accent"
-                            aria-hidden="true"
-                          />
-                          Drill Hafalan
-                        </span>
-                        <button
-                          className="inline-flex size-7 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                          type="button"
-                          onClick={closeDrill}
-                          aria-label="Close the drill"
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {filters.map((item) => {
+                    const active = filter === item.id;
+                    return (
+                      <button
+                        key={item.id}
+                        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+                          active
+                            ? "border-primary bg-primary text-surface"
+                            : "border-line bg-surface text-muted hover:bg-hover"
+                        }`}
+                        type="button"
+                        aria-pressed={active}
+                        onClick={() => {
+                          setFilter(item.id);
+                          setPage(1);
+                        }}
+                      >
+                        {item.label}
+                        <span
+                          className={active ? "text-surface/70" : "text-faint"}
                         >
-                          <X size={14} aria-hidden="true" />
-                        </button>
-                      </div>
+                          {item.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                      {drillComplete ? (
-                        <div className="mt-4 rounded-xl border border-line bg-subtle p-4 text-[13px] text-muted">
-                          <strong className="block text-ink">
-                            Drill complete.
-                          </strong>
-                          You can start another round whenever you are ready.
-                        </div>
-                      ) : currentDrill ? (
-                        <>
-                          <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
-                            Word {drillIndex + 1} / {drillQueue.length}
-                          </p>
-                          <h3 className="mt-2 text-[30px] leading-tight font-bold tracking-[-0.02em] wrap-anywhere">
-                            {currentDrill.word}
-                          </h3>
-                          {drillFlipped ? (
-                            <>
-                              <p className="mt-3 border-l-2 border-accent pl-3 text-[13px] leading-relaxed text-ink-soft italic">
-                                {primaryDefinition(currentDrill) ??
-                                  "No primary definition was saved."}
-                              </p>
-                              <div className="mt-4 flex flex-wrap gap-2">
-                                <button
-                                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-hard px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                                  type="button"
-                                  disabled={actionLoading}
-                                  onClick={() => void answerDrill("forgotten")}
-                                >
-                                  Lupa
-                                </button>
-                                <button
-                                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-easy px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                                  type="button"
-                                  disabled={actionLoading}
-                                  onClick={() => void answerDrill("remembered")}
-                                >
-                                  Ingat
-                                </button>
-                              </div>
-                            </>
-                          ) : (
-                            <button
-                              className={`${primaryButton} mt-4 w-full`}
-                              type="button"
-                              onClick={() => setDrillFlipped(true)}
-                            >
-                              Show meaning
-                            </button>
-                          )}
-                        </>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <WordDetail
-                      word={detailWord}
-                      isLoading={Boolean(
-                        selectedName && dictionaryQuery.isLoading,
-                      )}
-                      errorMessage={
-                        selectedName && dictionaryQuery.isError
-                          ? messageFor(
-                              dictionaryQuery.error,
-                              "Unable to load dictionary detail.",
-                            )
-                          : null
-                      }
-                      isSaving={Boolean(
-                        detailWord && savingKey === detailWord.word,
-                      )}
-                      onSave={
-                        signedIn && detailWord && !isSavedWord(detailWord)
-                          ? () => void saveSelected()
-                          : undefined
-                      }
-                      onSignIn={!signedIn ? goToSignIn : undefined}
-                    />
-                  )}
-                </motion.div>
-              </AnimatePresence>
-            </div>
-
-            {!drillActive ? (
-              <div className={`${cardClass} p-4`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-3">
-                    <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
-                      <Sparkles size={17} aria-hidden="true" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[13px] font-semibold text-ink">
-                        Uji Pemahaman Kata Ini
-                      </p>
-                      <p className="mt-0.5 text-[12px] text-muted">
-                        Latihan kalimat rumpang &amp; flashcard instan
-                      </p>
-                    </div>
-                  </div>
-                  <button
-                    className={outlineButton}
-                    type="button"
-                    disabled={actionLoading || !signedIn}
-                    onClick={() => void startDrill()}
+              <div className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+                {activeError ? (
+                  <p
+                    className="mb-3 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
+                    role="alert"
                   >
-                    Start Drill
+                    {activeError}
+                  </p>
+                ) : null}
+                {notice ? (
+                  <p
+                    className="mb-3 rounded-lg border border-line bg-sunken px-3 py-2 text-[12px] text-ink-soft"
+                    role="status"
+                  >
+                    {notice}
+                  </p>
+                ) : null}
+
+                {showSignInPrompt ? (
+                  <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
+                    <p className="text-[13px] text-muted">
+                      Sign in to keep a private list of the words you have
+                      memorised.
+                    </p>
+                    <button
+                      className={`${primaryButton} mt-4`}
+                      type="button"
+                      onClick={openAuthModal}
+                    >
+                      <LogIn size={15} aria-hidden="true" />
+                      Sign in
+                    </button>
+                  </div>
+                ) : isListLoading && viewItems.length === 0 ? (
+                  <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-muted">
+                    <span className="size-2 animate-pulse rounded-full bg-accent" />
+                    Loading your word library…
+                  </div>
+                ) : pageItems.length === 0 ? (
+                  <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[12px] text-muted">
+                    {view === "remembered" ? (
+                      <>
+                        No memorised words match this view yet.
+                        <br />
+                        Add a word from Discovery first.
+                      </>
+                    ) : (
+                      <>
+                        No words match this view yet.
+                        <br />
+                        Type a word above and press Enter to look it up.
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <ul className="grid list-none gap-2 p-0">
+                    {pageItems.map((item) => {
+                      const active =
+                        selectedSavedWord?.normalized_word === item.key ||
+                        (!selectedSavedWord && selectedName === item.key);
+                      const part = item.meanings[0]?.partOfSpeech;
+                      const definition = primaryDefinition(item);
+                      return (
+                        <li key={item.key}>
+                          <div
+                            className={`flex items-center gap-3 rounded-xl border p-3 transition ${
+                              active
+                                ? "border-accent bg-accent-soft"
+                                : "border-line bg-surface hover:bg-hover"
+                            }`}
+                          >
+                            <button
+                              className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                              type="button"
+                              onClick={() => selectLibraryWord(item)}
+                            >
+                              <span className="flex flex-wrap items-center gap-2">
+                                <span className="text-[14px] font-semibold text-ink">
+                                  {item.word}
+                                </span>
+                                {item.phonetic ? (
+                                  <span className="text-[12px] text-muted italic">
+                                    {item.phonetic}
+                                  </span>
+                                ) : null}
+                                {part ? (
+                                  <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent ring-1 ring-accent-line ring-inset">
+                                    {capitalize(part)}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {definition ? (
+                                <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-muted">
+                                  {definition}
+                                </span>
+                              ) : null}
+                            </button>
+
+                            {item.savedWord ? (
+                              <span
+                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-easy-soft text-easy"
+                                title="Sudah dihafal"
+                              >
+                                <Check size={16} aria-hidden="true" />
+                              </span>
+                            ) : (
+                              <button
+                                className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg border border-line bg-surface text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                                type="button"
+                                disabled={savingKey === item.key}
+                                onClick={() => void saveWord(item.word)}
+                                title={`Tandai "${item.word}" sudah hafal`}
+                                aria-label={`Tandai ${item.word} sudah hafal`}
+                              >
+                                <Plus size={16} aria-hidden="true" />
+                              </button>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </div>
+
+              <div className="flex shrink-0 flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-[12px] text-muted">
+                  Showing{" "}
+                  <strong className="text-ink">{pageItems.length}</strong> of{" "}
+                  <strong className="text-ink">{filteredItems.length}</strong>{" "}
+                  words
+                  {savedWords.length > 0 ? (
+                    <>
+                      {" · "}
+                      <span className="font-semibold text-easy">
+                        {savedWords.length} memorised
+                      </span>
+                    </>
+                  ) : null}
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    type="button"
+                    disabled={currentPage <= 1}
+                    onClick={() => setPage((value) => Math.max(1, value - 1))}
+                  >
+                    <ChevronLeft size={14} aria-hidden="true" />
+                    Previous
+                  </button>
+                  <span className="text-[12px] text-muted">
+                    Page {currentPage} of {pageCount}
+                  </span>
+                  <button
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    type="button"
+                    disabled={currentPage >= pageCount}
+                    onClick={() =>
+                      setPage((value) => Math.min(pageCount, value + 1))
+                    }
+                  >
+                    Next
+                    <ChevronRight size={14} aria-hidden="true" />
                   </button>
                 </div>
               </div>
-            ) : null}
-          </aside>
-        </div>
+            </section>
 
-        <footer
-          className={`${cardClass} flex flex-col gap-2 px-4 py-3 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between`}
-        >
-          <p className="m-0">
-            <span className="font-semibold text-ink">Billien</span> · Lexical
-            Mastery Platform
-          </p>
-          <p className="m-0">
-            © 2025 Billien. Focused cognitive language acquisition and lexical
-            tracking.
-          </p>
-          <p className="m-0">
-            Definitions by{" "}
-            <a
-              className="font-medium text-accent underline decoration-accent-line hover:decoration-accent"
-              href="https://dictionaryapi.dev"
-              target="_blank"
-              rel="noreferrer"
-            >
-              Free Dictionary API
-            </a>
-          </p>
-        </footer>
+            <aside className="min-w-0 overflow-hidden lg:min-h-0">
+              <AnimatePresence initial={false}>
+                {showDetailPanel ? (
+                  <motion.div
+                    key="detail-panel"
+                    className="flex flex-col gap-4 lg:h-full lg:min-h-0"
+                    initial={{ opacity: 0, x: 28 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 28 }}
+                    transition={{ duration: 0.26, ease: "easeOut" }}
+                  >
+                    <div
+                      className={`${cardClass} p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
+                    >
+                      {drillActive ? (
+                        <div>
+                          <div className="flex items-center justify-between gap-3">
+                            <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+                              <Brain
+                                size={16}
+                                className="text-accent"
+                                aria-hidden="true"
+                              />
+                              Drill Hafalan
+                            </span>
+                            <button
+                              className="inline-flex size-7 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                              type="button"
+                              onClick={closeDrill}
+                              aria-label="Close the drill"
+                            >
+                              <X size={14} aria-hidden="true" />
+                            </button>
+                          </div>
+
+                          {drillComplete ? (
+                            <div className="mt-4 rounded-xl border border-line bg-subtle p-4 text-[13px] text-muted">
+                              <strong className="block text-ink">
+                                Drill complete.
+                              </strong>
+                              You can start another round whenever you are
+                              ready.
+                            </div>
+                          ) : currentDrill ? (
+                            <>
+                              <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
+                                Word {drillIndex + 1} / {drillQueue.length}
+                              </p>
+                              <h3 className="mt-2 text-[30px] leading-tight font-bold tracking-[-0.02em] wrap-anywhere">
+                                {currentDrill.word}
+                              </h3>
+                              {drillFlipped ? (
+                                <>
+                                  <p className="mt-3 border-l-2 border-accent pl-3 text-[13px] leading-relaxed text-ink-soft italic">
+                                    {primaryDefinition(currentDrill) ??
+                                      "No primary definition was saved."}
+                                  </p>
+                                  <div className="mt-4 flex flex-wrap gap-2">
+                                    <button
+                                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-hard px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                                      type="button"
+                                      disabled={actionLoading}
+                                      onClick={() =>
+                                        void answerDrill("forgotten")
+                                      }
+                                    >
+                                      Lupa
+                                    </button>
+                                    <button
+                                      className="inline-flex items-center justify-center gap-2 rounded-lg bg-easy px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                                      type="button"
+                                      disabled={actionLoading}
+                                      onClick={() =>
+                                        void answerDrill("remembered")
+                                      }
+                                    >
+                                      Ingat
+                                    </button>
+                                  </div>
+                                </>
+                              ) : (
+                                <button
+                                  className={`${primaryButton} mt-4 w-full`}
+                                  type="button"
+                                  onClick={() => setDrillFlipped(true)}
+                                >
+                                  Show meaning
+                                </button>
+                              )}
+                            </>
+                          ) : null}
+                        </div>
+                      ) : (
+                        <WordDetail
+                          word={detailWord}
+                          isLoading={Boolean(
+                            selectedName && dictionaryQuery.isLoading,
+                          )}
+                          errorMessage={
+                            selectedName && dictionaryQuery.isError
+                              ? messageFor(
+                                  dictionaryQuery.error,
+                                  "Unable to load dictionary detail.",
+                                )
+                              : null
+                          }
+                          isSaving={Boolean(
+                            detailWord && savingKey === detailWord.word,
+                          )}
+                          onSave={
+                            signedIn && detailWord && !isSavedWord(detailWord)
+                              ? () => void saveSelected()
+                              : undefined
+                          }
+                          onSignIn={!signedIn ? openAuthModal : undefined}
+                        />
+                      )}
+                    </div>
+
+                    {showDrillLauncher ? (
+                      <div className={`${cardClass} shrink-0 p-4`}>
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="flex min-w-0 items-start gap-3">
+                            <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent">
+                              <Sparkles size={17} aria-hidden="true" />
+                            </span>
+                            <div className="min-w-0">
+                              <p className="text-[13px] font-semibold text-ink">
+                                Uji Pemahaman Kata Ini
+                              </p>
+                              <p className="mt-0.5 text-[12px] text-muted">
+                                Latihan kalimat rumpang &amp; flashcard instan
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            className={outlineButton}
+                            type="button"
+                            disabled={actionLoading}
+                            onClick={() => void startDrill()}
+                          >
+                            Start Drill
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </aside>
+          </div>
+
+          <footer
+            className={`${cardClass} flex shrink-0 flex-col gap-2 px-4 py-3 text-[12px] text-muted sm:flex-row sm:items-center sm:justify-between`}
+          >
+            <p className="m-0">
+              <span className="font-semibold text-ink">Billien</span> · Lexical
+              Mastery Platform
+            </p>
+            <p className="m-0">
+              © 2025 Billien. Focused cognitive language acquisition and lexical
+              tracking.
+            </p>
+            <p className="m-0">
+              Definitions by{" "}
+              <a
+                className="font-medium text-accent underline decoration-accent-line hover:decoration-accent"
+                href="https://dictionaryapi.dev"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Free Dictionary API
+              </a>
+            </p>
+          </footer>
+        </div>
       </div>
-    </div>
+
+      <AuthModal
+        open={authOpen && !signedIn}
+        onClose={() => setAuthOpen(false)}
+      />
+    </>
   );
 }
 

@@ -1,6 +1,9 @@
-import { AuthCard } from "@/components/auth-card";
+import { redirect } from "next/navigation";
 
-export default async function SignUpPage({ searchParams }: PageProps<"/auth/sign-up">) {
-  const { next } = await searchParams;
-  return <AuthCard next={typeof next === "string" && next.startsWith("/") ? next : "/"} />;
+/**
+ * Sign-up is the same Google flow as sign-in, which now runs in a modal on the
+ * home page. This route is kept so existing links do not 404.
+ */
+export default function SignUpPage() {
+  redirect("/");
 }
