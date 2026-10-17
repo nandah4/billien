@@ -1,10 +1,17 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse, after } from "next/server";
 import { currentUserId } from "@/lib/auth";
+import {
+  ensureTranslation,
+  hasDictionaryTranslation,
+  readCachedTranslations,
+} from "@/lib/ai-translations";
 import { DictionaryError, lookupWord } from "@/lib/dictionary";
 import { isSupportedLanguage } from "@/lib/language";
 import { normalizeDictionary, projectSavedWordForList } from "@/lib/normalize";
 import { resolveLanguage } from "@/lib/preferences";
 import { listUserWords, saveWordForUser } from "@/lib/user-words";
+
+const MAX_BACKGROUND_TRANSLATIONS = 8;
 
 function errorResponse(error: unknown) {
   console.error(error);
@@ -34,9 +41,52 @@ export async function GET(request: NextRequest) {
 
     const query = request.nextUrl.searchParams.get("q")?.trim() || undefined;
     const words = await listUserWords(userId, query);
-    return NextResponse.json({
-      data: words.map((word) => projectSavedWordForList(word, language)),
+
+    const cached =
+      language === "all"
+        ? new Map<string, { words: string[]; senseIndex: number }>()
+        : await readCachedTranslations(
+            words.map((word) => word.normalized_word),
+            language,
+          );
+
+    const data = words.map((word) => {
+      const projected = projectSavedWordForList(word, language);
+      if (language === "all") return projected;
+      if ((projected.translations[language]?.length ?? 0) > 0) return projected;
+      const ai = cached.get(word.normalized_word);
+      if (!ai) return projected;
+      return {
+        ...projected,
+        translations: { [language]: ai.words },
+      };
     });
+
+    // Fill the gaps for the next load without delaying this response. The
+    // per-word claim keeps this cheap even if several tabs load at once.
+    if (language !== "all") {
+      const missing = words
+        .filter(
+          (word) =>
+            !cached.has(word.normalized_word) &&
+            !hasDictionaryTranslation(word.entries, language),
+        )
+        .slice(0, MAX_BACKGROUND_TRANSLATIONS);
+      if (missing.length > 0) {
+        after(async () => {
+          await Promise.allSettled(
+            missing.map((word) =>
+              ensureTranslation(
+                { word: word.normalized_word, entries: word.entries },
+                language,
+              ),
+            ),
+          );
+        });
+      }
+    }
+
+    return NextResponse.json({ data });
   } catch (error) {
     return errorResponse(error);
   }
@@ -64,6 +114,25 @@ export async function POST(request: NextRequest) {
     }
 
     const saved = await saveWordForUser(userId, normalized);
+
+    // Generate the preferred-language translation in the background so saving
+    // stays fast; the detail request would otherwise pay for it.
+    const language = await resolveLanguage(userId);
+    if (
+      language !== "all" &&
+      !hasDictionaryTranslation(normalized.entries, language)
+    ) {
+      after(async () => {
+        await ensureTranslation(
+          {
+            word: normalized.normalized_word,
+            entries: normalized.entries,
+          },
+          language,
+        );
+      });
+    }
+
     return NextResponse.json(
       { data: saved.word, alreadySaved: saved.alreadySaved },
       { status: saved.alreadySaved ? 200 : 201 },

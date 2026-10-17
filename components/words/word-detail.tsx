@@ -121,6 +121,7 @@ function TagRow({
 type TranslationSense = {
   partOfSpeech: string;
   words: string[];
+  source?: "ai";
 };
 
 function translationSenses(entries: Entry[], language: string) {
@@ -129,7 +130,11 @@ function translationSenses(entries: Entry[], language: string) {
     for (const sense of entry.senses) {
       const words = sense.translations[language];
       if (!words || words.length === 0) continue;
-      out.push({ partOfSpeech: entry.partOfSpeech, words });
+      out.push({
+        partOfSpeech: entry.partOfSpeech,
+        words,
+        source: sense.translationSource,
+      });
       if (out.length >= 6) return out;
     }
   }
@@ -312,7 +317,17 @@ export function WordDetail({
           <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
             Arti / Definisi ({languageLabel(preferredLanguage).toUpperCase()})
           </h3>
-          <Languages size={15} className="text-faint" aria-hidden="true" />
+          <div className="flex items-center gap-2">
+            {translations.some((item) => item.source === "ai") ? (
+              <span
+                className="rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
+                title="Diterjemahkan otomatis, bukan dari kamus"
+              >
+                AI
+              </span>
+            ) : null}
+            <Languages size={15} className="text-faint" aria-hidden="true" />
+          </div>
         </div>
 
         {translations.length > 0 ? (

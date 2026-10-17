@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { currentUserId } from "@/lib/auth";
+import { ensureTranslation, mergeAiTranslation } from "@/lib/ai-translations";
 import { lookupWord } from "@/lib/dictionary";
 import { normalizeDictionary } from "@/lib/normalize";
-import {
-  deleteUserWord,
-  fillWordEntries,
-  getUserWord,
-} from "@/lib/user-words";
+import { resolveLanguage } from "@/lib/preferences";
+import { deleteUserWord, fillWordEntries, getUserWord } from "@/lib/user-words";
 
 export async function GET(
   _request: Request,
@@ -32,6 +30,7 @@ export async function GET(
 
     // Legacy rows are re-fetched once, on first open. A provider failure must
     // never hide the row the user already owns.
+    let word = found.word;
     if (found.needsEntries) {
       try {
         const normalized = normalizeDictionary(
@@ -39,13 +38,27 @@ export async function GET(
         );
         await fillWordEntries(normalized);
         const refreshed = await getUserWord(userId, id);
-        if (refreshed) return NextResponse.json({ data: refreshed.word });
+        if (refreshed) word = refreshed.word;
       } catch (error) {
         console.error("Unable to refresh legacy word entries.", error);
       }
     }
 
-    return NextResponse.json({ data: found.word });
+    // This response carries every language, so the AI fallback only fills the
+    // user's preferred one; the rest stay available from the dictionary.
+    const language = await resolveLanguage(userId);
+    const cached = await ensureTranslation(
+      { word: word.normalized_word, entries: word.entries },
+      language,
+    );
+    if (cached) {
+      word = {
+        ...word,
+        entries: mergeAiTranslation(word.entries, cached, language),
+      };
+    }
+
+    return NextResponse.json({ data: word });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

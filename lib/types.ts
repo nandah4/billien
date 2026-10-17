@@ -27,6 +27,8 @@ export type Sense = {
   antonyms: string[];
   /** Deduplicated words keyed by language code, e.g. `{ id: ["hai", "salam"] }`. */
   translations: Record<string, string[]>;
+  /** Set only when `translations` came from the AI fallback, not the dictionary. */
+  translationSource?: "ai";
 };
 
 export type Entry = {

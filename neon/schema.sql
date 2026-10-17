@@ -43,3 +43,23 @@ create table if not exists public.user_preferences (
   onboarded_at timestamptz,
   updated_at timestamptz not null default now()
 );
+
+-- AI translation fallback (InferHub). Dictionary data always wins; this cache
+-- only fills gaps, including words that were searched but never saved.
+create table if not exists public.ai_translations (
+  normalized_word text not null,
+  language text not null,
+  words text[] not null default '{}',
+  sense_index integer not null default 0,
+  model text not null,
+  prompt_version integer not null default 1,
+  confidence numeric,
+  status text not null default 'done' check (status in ('pending', 'done', 'failed')),
+  attempts integer not null default 0 check (attempts >= 0),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  primary key (normalized_word, language)
+);
+
+create index if not exists ai_translations_language_status_idx
+  on public.ai_translations (language, status);

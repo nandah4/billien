@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUserId } from "@/lib/auth";
+import { ensureTranslation, mergeAiTranslation } from "@/lib/ai-translations";
 import { DictionaryError, lookupWord } from "@/lib/dictionary";
 import { isSupportedLanguage } from "@/lib/language";
 import { normalizeDictionary, projectDictionary } from "@/lib/normalize";
@@ -21,14 +22,25 @@ export async function GET(
           : await resolveLanguage(userId);
 
     const normalized = normalizeDictionary(await lookupWord(word));
-    const result = {
-      word: normalized.word,
-      entries: normalized.entries,
-      source: normalized.source,
-    };
+
+    // Dictionary data wins. Only when the requested language is missing do we
+    // ask the AI fallback, and only for a single language.
+    let entries = normalized.entries;
+    if (language !== "all") {
+      const cached = await ensureTranslation(
+        { word: normalized.normalized_word, entries },
+        language,
+      );
+      entries = mergeAiTranslation(entries, cached, language);
+    }
+
     const response = NextResponse.json({
-      data: projectDictionary(result, language),
+      data: projectDictionary(
+        { word: normalized.word, entries, source: normalized.source },
+        language,
+      ),
     });
+
     // Remember an explicit guest choice so the next request resolves it on the
     // server without a round-trip to the account preferences.
     if (!userId && isSupportedLanguage(requested)) {
