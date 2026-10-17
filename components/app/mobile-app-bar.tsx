@@ -4,24 +4,21 @@ import { AccountControls } from "@/components/app/account-controls";
 
 /**
  * Mobile app bar: brand on the left, account controls on the right. Fixed to
- * the top edge like a native title bar; the desktop header is hidden below
- * `lg` and the bottom navigation owns view switching there.
+ * the top edge like a native title bar.
+ *
+ * The account menu is intentionally absent here: the bottom navigation already
+ * links to Profile, which owns sign out, so a second entry point would just add
+ * clutter to a 56px bar.
  */
 export function MobileAppBar({
   signedIn,
   isSessionPending,
-  sessionLabel,
   streak,
-  actionLoading,
-  onSignOut,
   onSignIn,
 }: {
   signedIn: boolean;
   isSessionPending: boolean;
-  sessionLabel: string;
   streak: number;
-  actionLoading: boolean;
-  onSignOut: () => void;
   onSignIn: () => void;
 }) {
   return (
@@ -38,12 +35,13 @@ export function MobileAppBar({
         <AccountControls
           signedIn={signedIn}
           isSessionPending={isSessionPending}
-          sessionLabel={sessionLabel}
+          sessionLabel=""
           streak={streak}
-          actionLoading={actionLoading}
-          onSignOut={onSignOut}
+          actionLoading={false}
+          onSignOut={() => {}}
           onSignIn={onSignIn}
           size="md"
+          showMenu={false}
         />
       </div>
     </header>

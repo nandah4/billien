@@ -14,7 +14,6 @@ export type LibraryWord = {
 };
 
 export const PAGE_SIZE = 8;
-export const DRILL_SIZE = 5;
 
 export const SORT_OPTIONS: { id: SortId; label: string }[] = [
   { id: "recent", label: "Newest" },

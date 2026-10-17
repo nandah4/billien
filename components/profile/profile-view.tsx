@@ -5,18 +5,79 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Flame,
   Languages,
   LogOut,
+  Mail,
+  BookMarked,
   UserRound,
 } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { messageFor, request, type ApiEnvelope } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
-import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
+
+/** Rows share one height so each grouped card reads as a single table. */
+const rowClass =
+  "flex w-full items-center gap-3 px-4 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+
+function SectionCard({
+  title,
+  children,
+}: {
+  title?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-5">
+      {title ? (
+        <h2 className="mb-1.5 px-1 text-[11px] font-semibold tracking-wider text-muted uppercase">
+          {title}
+        </h2>
+      ) : null}
+      <div className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line bg-surface">
+        {children}
+      </div>
+    </section>
+  );
+}
+
+function RowIcon({ icon: Icon }: { icon: typeof Languages }) {
+  return (
+    <span className="inline-flex size-7 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
+      <Icon size={15} aria-hidden="true" />
+    </span>
+  );
+}
+
+function ValueRow({
+  icon,
+  label,
+  value,
+  wrap = false,
+}: {
+  icon: typeof Languages;
+  label: string;
+  value: string;
+  wrap?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      <RowIcon icon={icon} />
+      <span className="min-w-0 flex-1 text-[14px] text-ink">{label}</span>
+      <span
+        className={`max-w-[55%] text-right text-[13px] text-muted ${
+          wrap ? "wrap-anywhere" : "truncate"
+        }`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
 
 export function ProfileView({
   user,
@@ -32,18 +93,22 @@ export function ProfileView({
   const [language, setLanguage] = useState(() =>
     normalizeLanguage(preferences.translationLanguage),
   );
-  const [savedLanguage, setSavedLanguage] = useState(() =>
-    normalizeLanguage(preferences.translationLanguage),
-  );
-  const [saving, setSaving] = useState(false);
+  const [savingLanguage, setSavingLanguage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const dirty = language !== savedLanguage;
+  const initial = (user.name.trim() || user.email.trim() || "?")
+    .charAt(0)
+    .toUpperCase();
 
-  async function save() {
-    setSaving(true);
+  // Selecting a language applies immediately, the way an OS settings screen
+  // behaves, so there is no separate save button to forget.
+  async function selectLanguage(code: string) {
+    if (code === language || savingLanguage) return;
+    const previous = language;
+    setLanguage(code);
+    setSavingLanguage(code);
     setStatus(null);
     setError(null);
     try {
@@ -52,31 +117,30 @@ export function ProfileView({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ translationLanguage: language }),
+          body: JSON.stringify({ translationLanguage: code }),
         },
       );
       queryClient.setQueryData<ApiEnvelope<UserPreferences>>(
         ["preferences"],
-        (previous) =>
-          previous
-            ? { ...previous, data: response.data }
+        (current) =>
+          current
+            ? { ...current, data: response.data }
             : { data: response.data },
       );
-      // The list projection is language-specific, so it must be refetched.
-      await queryClient.invalidateQueries({
-        queryKey: ["remembered-words"],
-      });
-      setSavedLanguage(response.data.translationLanguage);
-      setStatus("Language preference saved.");
+      // The Remembered list is projected per language, so refetch it.
+      await queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
+      setStatus("Translation language updated.");
     } catch (requestError) {
+      setLanguage(previous);
       setError(messageFor(requestError, "Unable to save your preference."));
     } finally {
-      setSaving(false);
+      setSavingLanguage(null);
     }
   }
 
   async function signOut() {
     setSigningOut(true);
+    setError(null);
     try {
       await authClient.signOut();
       queryClient.clear();
@@ -89,162 +153,135 @@ export function ProfileView({
   }
 
   return (
-    <main className="grid-pattern min-h-dvh bg-canvas px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-2xl">
+    <main className="min-h-dvh bg-canvas pb-10">
+      <div className="mx-auto w-full max-w-xl px-4 pt-3 sm:px-6">
+        {/* iOS-style back control: chevron plus a short label. */}
         <Link
-          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-accent transition hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="-ml-2 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           href="/"
         >
-          <ArrowLeft size={14} aria-hidden="true" />
-          Back to home
+          <ChevronLeft size={22} aria-hidden="true" />
+          <span className="text-[15px] font-medium">Back</span>
         </Link>
 
-        <header className="mt-4">
-          <h1 className="text-[22px] leading-tight font-bold tracking-[-0.02em] text-ink">
-            Profile
-          </h1>
-          <p className="mt-1 text-[13px] text-muted">
-            Manage your translation language and review your learning summary.
-          </p>
-        </header>
-
-        <div className={`${cardClass} mt-5 p-5 sm:p-6`}>
-          <section aria-labelledby="profile-language">
-            <div className="flex items-center gap-2">
-              <Languages size={16} className="text-accent" aria-hidden="true" />
-              <h2
-                id="profile-language"
-                className="text-[14px] font-semibold text-ink"
-              >
-                Translation language
-              </h2>
-            </div>
-            <p className="mt-1 text-[12px] text-muted">
-              Word details show the meaning in this language.
-            </p>
-
-            <div
-              className="mt-3 grid gap-2"
-              role="radiogroup"
-              aria-label="Translation language"
+        {/* Banner with a fixed height; the avatar is centred on its bottom edge. */}
+        <div className="relative mt-2">
+          <div className="profile-banner h-32 rounded-xl border border-accent-line" />
+          <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
+            <span
+              className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
+              aria-hidden="true"
             >
-              {LANGUAGES.map((item) => {
-                const active = language === item.code;
-                return (
-                  <label
-                    key={item.code}
-                    className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${
-                      active
-                        ? "border-accent bg-accent-soft"
-                        : "border-line bg-surface hover:bg-hover"
-                    }`}
-                  >
-                    <input
-                      className="size-4 shrink-0 accent-accent"
-                      type="radio"
-                      name="profile-language"
-                      value={item.code}
-                      checked={active}
-                      onChange={() => setLanguage(item.code)}
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-[13px] font-semibold text-ink">
-                        {item.nativeName}
-                      </span>
-                      <span className="mt-0.5 block text-[12px] text-muted">
-                        {item.name} · example: {item.sample}
-                      </span>
-                    </span>
-                    {active ? (
-                      <Check
-                        size={16}
-                        className="shrink-0 text-accent"
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                  </label>
-                );
-              })}
-            </div>
-
-            {error ? (
-              <p
-                className="mt-4 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
-                role="alert"
-              >
-                {error}
-              </p>
-            ) : null}
-            {status ? (
-              <p className="mt-4 text-[12px] text-easy" role="status">
-                {status}
-              </p>
-            ) : null}
-
-            <button
-              className={`${primaryButton} mt-4 w-full sm:w-auto`}
-              type="button"
-              disabled={saving || !dirty}
-              onClick={() => void save()}
-            >
-              {saving ? "Saving…" : "Save preferences"}
-            </button>
-          </section>
-
-          <section
-            className="mt-6 border-t border-line pt-5"
-            aria-labelledby="profile-account"
-          >
-            <div className="flex items-center gap-2">
-              <UserRound size={16} className="text-faint" aria-hidden="true" />
-              <h2
-                id="profile-account"
-                className="text-[14px] font-semibold text-ink"
-              >
-                Account
-              </h2>
-            </div>
-            <dl className="mt-3 grid grid-cols-1 gap-3 text-[12px] sm:grid-cols-2">
-              <div>
-                <dt className="text-muted">Name</dt>
-                <dd className="mt-0.5 font-semibold text-ink">
-                  {user.name || "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted">Email</dt>
-                <dd className="mt-0.5 font-semibold text-ink wrap-anywhere">
-                  {user.email || "—"}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted">Saved words</dt>
-                <dd className="mt-0.5 font-semibold text-ink">
-                  {summary.savedCount}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-muted">Current streak</dt>
-                <dd className="mt-0.5 inline-flex items-center gap-1 font-semibold text-ink">
-                  <Flame size={13} className="text-medium" aria-hidden="true" />
-                  {summary.currentStreak}
-                </dd>
-              </div>
-            </dl>
-          </section>
-
-          <section className="mt-6 border-t border-line pt-5">
-            <button
-              className={outlineButton}
-              type="button"
-              disabled={signingOut}
-              onClick={() => void signOut()}
-            >
-              <LogOut size={15} aria-hidden="true" />
-              {signingOut ? "Signing out…" : "Sign out"}
-            </button>
-          </section>
+              {initial}
+            </span>
+          </div>
         </div>
+
+        <div className="mt-14 text-center">
+          <h1 className="text-[20px] leading-tight font-semibold text-ink wrap-anywhere">
+            {user.name || "Your account"}
+          </h1>
+          <p className="mt-0.5 text-[13px] text-muted wrap-anywhere">
+            {user.email}
+          </p>
+        </div>
+
+        {error ? (
+          <p
+            className="mt-4 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
+            role="alert"
+          >
+            {error}
+          </p>
+        ) : null}
+        {status ? (
+          <p className="mt-4 text-center text-[12px] text-easy" role="status">
+            {status}
+          </p>
+        ) : null}
+
+        <SectionCard title="Account">
+          <ValueRow icon={UserRound} label="Name" value={user.name || "—"} />
+          <ValueRow icon={Mail} label="Email" value={user.email || "—"} wrap />
+        </SectionCard>
+
+        <SectionCard title="Translation language">
+          <div role="radiogroup" aria-label="Translation language">
+            {LANGUAGES.map((item) => {
+              const active = language === item.code;
+              const pending = savingLanguage === item.code;
+              return (
+                <label
+                  key={item.code}
+                  className={`${rowClass} cursor-pointer hover:bg-hover ${
+                    pending ? "opacity-60" : ""
+                  }`}
+                >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="profile-language"
+                    value={item.code}
+                    checked={active}
+                    disabled={savingLanguage !== null}
+                    onChange={() => void selectLanguage(item.code)}
+                  />
+                  <RowIcon icon={Languages} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] text-ink">
+                      {item.nativeName}
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-muted">
+                      {item.name} · {item.sample}
+                    </span>
+                  </span>
+                  {active ? (
+                    <Check
+                      size={17}
+                      className="shrink-0 text-accent"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <ChevronRight
+                      size={17}
+                      className="shrink-0 text-faint"
+                      aria-hidden="true"
+                    />
+                  )}
+                </label>
+              );
+            })}
+          </div>
+        </SectionCard>
+
+        <SectionCard title="Progress">
+          <ValueRow
+            icon={BookMarked}
+            label="Saved words"
+            value={String(summary.savedCount)}
+          />
+          <ValueRow
+            icon={Flame}
+            label="Current streak"
+            value={`${summary.currentStreak} ${
+              summary.currentStreak === 1 ? "day" : "days"
+            }`}
+          />
+        </SectionCard>
+
+        <SectionCard>
+          <button
+            className={`${rowClass} justify-center font-semibold text-hard hover:bg-hard-soft/40 disabled:cursor-not-allowed disabled:opacity-50`}
+            type="button"
+            disabled={signingOut}
+            onClick={() => void signOut()}
+          >
+            <LogOut size={16} aria-hidden="true" />
+            <span className="text-[14px]">
+              {signingOut ? "Signing out…" : "Sign out"}
+            </span>
+          </button>
+        </SectionCard>
       </div>
     </main>
   );

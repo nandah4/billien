@@ -45,7 +45,7 @@ Status of the dictionary v2 execution in [`plan-dictionary-v2.md`](./plan-dictio
 - [x] **F-03** Optimistic un-save with rollback and inline confirmation.
 - [x] **F-04** Detail fetches all languages via `GET /api/words/[id]`.
 - [x] **F-05** Skeleton, empty, filtered-empty, error, and sign-in states.
-- [x] **F-06** Drills scoped to the active filter result (`?ids=`).
+- [x] **F-06** Drill endpoints kept server-side (`GET /api/review?ids=`), but the drill UI was removed from the detail panel.
 
 ### Cleanup
 
@@ -54,6 +54,8 @@ Status of the dictionary v2 execution in [`plan-dictionary-v2.md`](./plan-dictio
 - [x] **E-03** README and this roadmap updated.
 
 ## Expected next
+
+- Active Recall (`docs/plan-active-recall.md`) replaces the removed flashcard drill.
 
 - Browser QA on Chrome/Safari for `speechSynthesis` voices and the modal focus trap.
 - Add more selectable languages to `lib/language.ts` once translations are verified for them.

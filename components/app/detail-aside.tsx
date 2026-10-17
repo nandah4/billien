@@ -1,8 +1,6 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { DrillLauncher } from "@/components/drill/drill-launcher";
-import { DrillPanel } from "@/components/drill/drill-panel";
 import { Modal } from "@/components/ui/modal";
 import { WordDetail } from "@/components/words/word-detail";
 import { useIsDesktop } from "@/hooks/use-media-query";
@@ -11,7 +9,6 @@ import { cardClass } from "@/lib/ui";
 
 type DetailProps = {
   open: boolean;
-  drillActive: boolean;
   detail: {
     word: SavedWord | DictionaryResult | null;
     preferredLanguage: string;
@@ -24,43 +21,10 @@ type DetailProps = {
     onSignIn?: () => void;
     onRetry?: () => void;
   };
-  drill: {
-    current: SavedWord | null;
-    index: number;
-    total: number;
-    flipped: boolean;
-    complete: boolean;
-    loading: boolean;
-    onFlip: () => void;
-    onAnswer: (result: "remembered" | "forgotten") => void;
-    onClose: () => void;
-  };
-  launcher: {
-    visible: boolean;
-    loading: boolean;
-    count: number;
-    onStart: () => void;
-  };
   onClose: () => void;
 };
 
-function DetailBody({ drillActive, detail, drill, onClose }: DetailProps) {
-  if (drillActive) {
-    return (
-      <DrillPanel
-        current={drill.current}
-        index={drill.index}
-        total={drill.total}
-        flipped={drill.flipped}
-        complete={drill.complete}
-        loading={drill.loading}
-        onFlip={drill.onFlip}
-        onAnswer={drill.onAnswer}
-        onClose={drill.onClose}
-      />
-    );
-  }
-
+function DetailBody({ detail, onClose }: DetailProps) {
   return (
     <WordDetail
       key={detail.word?.word ?? "empty"}
@@ -75,17 +39,6 @@ function DetailBody({ drillActive, detail, drill, onClose }: DetailProps) {
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}
       onClose={onClose}
-    />
-  );
-}
-
-function Launcher({ launcher }: { launcher: DetailProps["launcher"] }) {
-  if (!launcher.visible) return null;
-  return (
-    <DrillLauncher
-      loading={launcher.loading}
-      count={launcher.count}
-      onStart={launcher.onStart}
     />
   );
 }
@@ -111,11 +64,6 @@ export function DetailAside(props: DetailProps) {
       >
         <div className="max-h-[85dvh] overflow-y-auto overscroll-contain p-4">
           <DetailBody {...props} />
-          {props.launcher.visible ? (
-            <div className="mt-4">
-              <Launcher launcher={props.launcher} />
-            </div>
-          ) : null}
         </div>
       </Modal>
     );
@@ -138,7 +86,6 @@ export function DetailAside(props: DetailProps) {
             >
               <DetailBody {...props} />
             </div>
-            <Launcher launcher={props.launcher} />
           </motion.div>
         ) : null}
       </AnimatePresence>

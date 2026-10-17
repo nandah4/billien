@@ -42,10 +42,7 @@ export function AppHeader({
       <MobileAppBar
         signedIn={signedIn}
         isSessionPending={isSessionPending}
-        sessionLabel={sessionLabel}
         streak={streak}
-        actionLoading={actionLoading}
-        onSignOut={onSignOut}
         onSignIn={onSignIn}
       />
 

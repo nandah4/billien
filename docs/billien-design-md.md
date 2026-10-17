@@ -153,9 +153,11 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
   - Deskripsi `Lexical Mastery Platform` — 10px / `500` / `#64748B`.
 - **Kanan**:
   - **Guest** → tombol `Sign in`: ikon `LogIn` 15px + label 13px/`600`, tinggi `40px`, `rounded-lg`, `border` `#E4E4E7`, latar putih.
-  - **Signed in** → pill streak (ikon `Flame` 13px + angka 12px/`600`, `bg #FEF3C7`, `text #D97706`, `rounded-full`, tinggi `40px`) + tombol menu `MoreHorizontal` `40×40`.
-  - **Session pending** → dua placeholder `animate-pulse` dengan ukuran sama agar bar tidak melompat.
-- Menu akun muncul sebagai dropdown `w-56` di bawah tombol menu: identitas (nama + "Signed in"), `Profile`, lalu `Sign out`.
+  - **Signed in** → pill streak saja (ikon `Flame` 13px + angka 12px/`600`, `bg #FEF3C7`, `text #D97706`, `rounded-full`, tinggi `40px`). **Tidak ada tombol 3 titik / menu akun di app bar mobile**: menu `Profile` sudah tersedia di bottom navigation, dan `Sign out` dipindahkan ke halaman Profile agar bar tetap ringkas dan tidak ada dua jalur ke aksi yang sama.
+  - **Session pending** → satu placeholder `animate-pulse` untuk pill streak.
+
+* Menu akun (dropdown `w-56` berisi identitas, `Profile`, dan `Sign out`) hanya ada di header desktop.
+
 - **Tidak ada segmented menu di app bar**; perpindahan view milik bottom navigation.
 
 #### E.2 Bottom Navigation (bawah, tinggi `56px` + safe area)
@@ -209,7 +211,9 @@ Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus aga
 
 ### F. Detail Words Panel
 
-Panel kanan (desktop) atau blok di bawah daftar (mobile). Semua kartu di dalam panel memakai `rounded-lg` (`8px`) dan chip memakai `rounded-md` (`6px`) — tidak ada `rounded-full` kecuali status pill prioritas.
+Panel kanan (desktop) atau dialog (mobile). Semua kartu di dalam panel memakai `rounded-lg` (`8px`) dan chip memakai `rounded-md` (`6px`) — tidak ada `rounded-full` kecuali status pill prioritas.
+
+Panel **tidak** memuat kartu ajakan drill; fitur drill dihapus dari detail kata.
 
 #### F.1 Urutan Blok
 
@@ -240,6 +244,34 @@ Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`
 - **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
 - **Status hafalan**: kartu `bg #FAFAFA`, ikon `CheckCircle2` `#16A34A`, riwayat sebagai `dl` dua kolom 12px, konfirmasi hapus inline (bukan `window.confirm`).
 - **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
+
+### G. Profile Page
+
+Halaman `/profile`, satu kolom, `max-w-xl`, memakai pola menu pengaturan OS (Apple Settings), bukan form panjang.
+
+#### G.1 Struktur
+
+1. **Tombol kembali** — gaya iOS: ikon `ChevronLeft` 22px + label `Back` 15px/`500` `#7C3AED`, tinggi `40px`, `hover:bg-hover`; bukan tombol persegi bergaris.
+2. **Banner** — tinggi tetap `128px` (`h-32`), `rounded-xl`, `border-accent-line`, latar `#F5F3FF` dengan pola titik (`radial-gradient` 1px `#DDD6FE`, grid `16px`, opacity turun ke bawah lewat mask). Pola ada di pseudo-element sehingga tidak menangkap klik.
+3. **Avatar** — lingkaran `72px` (`size-18`) berisi huruf pertama nama (fallback: email, lalu `?`), huruf 26px/`600` `#7C3AED`, `bg #FFFFFF`, `border-line`, `shadow-sm`. Diposisikan `absolute` di tengah horizontal pada tepi bawah banner dengan `translate-y-1/2`, sehingga separuh berada di banner dan separuh di atas konten.
+4. **Identitas** — nama 20px/`600` dan email 13px `#64748B`, rata tengah, jarak atas `56px` (`mt-14`) agar tidak menabrak avatar.
+5. **Grup menu** — setiap grup adalah kartu putih terpisah.
+
+#### G.2 Grup Menu
+
+Setiap grup: `mt-5`, judul 11px/`600` uppercase `#64748B`, lalu kartu `rounded-xl` `border #E4E4E7` `bg #FFFFFF` dengan `divide-y` `#F1F5F9`. Baris setinggi `~52px` (`px-4 py-3`), ikon 15px di dalam kotak `28px` `rounded-md` `bg #F5F3FF` `text #7C3AED`, label 14px `#09090B`, nilai 13px `#64748B` rata kanan.
+
+| Grup          | Baris                                                 |
+| ------------- | ----------------------------------------------------- |
+| Account       | Name, Email                                           |
+| Translation   | satu baris per bahasa + tanda centang pada yang aktif |
+| Progress      | Saved words, Current streak                           |
+| (tanpa judul) | Sign out (teks `#DC2626`, rata tengah, tanpa chevron) |
+
+- Pemilihan bahasa **langsung tersimpan** saat baris di-tap (perilaku OS settings), tanpa tombol simpan. Saat request berjalan, baris yang dipilih diredupkan dan semua radio dinonaktifkan; bila gagal, pilihan dikembalikan ke nilai sebelumnya dan error tampil sebagai `role="alert"`.
+- Radio memakai input native yang disembunyikan (`sr-only`) di dalam `<label>` sehingga keyboard dan pembaca layar tetap bekerja; fokus terlihat lewat `focus-within`/`focus-visible` pada baris.
+- `Sign out` hanya ada di halaman ini pada mobile; header desktop tetap punya menu akun.
+- Konfirmasi sign out tidak diperlukan, tetapi tombol harus disabled dan berlabel `Signing out…` selama proses.
 
 ---
 
@@ -287,7 +319,7 @@ Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`
 │   ├── [Brand] (Billien + Lexical Mastery Platform)
 │   └── [Account Controls]
 │       ├── [Guest] Sign in button
-│       └── [Signed in] Streak pill + Account menu (Profile, Sign out)
+│       └── [Signed in] Streak pill (tanpa menu akun; Sign out ada di Profile)
 ├── [Content] (.flex-1 .flex .flex-col .gap-4)
 │   └── [Word List Card] (search, filter chips, rows, pagination)
 │       └── [Detail Words] (dialog modal di atas daftar saat kata dipilih)

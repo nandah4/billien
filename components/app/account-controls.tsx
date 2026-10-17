@@ -19,6 +19,7 @@ export function AccountControls({
   onSignOut,
   onSignIn,
   size = "sm",
+  showMenu = true,
 }: {
   signedIn: boolean;
   isSessionPending: boolean;
@@ -28,6 +29,11 @@ export function AccountControls({
   onSignOut: () => void;
   onSignIn: () => void;
   size?: "sm" | "md";
+  /**
+   * The mobile app bar hides the menu because the bottom navigation already
+   * links to Profile, which owns sign out. Guests still get a sign-in button.
+   */
+  showMenu?: boolean;
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -68,7 +74,11 @@ export function AccountControls({
         <span
           className={`${placeholder} w-14 animate-pulse rounded-full bg-subtle`}
         />
-        <span className={`${placeholder} animate-pulse rounded-lg bg-subtle`} />
+        {showMenu ? (
+          <span
+            className={`${placeholder} animate-pulse rounded-lg bg-subtle`}
+          />
+        ) : null}
       </div>
     );
   }
@@ -100,60 +110,66 @@ export function AccountControls({
         {streak}
       </span>
 
-      <button
-        ref={triggerRef}
-        className={`inline-flex ${iconButton} items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`}
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={menuOpen}
-        aria-controls="account-menu"
-        aria-label="Account menu"
-        onClick={() => setMenuOpen((open) => !open)}
-      >
-        <MoreHorizontal size={18} aria-hidden="true" />
-      </button>
-
-      {menuOpen ? (
-        <div
-          ref={menuRef}
-          id="account-menu"
-          role="menu"
-          aria-label="Account"
-          className="absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border border-line bg-surface p-1.5 shadow-lg"
-        >
-          <div className="flex items-center gap-2 rounded-lg px-2 py-2">
-            <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-faint">
-              <UserRound size={16} aria-hidden="true" />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-[12px] font-semibold text-ink">
-                {sessionLabel}
-              </span>
-              <span className="block text-[11px] text-muted">Signed in</span>
-            </span>
-          </div>
-          <div className="my-1 h-px bg-line" aria-hidden="true" />
-          <Link
-            className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            href="/profile"
-            role="menuitem"
-            onClick={() => setMenuOpen(false)}
-          >
-            <UserRound size={15} aria-hidden="true" />
-            Profile
-          </Link>
-          <div className="my-1 h-px bg-line" aria-hidden="true" />
+      {showMenu ? (
+        <>
           <button
-            className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] font-semibold text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            ref={triggerRef}
+            className={`inline-flex ${iconButton} items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus`}
             type="button"
-            role="menuitem"
-            disabled={actionLoading}
-            onClick={signOut}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-controls="account-menu"
+            aria-label="Account menu"
+            onClick={() => setMenuOpen((open) => !open)}
           >
-            <LogOut size={15} aria-hidden="true" />
-            Sign out
+            <MoreHorizontal size={18} aria-hidden="true" />
           </button>
-        </div>
+
+          {menuOpen ? (
+            <div
+              ref={menuRef}
+              id="account-menu"
+              role="menu"
+              aria-label="Account"
+              className="absolute top-full right-0 z-20 mt-2 w-56 rounded-xl border border-line bg-surface p-1.5 shadow-lg"
+            >
+              <div className="flex items-center gap-2 rounded-lg px-2 py-2">
+                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-faint">
+                  <UserRound size={16} aria-hidden="true" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-[12px] font-semibold text-ink">
+                    {sessionLabel}
+                  </span>
+                  <span className="block text-[11px] text-muted">
+                    Signed in
+                  </span>
+                </span>
+              </div>
+              <div className="my-1 h-px bg-line" aria-hidden="true" />
+              <Link
+                className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                href="/profile"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+              >
+                <UserRound size={15} aria-hidden="true" />
+                Profile
+              </Link>
+              <div className="my-1 h-px bg-line" aria-hidden="true" />
+              <button
+                className="inline-flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] font-semibold text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                type="button"
+                role="menuitem"
+                disabled={actionLoading}
+                onClick={signOut}
+              >
+                <LogOut size={15} aria-hidden="true" />
+                Sign out
+              </button>
+            </div>
+          ) : null}
+        </>
       ) : null}
     </div>
   );

@@ -10,7 +10,6 @@ import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { LanguageModal } from "@/components/preferences/language-modal";
 import { WordListPanel } from "@/components/words/word-list-panel";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
-import { useDrill } from "@/hooks/use-drill";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import {
   dictionaryQueryOptions,
@@ -75,11 +74,6 @@ export function EnWordsApp() {
     preferencesQuery.data?.translationLanguage ?? DEFAULT_LANGUAGE;
 
   const library = useWordLibrary(signedIn, preferredLanguage);
-  const drill = useDrill({
-    signedIn,
-    onRequireAuth: openAuthModal,
-    onNotice: setNotice,
-  });
 
   const dictionaryQuery = useQuery({
     ...dictionaryQueryOptions(lookupWord ?? "", preferredLanguage),
@@ -149,8 +143,7 @@ export function EnWordsApp() {
   const selectedKey =
     activeSavedWord?.normalized_word ?? activeDictionaryWord ?? null;
   const showDetailPanel =
-    drill.active || activeSavedId !== null || activeDictionaryWord !== null;
-  const showDrillLauncher = view === "remembered" && signedIn && !drill.active;
+    activeSavedId !== null || activeDictionaryWord !== null;
   const showSignInPrompt = view === "remembered" && !signedIn;
   const queryTrimmed = query.trim();
   const queryValid =
@@ -192,25 +185,15 @@ export function EnWordsApp() {
     preferencesQuery.isSuccess &&
     preferencesQuery.data.onboardedAt === null;
 
-  const drillIds = useMemo(
-    () =>
-      visibleItems
-        .map((item) => item.savedWord?.id)
-        .filter((id): id is string => Boolean(id))
-        .slice(0, 50),
-    [visibleItems],
-  );
-
   function openAuthModal() {
     setAuthOpen(true);
   }
 
-  /** Closes the detail surface and any drill running inside it. */
+  /** Closes the detail surface. */
   function closeDetail() {
     setSelectedName(null);
     setSelectedSavedWord(null);
     setSelectedSavedId(null);
-    if (drill.active) drill.close();
   }
 
   /** Opens the searched word, preferring its saved record when one exists. */
@@ -288,7 +271,6 @@ export function EnWordsApp() {
       queryClient.removeQueries({ queryKey: ["remembered-words"] });
       queryClient.removeQueries({ queryKey: ["streak"] });
       queryClient.removeQueries({ queryKey: ["preferences"] });
-      drill.close();
       setAuthOpen(false);
       setSelectedSavedWord(null);
       setSelectedSavedId(null);
@@ -458,7 +440,6 @@ export function EnWordsApp() {
 
             <DetailAside
               open={showDetailPanel}
-              drillActive={drill.active}
               detail={{
                 word: detailWord,
                 preferredLanguage,
@@ -480,23 +461,6 @@ export function EnWordsApp() {
                   if (activeSavedId) void savedDetailQuery.refetch();
                   else if (lookupWord) void dictionaryQuery.refetch();
                 },
-              }}
-              drill={{
-                current: drill.current,
-                index: drill.index,
-                total: drill.total,
-                flipped: drill.flipped,
-                complete: drill.complete,
-                loading: drill.loading,
-                onFlip: drill.flip,
-                onAnswer: (result) => void drill.answer(result),
-                onClose: drill.close,
-              }}
-              launcher={{
-                visible: showDrillLauncher,
-                loading: drill.loading,
-                count: drillIds.length,
-                onStart: () => void drill.start(drillIds),
               }}
               onClose={closeDetail}
             />
