@@ -5,8 +5,6 @@ import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
 import { WordRow } from "@/components/words/word-row";
 import {
   SORT_OPTIONS,
-  type FilterId,
-  type FilterOption,
   type LibraryWord,
   type SortId,
   type View,
@@ -29,7 +27,6 @@ function ListSkeleton() {
 export function WordListPanel({
   view,
   search,
-  filters,
   sort,
   items,
   pagination,
@@ -39,6 +36,7 @@ export function WordListPanel({
   showSignInPrompt,
   hasAnyItems,
   isDiscoveryIdle,
+  isDiscoveryTooShort,
   savedCount,
   selectedKey,
   savingKey,
@@ -58,11 +56,6 @@ export function WordListPanel({
     onChange: (value: string) => void;
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   };
-  filters: {
-    items: FilterOption[];
-    active: FilterId;
-    onChange: (id: FilterId) => void;
-  };
   sort: SortId;
   items: LibraryWord[];
   pagination: {
@@ -78,6 +71,7 @@ export function WordListPanel({
   showSignInPrompt: boolean;
   hasAnyItems: boolean;
   isDiscoveryIdle: boolean;
+  isDiscoveryTooShort: boolean;
   savedCount: number;
   selectedKey: string | null;
   savingKey: string | null;
@@ -91,7 +85,6 @@ export function WordListPanel({
   onRetry: () => void;
   onGoToDiscovery: () => void;
 }) {
-  const normalizedQuery = search.value.trim().toLowerCase();
   const filteredEmpty = !isLoading && items.length === 0 && hasAnyItems;
 
   return (
@@ -122,46 +115,21 @@ export function WordListPanel({
                 : "Search an English word"
             }
           />
-          {normalizedQuery ? (
-            <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-medium text-accent">
-              Filter: &ldquo;{search.value.trim()}&rdquo;
-              <button
-                className="inline-flex items-center justify-center rounded-full transition hover:text-accent-hover focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
-                type="button"
-                onClick={() => search.onChange("")}
-                aria-label="Clear the search filter"
-              >
-                <X size={12} aria-hidden="true" />
-              </button>
-            </span>
+          {search.value ? (
+            <button
+              className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-faint transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
+              type="button"
+              onClick={() => search.onChange("")}
+              aria-label="Hapus pencarian"
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
           ) : null}
         </form>
 
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          {filters.items.map((item) => {
-            const active = filters.active === item.id;
-            return (
-              <button
-                key={item.id}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:py-1.5 ${
-                  active
-                    ? "border-primary bg-primary text-surface"
-                    : "border-line bg-surface text-muted hover:bg-hover"
-                }`}
-                type="button"
-                aria-pressed={active}
-                onClick={() => filters.onChange(item.id)}
-              >
-                {item.label}
-                <span className={active ? "text-surface/70" : "text-faint"}>
-                  {item.count}
-                </span>
-              </button>
-            );
-          })}
-
-          {view === "remembered" ? (
-            <label className="ml-auto inline-flex items-center gap-2 text-[11px] font-medium text-muted">
+        {view === "remembered" ? (
+          <div className="mt-3 flex items-center justify-end">
+            <label className="inline-flex items-center gap-2 text-[11px] font-medium text-muted">
               Urutkan
               <select
                 className="h-9 rounded-lg border border-line bg-surface px-2 text-[12px] font-medium text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -176,8 +144,8 @@ export function WordListPanel({
                 ))}
               </select>
             </label>
-          ) : null}
-        </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
@@ -223,9 +191,13 @@ export function WordListPanel({
           <ListSkeleton />
         ) : isDiscoveryIdle ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Ketik kata bahasa Inggris di kolom pencarian lalu tekan Enter.
+            Ketik kata bahasa Inggris di kolom pencarian.
             <br />
-            Hasilnya akan muncul di sini.
+            Hasilnya muncul otomatis tanpa perlu menekan Enter.
+          </div>
+        ) : isDiscoveryTooShort ? (
+          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
+            Ketik kata bahasa Inggris, minimal 2 huruf dan tanpa angka.
           </div>
         ) : filteredEmpty ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  filterItems,
   paginate,
+  searchItems,
   sortItems,
   type LibraryWord,
 } from "../lib/library.ts";
@@ -55,23 +55,24 @@ function word(
 
 test("search matches the preferred-language translation", () => {
   const items = [word("hello", ["halo"]), word("run", ["lari"])];
-  const result = filterItems(items, { query: "halo", filter: "all" });
+  const result = searchItems(items, "halo");
   assert.deepEqual(
-    result.map((item) => item.word),
+    result.map((item: LibraryWord) => item.word),
     ["hello"],
   );
 });
 
-test("filter combines with the search term", () => {
+test("search also matches the English headword", () => {
   const items = [word("hello", ["halo"]), word("run", ["lari"])];
-  assert.equal(
-    filterItems(items, { query: "la", filter: "noun" }).length,
-    1,
+  assert.deepEqual(
+    searchItems(items, "ru").map((item: LibraryWord) => item.word),
+    ["run"],
   );
-  assert.equal(
-    filterItems(items, { query: "la", filter: "verb" }).length,
-    0,
-  );
+});
+
+test("an empty search returns everything", () => {
+  const items = [word("hello", ["halo"]), word("run", ["lari"])];
+  assert.equal(searchItems(items, "   ").length, 2);
 });
 
 test("sort orders by date, alphabet, and review count", () => {

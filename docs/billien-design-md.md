@@ -181,6 +181,26 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 - Tombol hapus pada baris selalu terlihat di mobile (tidak bergantung hover).
 - Modal (auth, onboarding bahasa) memakai `max-w` dengan margin `16px` dan boleh di-scroll bila melebihi tinggi layar.
 
+#### E.4 Search Field (tanpa tombol submit)
+
+Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak perlu menekan Enter**.
+
+- **Bentuk**: `rounded-lg`, ikon `Search` 16px di kiri, tinggi `40px` di mobile / `36px` di desktop, `bg-subtle` → `bg-surface` saat fokus dengan `border-accent`.
+- **Font**: `16px` di mobile (mencegah auto-zoom iOS), `13px` di desktop.
+- **Tombol clear**: ikon `X` 14px dalam bulatan `24px`, hanya muncul saat field berisi; `aria-label="Hapus pencarian"`.
+- **Debounce**: `450ms` setelah ketikan terakhir.
+- **Validasi**: minimal `2` karakter dan hanya `[a-z'-]`; input lain tidak dikirim ke API.
+- **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik.
+- **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan.
+- **State yang wajib ada**:
+  1. _Idle_ — belum ada ketikan: petunjuk singkat, tanpa skeleton.
+  2. _Terlalu pendek / karakter tidak valid_ — petunjuk validasi, tanpa request.
+  3. _Loading_ — skeleton baris selama debounce + fetch.
+  4. _Tidak ditemukan_ — pesan netral + saran periksa ejaan.
+  5. _Gagal jaringan_ — `role="alert"` + tombol **Coba lagi**.
+
+Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
+
 ---
 
 ## 6. Hirarki Struktur Layar (DOM / Layer Tree)
