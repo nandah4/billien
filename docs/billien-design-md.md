@@ -179,11 +179,13 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 
 - Satu kolom, lebar penuh, padding horizontal `16px`.
 - Panel **Detail Words** terbuka sebagai **dialog (bottom-sheet style modal)** di atas daftar, bukan didorong ke bawah daftar. Alasannya: daftar tetap di tempatnya, navigasi kembali cukup satu tap, dan kata berikutnya tidak perlu scroll jauh.
-  - Panel: `rounded-xl` `bg #FFFFFF`, `max-w-lg`, tinggi maksimal `85dvh`, isi boleh di-scroll (`overflow-y-auto`, `overscroll-contain`).
+  - Panel: `rounded-xl` `bg #FFFFFF`, `max-w-lg`, `max-height: 100%` dari area overlay, disusun sebagai flex column.
+  - **Header panel fixed**: judul, badge `Already memorised`, dan tombol tutup `X` berada **di luar** area scroll, sehingga tombol tutup selalu terlihat berapa pun jauh isi di-scroll. Hanya badan detail yang men-scroll (`min-h-0 flex-1 overflow-y-auto overscroll-contain`).
+  - **Jarak dari bottom navigation**: overlay memakai `padding: 16px` dengan tambahan bawah `calc(5rem + env(safe-area-inset-bottom))`, yaitu tinggi bottom bar + celah. Panel tidak boleh menempel atau tertutup bottom bar.
   - Overlay: `bg-black/50`, klik overlay atau `Escape` menutup dialog, fokus kembali ke pemicu, dan scroll halaman dikunci selama dialog terbuka.
-  - Tombol tutup: ikon `X` 16px di kanan header panel (`40×40`), `aria-label="Close detail"`.
+  - Tombol tutup: ikon `X` 16px dalam target `36×36`, `aria-label="Close detail"`.
   - Dialog memakai `role="dialog"` + `aria-modal="true"` + `aria-label="Detail Words"`.
-  - Pada `lg` ke atas, panel tetap menjadi kolom kanan (bukan dialog).
+  - Pada `lg` ke atas, panel tetap menjadi kolom kanan (bukan dialog) dan header-nya ikut scroll bersama isi.
 - Deskripsi pada baris daftar dibatasi **maksimal 2 baris** dengan ellipsis. Baris tersimpan menampilkan terjemahan 1 baris + definisi Inggris 1 baris; baris tanpa terjemahan menampilkan definisi maksimal 2 baris. Jangan menambahkan `block` pada elemen ber-`line-clamp` karena `display` akan menimpa `-webkit-box` dan clamp berhenti bekerja.
 - Scroll memakai halaman (bukan scroll ganda di dalam kartu); `overflow` internal hanya aktif di desktop.
 - Tombol hapus pada baris selalu terlihat di mobile (tidak bergantung hover).

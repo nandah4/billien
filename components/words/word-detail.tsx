@@ -96,15 +96,17 @@ function StatePanel({
   children,
   onRetry,
   onClose,
+  showHeader = true,
 }: {
   title: string;
   children: React.ReactNode;
   onRetry?: () => void;
   onClose?: () => void;
+  showHeader?: boolean;
 }) {
   return (
     <article>
-      <PanelHeader onClose={onClose} />
+      {showHeader ? <PanelHeader onClose={onClose} /> : null}
       <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
         {title}
       </p>
@@ -117,17 +119,23 @@ function StatePanel({
           type="button"
           onClick={onRetry}
         >
-          Coba lagi
+          Try again
         </button>
       ) : null}
     </article>
   );
 }
 
-function DetailSkeleton({ onClose }: { onClose?: () => void }) {
+function DetailSkeleton({
+  onClose,
+  showHeader = true,
+}: {
+  onClose?: () => void;
+  showHeader?: boolean;
+}) {
   return (
-    <article aria-busy="true" aria-label="Memuat detail kata">
-      <PanelHeader onClose={onClose} />
+    <article aria-busy="true" aria-label="Loading word detail">
+      {showHeader ? <PanelHeader onClose={onClose} /> : null}
       <div className="mt-5 grid gap-3">
         <span className="h-8 w-2/3 animate-pulse rounded-lg bg-subtle" />
         <span className="h-4 w-1/3 animate-pulse rounded bg-subtle" />
@@ -191,6 +199,7 @@ export function WordDetail({
   onSignIn,
   onRetry,
   onClose,
+  showHeader = true,
 }: {
   word: DetailWord | null;
   preferredLanguage: string;
@@ -203,6 +212,8 @@ export function WordDetail({
   onSignIn?: () => void;
   onRetry?: () => void;
   onClose?: () => void;
+  /** The mobile sheet renders its own fixed header, so the body hides this one. */
+  showHeader?: boolean;
 }) {
   const [speaking, setSpeaking] = useState(false);
   const [confirmingUnsave, setConfirmingUnsave] = useState(false);
@@ -243,11 +254,17 @@ export function WordDetail({
     synth.speak(utterance);
   }
 
-  if (isLoading && !word) return <DetailSkeleton onClose={onClose} />;
+  if (isLoading && !word)
+    return <DetailSkeleton onClose={onClose} showHeader={showHeader} />;
 
   if (errorMessage) {
     return (
-      <StatePanel title="Could not load" onRetry={onRetry} onClose={onClose}>
+      <StatePanel
+        title="Could not load"
+        onRetry={onRetry}
+        onClose={onClose}
+        showHeader={showHeader}
+      >
         <p className="text-hard" role="alert">
           {errorMessage}
         </p>
@@ -257,7 +274,11 @@ export function WordDetail({
 
   if (!word) {
     return (
-      <StatePanel title="No word selected" onClose={onClose}>
+      <StatePanel
+        title="No word selected"
+        onClose={onClose}
+        showHeader={showHeader}
+      >
         <p>
           Select a word from the list to see its meaning, example sentences, and
           pronunciation.
@@ -285,14 +306,16 @@ export function WordDetail({
 
   return (
     <article>
-      <PanelHeader onClose={onClose}>
-        {savedWord ? (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
-            <CheckCircle2 size={12} aria-hidden="true" />
-            Already memorised
-          </span>
-        ) : null}
-      </PanelHeader>
+      {showHeader ? (
+        <PanelHeader onClose={onClose}>
+          {savedWord ? (
+            <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
+              <CheckCircle2 size={12} aria-hidden="true" />
+              Already memorised
+            </span>
+          ) : null}
+        </PanelHeader>
+      ) : null}
 
       <div className="mt-4 flex items-start justify-between gap-3">
         <div className="min-w-0">

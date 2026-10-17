@@ -21,6 +21,7 @@ export function Modal({
   canDismiss,
   maxWidthClass = "max-w-105",
   panelClassName = "p-6",
+  overlayClassName = "p-4",
   children,
 }: {
   open: boolean;
@@ -32,6 +33,8 @@ export function Modal({
   canDismiss?: () => boolean;
   maxWidthClass?: string;
   panelClassName?: string;
+  /** Lets a caller offset the dialog from fixed chrome, e.g. a bottom nav. */
+  overlayClassName?: string;
   children: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
@@ -101,7 +104,7 @@ export function Modal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${overlayClassName}`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
