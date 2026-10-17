@@ -253,25 +253,26 @@ Halaman `/profile`, satu kolom, `max-w-xl`, memakai pola menu pengaturan OS (App
 
 #### G.1 Struktur
 
-1. **Tombol kembali** — gaya iOS: ikon `ChevronLeft` 22px + label `Back` 15px/`500` `#7C3AED`, tinggi `40px`, `hover:bg-hover`; bukan tombol persegi bergaris.
-2. **Banner** — tinggi tetap `128px` (`h-32`), `rounded-xl`, `border-accent-line`, latar `#F5F3FF` dengan pola titik (`radial-gradient` 1px `#DDD6FE`, grid `16px`, opacity turun ke bawah lewat mask). Pola ada di pseudo-element sehingga tidak menangkap klik.
+1. **Banner** — **full-bleed**: menempel ke tepi atas, kiri, dan kanan viewport, tanpa padding halaman, **tanpa border**, dan **tanpa radius**. Tinggi tetap `128px` (`h-32`), latar `#F5F3FF` dengan pola titik (`radial-gradient` 1px `#DDD6FE`, grid `16px`, opacity turun ke bawah lewat mask). Pola ada di pseudo-element sehingga tidak menangkap klik.
+2. **Tombol kembali** — mengapung di atas banner (kiri atas), gaya iOS: ikon `ChevronLeft` 22px + label `Back` 15px/`500` `#7C3AED`, tinggi `40px`, `hover:bg-accent-soft`. Posisi atas `calc(env(safe-area-inset-top) + 8px)` agar tidak tertutup status bar/notch.
 3. **Avatar** — lingkaran `72px` (`size-18`) berisi huruf pertama nama (fallback: email, lalu `?`), huruf 26px/`600` `#7C3AED`, `bg #FFFFFF`, `border-line`, `shadow-sm`. Diposisikan `absolute` di tengah horizontal pada tepi bawah banner dengan `translate-y-1/2`, sehingga separuh berada di banner dan separuh di atas konten.
 4. **Identitas** — nama 20px/`600` dan email 13px `#64748B`, rata tengah, jarak atas `56px` (`mt-14`) agar tidak menabrak avatar.
-5. **Grup menu** — setiap grup adalah kartu putih terpisah.
+5. **Grup menu** — setiap grup adalah kartu putih terpisah, di dalam kontainer `max-w-xl` dengan padding horizontal `16px`.
 
 #### G.2 Grup Menu
 
 Setiap grup: `mt-5`, judul 11px/`600` uppercase `#64748B`, lalu kartu `rounded-xl` `border #E4E4E7` `bg #FFFFFF` dengan `divide-y` `#F1F5F9`. Baris setinggi `~52px` (`px-4 py-3`), ikon 15px di dalam kotak `28px` `rounded-md` `bg #F5F3FF` `text #7C3AED`, label 14px `#09090B`, nilai 13px `#64748B` rata kanan.
 
-| Grup          | Baris                                                 |
-| ------------- | ----------------------------------------------------- |
-| Account       | Name, Email                                           |
-| Translation   | satu baris per bahasa + tanda centang pada yang aktif |
-| Progress      | Saved words, Current streak                           |
-| (tanpa judul) | Sign out (teks `#DC2626`, rata tengah, tanpa chevron) |
+| Grup          | Baris                                                         |
+| ------------- | ------------------------------------------------------------- |
+| Account       | Name, Email                                                   |
+| Translation   | **satu baris saja**: bahasa yang sedang aktif + chevron kanan |
+| Progress      | Saved words, Current streak                                   |
+| (tanpa judul) | Sign out (teks `#DC2626`, rata tengah, tanpa chevron)         |
 
-- Pemilihan bahasa **langsung tersimpan** saat baris di-tap (perilaku OS settings), tanpa tombol simpan. Saat request berjalan, baris yang dipilih diredupkan dan semua radio dinonaktifkan; bila gagal, pilihan dikembalikan ke nilai sebelumnya dan error tampil sebagai `role="alert"`.
-- Radio memakai input native yang disembunyikan (`sr-only`) di dalam `<label>` sehingga keyboard dan pembaca layar tetap bekerja; fokus terlihat lewat `focus-within`/`focus-visible` pada baris.
+- Baris bahasa menampilkan nama native, lalu `nama Inggris · contoh kata`. Menekan baris membuka **modal pemilih bahasa** (`LanguagePickerModal`), bukan menampilkan semua opsi di halaman. Alasannya: halaman tetap ringkas dan pola "baris → detail" konsisten dengan settings OS.
+- Modal pemilih memakai pola `Modal` bersama: judul `Translation language`, daftar radio native (disembunyikan `sr-only`, fokus terlihat pada baris), tanda centang pada bahasa aktif, dan tombol `Cancel`.
+- Memilih bahasa **langsung tersimpan**; modal tetap terbuka selama request berjalan (semua baris disabled, baris terpilih diredupkan), lalu menutup sendiri saat berhasil. Bila gagal, pilihan dikembalikan ke nilai sebelumnya dan error tampil di dalam modal sebagai `role="alert"`.
 - `Sign out` hanya ada di halaman ini pada mobile; header desktop tetap punya menu akun.
 - Konfirmasi sign out tidak diperlukan, tetapi tombol harus disabled dan berlabel `Signing out…` selama proses.
 

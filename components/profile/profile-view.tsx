@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import {
-  Check,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -15,6 +14,7 @@ import {
   BookMarked,
   UserRound,
 } from "lucide-react";
+import { LanguagePickerModal } from "@/components/preferences/language-picker-modal";
 import { authClient } from "@/lib/auth-client";
 import { messageFor, request, type ApiEnvelope } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
@@ -93,24 +93,30 @@ export function ProfileView({
   const [language, setLanguage] = useState(() =>
     normalizeLanguage(preferences.translationLanguage),
   );
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pickerError, setPickerError] = useState<string | null>(null);
+
+  const activeLanguage =
+    LANGUAGES.find((item) => item.code === language) ?? LANGUAGES[0];
 
   const initial = (user.name.trim() || user.email.trim() || "?")
     .charAt(0)
     .toUpperCase();
 
   // Selecting a language applies immediately, the way an OS settings screen
-  // behaves, so there is no separate save button to forget.
+  // behaves. The dialog stays open until the request settles so a failure is
+  // reported where the choice was made.
   async function selectLanguage(code: string) {
     if (code === language || savingLanguage) return;
     const previous = language;
     setLanguage(code);
     setSavingLanguage(code);
     setStatus(null);
-    setError(null);
+    setPickerError(null);
     try {
       const response = await request<ApiEnvelope<UserPreferences>>(
         "/api/preferences",
@@ -130,9 +136,12 @@ export function ProfileView({
       // The Remembered list is projected per language, so refetch it.
       await queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
       setStatus("Translation language updated.");
+      setPickerOpen(false);
     } catch (requestError) {
       setLanguage(previous);
-      setError(messageFor(requestError, "Unable to save your preference."));
+      setPickerError(
+        messageFor(requestError, "Unable to save your preference."),
+      );
     } finally {
       setSavingLanguage(null);
     }
@@ -154,29 +163,31 @@ export function ProfileView({
 
   return (
     <main className="min-h-dvh bg-canvas pb-10">
-      <div className="mx-auto w-full max-w-xl px-4 pt-3 sm:px-6">
-        {/* iOS-style back control: chevron plus a short label. */}
+      {/* Banner is full-bleed: no page padding, no border, no radius. */}
+      <div className="relative">
+        <div className="profile-banner h-32" />
+
+        {/* Floating back control, clear of the status bar on notched devices. */}
         <Link
-          className="-ml-2 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="absolute top-[calc(env(safe-area-inset-top)_+_8px)] left-2 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           href="/"
         >
           <ChevronLeft size={22} aria-hidden="true" />
           <span className="text-[15px] font-medium">Back</span>
         </Link>
 
-        {/* Banner with a fixed height; the avatar is centred on its bottom edge. */}
-        <div className="relative mt-2">
-          <div className="profile-banner h-32 rounded-xl border border-accent-line" />
-          <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
-            <span
-              className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
-              aria-hidden="true"
-            >
-              {initial}
-            </span>
-          </div>
+        {/* Avatar is centred horizontally on the banner's bottom edge. */}
+        <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
+          <span
+            className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
+            aria-hidden="true"
+          >
+            {initial}
+          </span>
         </div>
+      </div>
 
+      <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
         <div className="mt-14 text-center">
           <h1 className="text-[20px] leading-tight font-semibold text-ink wrap-anywhere">
             {user.name || "Your account"}
@@ -206,52 +217,30 @@ export function ProfileView({
         </SectionCard>
 
         <SectionCard title="Translation language">
-          <div role="radiogroup" aria-label="Translation language">
-            {LANGUAGES.map((item) => {
-              const active = language === item.code;
-              const pending = savingLanguage === item.code;
-              return (
-                <label
-                  key={item.code}
-                  className={`${rowClass} cursor-pointer hover:bg-hover ${
-                    pending ? "opacity-60" : ""
-                  }`}
-                >
-                  <input
-                    className="sr-only"
-                    type="radio"
-                    name="profile-language"
-                    value={item.code}
-                    checked={active}
-                    disabled={savingLanguage !== null}
-                    onChange={() => void selectLanguage(item.code)}
-                  />
-                  <RowIcon icon={Languages} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[14px] text-ink">
-                      {item.nativeName}
-                    </span>
-                    <span className="mt-0.5 block text-[12px] text-muted">
-                      {item.name} · {item.sample}
-                    </span>
-                  </span>
-                  {active ? (
-                    <Check
-                      size={17}
-                      className="shrink-0 text-accent"
-                      aria-hidden="true"
-                    />
-                  ) : (
-                    <ChevronRight
-                      size={17}
-                      className="shrink-0 text-faint"
-                      aria-hidden="true"
-                    />
-                  )}
-                </label>
-              );
-            })}
-          </div>
+          <button
+            className={`${rowClass} hover:bg-hover`}
+            type="button"
+            aria-haspopup="dialog"
+            onClick={() => {
+              setPickerError(null);
+              setPickerOpen(true);
+            }}
+          >
+            <RowIcon icon={Languages} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] text-ink">
+                {activeLanguage.nativeName}
+              </span>
+              <span className="mt-0.5 block text-[12px] text-muted">
+                {activeLanguage.name} · {activeLanguage.sample}
+              </span>
+            </span>
+            <ChevronRight
+              size={17}
+              className="shrink-0 text-faint"
+              aria-hidden="true"
+            />
+          </button>
         </SectionCard>
 
         <SectionCard title="Progress">
@@ -283,6 +272,15 @@ export function ProfileView({
           </button>
         </SectionCard>
       </div>
+
+      <LanguagePickerModal
+        open={pickerOpen}
+        current={language}
+        saving={savingLanguage}
+        error={pickerError}
+        onSelect={(code) => void selectLanguage(code)}
+        onClose={() => setPickerOpen(false)}
+      />
     </main>
   );
 }
