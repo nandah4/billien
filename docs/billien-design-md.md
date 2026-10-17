@@ -201,6 +201,40 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 
 Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
 
+### F. Detail Words Panel
+
+Panel kanan (desktop) atau blok di bawah daftar (mobile). Semua kartu di dalam panel memakai `rounded-lg` (`8px`) dan chip memakai `rounded-md` (`6px`) — tidak ada `rounded-full` kecuali status pill prioritas.
+
+#### F.1 Urutan Blok
+
+1. **Panel header** — label `Detail Words` 12px/`600` + badge `Sudah Dihafal` (opsional), dipisah garis `1px` `#F1F5F9`.
+2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` rata kanan atas.
+3. **Arti / Definisi** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
+4. **Bentuk Kata** — chip datar, hanya dirender bila ada.
+5. **Contoh Kalimat** — kartu bernomor, maksimal 3.
+6. **Sinonim / Antonim** — baris chip, hanya dirender bila ada.
+7. **Status hafalan** — kartu ringkasan + riwayat review + aksi hapus.
+8. **Sumber** — tautan lisensi, dipisah garis atas.
+
+Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`.
+
+#### F.2 Blok Arti / Definisi
+
+- Header kartu: label 11px/`700` uppercase `#64748B` + badge `AI` (bila hasil fallback) + ikon `Languages`.
+- Terjemahan **dikelompokkan per part of speech**, bukan per sense. Satu label POS hanya muncul sekali; kata digabung dan di-dedup, maksimal 6 per POS.
+- Label POS: 10px/`600` uppercase `#94A3B8`.
+- Kata terjemahan: chip `rounded-md`, `border #E4E4E7`, `bg #FFFFFF`, 13px/`500` `#09090B`.
+- Definisi bahasa Inggris ada di dalam `<details>` dengan ikon `ChevronRight` yang berputar 90° saat terbuka; default tertutup. Ringkasan 12px `#64748B`.
+- Bila tidak ada terjemahan: teks 13px `#64748B` "Terjemahan belum tersedia untuk bahasa ini." dan definisi Inggris tetap dapat dibuka.
+
+#### F.3 Blok Lain
+
+- **Bentuk Kata**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
+- **Contoh Kalimat**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
+- **Sinonim**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonim**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
+- **Status hafalan**: kartu `bg #FAFAFA`, ikon `CheckCircle2` `#16A34A`, riwayat sebagai `dl` dua kolom 12px, konfirmasi hapus inline (bukan `window.confirm`).
+- **Sumber**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
+
 ---
 
 ## 6. Hirarki Struktur Layar (DOM / Layer Tree)

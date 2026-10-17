@@ -157,6 +157,60 @@ export function collectForms(entries: Entry[], limit = 12) {
   return out;
 }
 
+export type TranslationGroup = {
+  partOfSpeech: string;
+  words: string[];
+  source?: "ai";
+};
+
+/**
+ * Groups translations by part of speech so the detail panel never repeats the
+ * same `NOUN` label for every sense. Words are deduplicated within a group and
+ * capped per group to keep the block scannable.
+ */
+export function translationGroups(
+  entries: Entry[],
+  language: string,
+  limitPerGroup = 6,
+) {
+  const groups: TranslationGroup[] = [];
+  const index = new Map<string, number>();
+
+  for (const entry of entries) {
+    for (const sense of entry.senses) {
+      const words = sense.translations[language];
+      if (!words || words.length === 0) continue;
+
+      const key = entry.partOfSpeech.trim().toLowerCase();
+      const existing = index.get(key);
+
+      if (existing === undefined) {
+        index.set(key, groups.length);
+        groups.push({
+          partOfSpeech: entry.partOfSpeech,
+          words: words.slice(0, limitPerGroup),
+          source: sense.translationSource,
+        });
+        continue;
+      }
+
+      const group = groups[existing];
+      for (const word of words) {
+        if (group.words.length >= limitPerGroup) break;
+        if (
+          group.words.some((item) => item.toLowerCase() === word.toLowerCase())
+        ) {
+          continue;
+        }
+        group.words.push(word);
+      }
+      if (sense.translationSource === "ai") group.source = "ai";
+    }
+  }
+
+  return groups;
+}
+
 /** Clamps the requested page so a shrinking list never shows a blank page. */
 export function paginate<T>(items: T[], requestedPage: number) {
   const pageCount = Math.max(1, Math.ceil(items.length / PAGE_SIZE));

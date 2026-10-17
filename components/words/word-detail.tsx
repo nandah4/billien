@@ -4,6 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   BookOpenText,
   CheckCircle2,
+  ChevronRight,
   Languages,
   LogIn,
   Plus,
@@ -17,12 +18,17 @@ import {
   distinctPartsOfSpeech,
   isSavedWord,
   primaryDefinition,
+  translationGroups,
 } from "@/lib/library";
 import { languageLabel } from "@/lib/language";
 import type { DictionaryResult, Entry, SavedWord } from "@/lib/types";
 import { headerOutline, outlineButton, primaryButton } from "@/lib/ui";
 
 type DetailWord = SavedWord | DictionaryResult;
+
+/** Shared chip treatment. Design.md allows 6–8px, never a full pill. */
+const chipClass =
+  "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -37,6 +43,35 @@ function subscribeToNothing() {
   return () => {};
 }
 
+function PanelHeader({ children }: { children?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 border-b border-line-soft pb-3">
+      <span className="flex items-center gap-2 text-[12px] font-semibold text-ink">
+        <BookOpenText size={15} className="text-accent" aria-hidden="true" />
+        Detail Words
+      </span>
+      {children}
+    </div>
+  );
+}
+
+function SectionHeading({
+  children,
+  aside,
+}: {
+  children: React.ReactNode;
+  aside?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-3">
+      <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
+        {children}
+      </h3>
+      {aside}
+    </div>
+  );
+}
+
 function StatePanel({
   title,
   children,
@@ -48,10 +83,7 @@ function StatePanel({
 }) {
   return (
     <article>
-      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-        <BookOpenText size={16} className="text-accent" aria-hidden="true" />
-        Detail Words
-      </div>
+      <PanelHeader />
       <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
         {title}
       </p>
@@ -74,16 +106,12 @@ function StatePanel({
 function DetailSkeleton() {
   return (
     <article aria-busy="true" aria-label="Memuat detail kata">
-      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-        <BookOpenText size={16} className="text-accent" aria-hidden="true" />
-        Detail Words
-      </div>
+      <PanelHeader />
       <div className="mt-5 grid gap-3">
         <span className="h-8 w-2/3 animate-pulse rounded-lg bg-subtle" />
         <span className="h-4 w-1/3 animate-pulse rounded bg-subtle" />
-        <span className="mt-2 h-20 w-full animate-pulse rounded-xl bg-subtle" />
-        <span className="h-14 w-full animate-pulse rounded-xl bg-subtle" />
-        <span className="h-14 w-full animate-pulse rounded-xl bg-subtle" />
+        <span className="mt-2 h-24 w-full animate-pulse rounded-lg bg-subtle" />
+        <span className="h-14 w-full animate-pulse rounded-lg bg-subtle" />
       </div>
     </article>
   );
@@ -104,41 +132,15 @@ function TagRow({
       ? "border-line bg-surface text-ink-soft"
       : "border-hard-soft bg-hard-soft/60 text-hard";
   return (
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <span className="text-[11px] font-medium text-muted">{label}:</span>
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="mr-0.5 text-[11px] font-medium text-muted">{label}</span>
       {tags.map((tag) => (
-        <span
-          className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${chip}`}
-          key={tag}
-        >
+        <span className={`${chipClass} ${chip}`} key={tag}>
           {tag}
         </span>
       ))}
     </div>
   );
-}
-
-type TranslationSense = {
-  partOfSpeech: string;
-  words: string[];
-  source?: "ai";
-};
-
-function translationSenses(entries: Entry[], language: string) {
-  const out: TranslationSense[] = [];
-  for (const entry of entries) {
-    for (const sense of entry.senses) {
-      const words = sense.translations[language];
-      if (!words || words.length === 0) continue;
-      out.push({
-        partOfSpeech: entry.partOfSpeech,
-        words,
-        source: sense.translationSource,
-      });
-      if (out.length >= 6) return out;
-    }
-  }
-  return out;
 }
 
 function definitions(entries: Entry[]) {
@@ -248,7 +250,7 @@ export function WordDetail({
     savedWord?.phonetic ??
     entries.flatMap((entry) => entry.pronunciations)[0]?.text ??
     null;
-  const translations = translationSenses(entries, preferredLanguage);
+  const groups = translationGroups(entries, preferredLanguage);
   const englishDefinitions = definitions(entries);
   const forms = collectForms(entries);
   const examples = collectExamples(entries);
@@ -256,30 +258,37 @@ export function WordDetail({
   const antonyms = collectTags(entries, "antonyms");
   const source = word.source;
   const fallbackDefinition = primaryDefinition(word);
+  const hasAiTranslation = groups.some((group) => group.source === "ai");
 
   return (
     <article>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-          <BookOpenText size={16} className="text-accent" aria-hidden="true" />
-          Detail Words
-        </div>
+      <PanelHeader>
         {savedWord ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-easy-soft px-2.5 py-1 text-[11px] font-semibold text-easy">
-            <CheckCircle2 size={13} aria-hidden="true" />
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
+            <CheckCircle2 size={12} aria-hidden="true" />
             Sudah Dihafal
           </span>
         ) : null}
-      </div>
+      </PanelHeader>
 
-      <div className="mt-5 flex items-start justify-between gap-3">
+      <div className="mt-4 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h2 className="text-[28px] leading-tight font-bold tracking-[-0.02em] wrap-anywhere">
+          <h2 className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-ink wrap-anywhere">
             {word.word}
           </h2>
-          {phonetic ? (
-            <p className="mt-1 text-[13px] text-muted italic">{phonetic}</p>
-          ) : null}
+          <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1.5">
+            {phonetic ? (
+              <span className="text-[13px] text-muted italic">{phonetic}</span>
+            ) : null}
+            {partsOfSpeech.map((part) => (
+              <span
+                className={`${chipClass} border-accent-line bg-accent-soft text-accent`}
+                key={part}
+              >
+                {part}
+              </span>
+            ))}
+          </div>
         </div>
         {speechSupported ? (
           <button
@@ -299,158 +308,125 @@ export function WordDetail({
         ) : null}
       </div>
 
-      {partsOfSpeech.length > 0 ? (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {partsOfSpeech.map((part) => (
-            <span
-              className="rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent ring-1 ring-accent-line ring-inset"
-              key={part}
-            >
-              {part}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <section className="mt-5 rounded-xl border border-line bg-subtle p-4">
-        <div className="flex items-center justify-between gap-3">
+      <section className="mt-4 rounded-lg border border-line bg-subtle">
+        <div className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
           <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Arti / Definisi ({languageLabel(preferredLanguage).toUpperCase()})
+            Arti / Definisi ({languageLabel(preferredLanguage)})
           </h3>
-          <div className="flex items-center gap-2">
-            {translations.some((item) => item.source === "ai") ? (
+          <div className="flex shrink-0 items-center gap-2">
+            {hasAiTranslation ? (
               <span
-                className="rounded-full border border-line bg-surface px-2 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
+                className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
                 title="Diterjemahkan otomatis, bukan dari kamus"
               >
                 AI
               </span>
             ) : null}
-            <Languages size={15} className="text-faint" aria-hidden="true" />
+            <Languages size={14} className="text-faint" aria-hidden="true" />
           </div>
         </div>
 
-        {translations.length > 0 ? (
-          <>
-            <ul className="mt-3 grid list-none gap-3 p-0">
-              {translations.map((sense, index) => (
-                <li key={`${sense.partOfSpeech}-${index}`}>
-                  {sense.partOfSpeech ? (
-                    <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">
-                      {sense.partOfSpeech}
-                    </span>
-                  ) : null}
-                  <div className="mt-1 flex flex-wrap gap-1.5">
-                    {sense.words.map((translation) => (
+        <div className="px-4 py-3">
+          {groups.length > 0 ? (
+            <div className="grid gap-3">
+              {groups.map((group) => (
+                <div key={group.partOfSpeech || "unknown"}>
+                  <p className="text-[10px] font-semibold tracking-wider text-faint uppercase">
+                    {group.partOfSpeech || "Lainnya"}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {group.words.map((translation) => (
                       <span
-                        className="rounded-full border border-accent-line bg-surface px-2.5 py-1 text-[13px] font-medium text-ink"
+                        className="inline-flex items-center rounded-md border border-line bg-surface px-2 py-1 text-[13px] leading-none font-medium text-ink"
                         key={translation}
                       >
                         {translation}
                       </span>
                     ))}
                   </div>
-                </li>
+                </div>
               ))}
-            </ul>
-
-            {englishDefinitions.length > 0 ? (
-              <details className="mt-4 border-t border-line-soft pt-3">
-                <summary className="cursor-pointer text-[12px] font-medium text-muted transition hover:text-ink">
-                  Definisi bahasa Inggris
-                </summary>
-                <ol className="mt-2 grid list-none gap-2 p-0">
-                  {englishDefinitions.map((item, index) => (
-                    <li
-                      className="text-[12px] leading-relaxed text-ink-soft"
-                      key={`${item.partOfSpeech}-${index}`}
-                    >
-                      {item.partOfSpeech ? (
-                        <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
-                          {item.partOfSpeech}
-                        </span>
-                      ) : null}
-                      {item.definition}
-                    </li>
-                  ))}
-                </ol>
-              </details>
-            ) : null}
-          </>
-        ) : (
-          <>
-            <p className="mt-3 text-[13px] text-muted">
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted">
               Terjemahan belum tersedia untuk bahasa ini.
             </p>
-            {englishDefinitions.length > 0 ? (
-              <ol className="mt-3 grid list-none gap-2 p-0">
-                {englishDefinitions.map((item, index) => (
-                  <li
-                    className="text-[13px] leading-relaxed text-ink-soft"
-                    key={`${item.partOfSpeech}-${index}`}
-                  >
-                    {item.partOfSpeech ? (
-                      <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
-                        {item.partOfSpeech}
-                      </span>
-                    ) : null}
-                    {item.definition}
-                  </li>
-                ))}
-              </ol>
-            ) : fallbackDefinition ? (
-              <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
+          )}
+
+          {groups.length === 0 && englishDefinitions.length === 0 ? (
+            fallbackDefinition ? (
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
                 {fallbackDefinition}
               </p>
-            ) : null}
-          </>
-        )}
+            ) : null
+          ) : null}
+        </div>
 
-        <TagRow label="Sinonim" tags={synonyms} tone="synonym" />
-        <TagRow label="Antonim" tags={antonyms} tone="antonym" />
+        {englishDefinitions.length > 0 ? (
+          <details className="group border-t border-line-soft px-4 py-2.5">
+            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+              <ChevronRight
+                size={13}
+                className="transition-transform group-open:rotate-90"
+                aria-hidden="true"
+              />
+              Definisi bahasa Inggris
+            </summary>
+            <ol className="mt-2 grid list-none gap-2 p-0">
+              {englishDefinitions.map((item, index) => (
+                <li
+                  className="text-[12px] leading-relaxed text-ink-soft"
+                  key={`${item.partOfSpeech}-${index}`}
+                >
+                  {item.partOfSpeech ? (
+                    <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
+                      {item.partOfSpeech}
+                    </span>
+                  ) : null}
+                  {item.definition}
+                </li>
+              ))}
+            </ol>
+          </details>
+        ) : null}
       </section>
 
       {forms.length > 0 ? (
-        <section className="mt-5">
-          <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Bentuk Kata
-          </h3>
-          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-            {forms.map((form, index) => (
-              <span className="inline-flex items-center gap-1.5" key={form}>
-                {index > 0 ? (
-                  <span className="text-[11px] text-faint" aria-hidden="true">
-                    ·
-                  </span>
-                ) : null}
-                <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">
-                  {form}
-                </span>
+        <section className="mt-4">
+          <SectionHeading>Bentuk Kata</SectionHeading>
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {forms.map((form) => (
+              <span
+                className={`${chipClass} border-line bg-surface text-ink-soft`}
+                key={form}
+              >
+                {form}
               </span>
             ))}
           </div>
         </section>
       ) : null}
 
-      <section className="mt-5">
-        <div className="flex items-center justify-between gap-3">
-          <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Contoh Kalimat
-          </h3>
-          {examples.length > 0 ? (
-            <span className="text-[11px] font-medium text-accent">
-              {examples.length} Contoh
-            </span>
-          ) : null}
-        </div>
+      <section className="mt-4">
+        <SectionHeading
+          aside={
+            examples.length > 0 ? (
+              <span className="text-[11px] font-medium text-accent">
+                {examples.length} Contoh
+              </span>
+            ) : null
+          }
+        >
+          Contoh Kalimat
+        </SectionHeading>
         {examples.length > 0 ? (
-          <ol className="mt-3 grid list-none gap-2 p-0">
+          <ol className="mt-2 grid list-none gap-2 p-0">
             {examples.map((example, index) => (
               <li
-                className="flex gap-3 rounded-xl border border-line bg-surface p-3"
+                className="flex gap-2.5 rounded-lg border border-line bg-surface p-3"
                 key={`${example}-${index}`}
               >
-                <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[11px] font-bold text-accent">
+                <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[11px] font-bold text-accent">
                   {index + 1}
                 </span>
                 <p className="text-[13px] leading-relaxed text-ink-soft">
@@ -460,17 +436,24 @@ export function WordDetail({
             ))}
           </ol>
         ) : (
-          <p className="mt-3 text-[13px] text-muted">
-            No example sentences were provided for this word.
+          <p className="mt-2 text-[12px] text-muted">
+            Tidak ada contoh kalimat untuk kata ini.
           </p>
         )}
       </section>
 
-      <section className="mt-5 rounded-xl border border-line bg-subtle p-4">
+      {synonyms.length > 0 || antonyms.length > 0 ? (
+        <section className="mt-4 grid gap-2">
+          <TagRow label="Sinonim" tags={synonyms} tone="synonym" />
+          <TagRow label="Antonim" tags={antonyms} tone="antonym" />
+        </section>
+      ) : null}
+
+      <section className="mt-4 rounded-lg border border-line bg-subtle p-4">
         {savedWord ? (
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-2.5">
             <CheckCircle2
-              size={18}
+              size={16}
               className="mt-0.5 shrink-0 text-easy"
               aria-hidden="true"
             />
@@ -479,7 +462,7 @@ export function WordDetail({
                 Sudah Dihafalkan
               </p>
               <p className="mt-0.5 text-[12px] text-muted">
-                Saved to your memorised list.
+                Tersimpan di daftar Remembered kamu.
               </p>
             </div>
           </div>
@@ -491,7 +474,7 @@ export function WordDetail({
             onClick={onSave}
           >
             <Plus size={16} aria-hidden="true" />
-            {isSaving ? "Saving…" : "Tandai Sudah Hafal"}
+            {isSaving ? "Menyimpan…" : "Tandai Sudah Hafal"}
           </button>
         ) : onSignIn ? (
           <button
@@ -505,7 +488,7 @@ export function WordDetail({
         ) : null}
 
         {savedWord ? (
-          <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-[12px]">
+          <dl className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line-soft pt-3.5 text-[12px]">
             <div>
               <dt className="text-muted">Dihafal</dt>
               <dd className="mt-0.5 font-semibold text-ink">
@@ -535,19 +518,19 @@ export function WordDetail({
 
         {savedWord && onUnsave ? (
           confirmingUnsave ? (
-            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-hard-soft bg-hard-soft/40 p-2.5">
+            <div className="mt-3.5 flex flex-wrap items-center gap-2 rounded-md border border-hard-soft bg-hard-soft/40 p-2.5">
               <span className="mr-auto text-[12px] font-medium text-hard">
                 Hapus kata ini dari Remembered?
               </span>
               <button
-                className="inline-flex h-8 items-center justify-center rounded-lg border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                className="inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 type="button"
                 onClick={() => setConfirmingUnsave(false)}
               >
                 Batal
               </button>
               <button
-                className="inline-flex h-8 items-center justify-center rounded-lg bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                className="inline-flex h-8 items-center justify-center rounded-md bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 type="button"
                 disabled={isUnsaving}
                 onClick={() => {
@@ -560,7 +543,7 @@ export function WordDetail({
             </div>
           ) : (
             <button
-              className={`${outlineButton} mt-4`}
+              className={`${outlineButton} mt-3.5`}
               type="button"
               disabled={isUnsaving}
               onClick={() => setConfirmingUnsave(true)}
@@ -573,12 +556,10 @@ export function WordDetail({
       </section>
 
       {source ? (
-        <section className="mt-5 border-t border-line-soft pt-4">
-          <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Source
-          </h3>
+        <section className="mt-4 border-t border-line-soft pt-3">
+          <SectionHeading>Sumber</SectionHeading>
           <a
-            className="mt-2 block text-[12px] text-accent underline decoration-accent-line wrap-anywhere hover:decoration-accent"
+            className="mt-1.5 block text-[12px] text-accent underline decoration-accent-line wrap-anywhere hover:decoration-accent"
             href={source.url}
             target="_blank"
             rel="noreferrer"
