@@ -1,7 +1,5 @@
 import type { Entry, SavedWord } from "@/lib/types";
 
-export type PosBucket = "noun" | "verb" | "adjective" | "other";
-export type FilterId = "all" | PosBucket;
 export type SortId = "recent" | "az" | "reviews";
 export type View = "discovery" | "remembered";
 
@@ -15,19 +13,12 @@ export type LibraryWord = {
   savedWord: SavedWord | null;
 };
 
-export type FilterOption = {
-  id: FilterId;
-  label: string;
-  count: number;
-};
-
 export const PAGE_SIZE = 8;
-export const DRILL_SIZE = 5;
 
 export const SORT_OPTIONS: { id: SortId; label: string }[] = [
-  { id: "recent", label: "Terbaru" },
+  { id: "recent", label: "Newest" },
   { id: "az", label: "A–Z" },
-  { id: "reviews", label: "Paling sering di-review" },
+  { id: "reviews", label: "Most reviewed" },
 ];
 
 export function capitalize(value: string) {
@@ -36,14 +27,6 @@ export function capitalize(value: string) {
 
 export function entryPartOfSpeech(word: { entries?: Entry[] }) {
   return word.entries?.[0]?.partOfSpeech?.trim() || null;
-}
-
-export function posBucket(partOfSpeech?: string | null): PosBucket {
-  const value = (partOfSpeech ?? "").toLowerCase();
-  if (value.startsWith("noun")) return "noun";
-  if (value.startsWith("verb")) return "verb";
-  if (value.startsWith("adjective")) return "adjective";
-  return "other";
 }
 
 export function primaryDefinition(word: { entries?: Entry[] }) {
@@ -70,44 +53,16 @@ export function isSavedWord(
   return "id" in word;
 }
 
-/** Counts are scoped to the active view, so the chips always match the list. */
-export function buildFilters(items: LibraryWord[]): FilterOption[] {
-  const counts: Record<PosBucket, number> = {
-    noun: 0,
-    verb: 0,
-    adjective: 0,
-    other: 0,
-  };
-  for (const item of items) {
-    counts[posBucket(entryPartOfSpeech(item))] += 1;
-  }
-  return [
-    { id: "all", label: "All", count: items.length },
-    { id: "verb", label: "Verbs", count: counts.verb },
-    { id: "adjective", label: "Adjectives", count: counts.adjective },
-    { id: "noun", label: "Nouns", count: counts.noun },
-  ];
-}
-
 /**
  * Matches the English headword and the preferred-language translation, so
  * searching `halo` finds `hello` in Remembered.
  */
-export function filterItems(
-  items: LibraryWord[],
-  { query, filter }: { query: string; filter: FilterId },
-) {
+export function searchItems(items: LibraryWord[], query: string) {
   const needle = query.trim().toLowerCase();
+  if (!needle) return items;
   return items.filter((item) => {
-    if (needle) {
-      const matchesWord = item.word.toLowerCase().includes(needle);
-      const matchesTranslation = item.translation.some((word) =>
-        word.toLowerCase().includes(needle),
-      );
-      if (!matchesWord && !matchesTranslation) return false;
-    }
-    if (filter === "all") return true;
-    return posBucket(entryPartOfSpeech(item)) === filter;
+    if (item.word.toLowerCase().includes(needle)) return true;
+    return item.translation.some((word) => word.toLowerCase().includes(needle));
   });
 }
 
@@ -199,6 +154,60 @@ export function collectForms(entries: Entry[], limit = 12) {
     }
   }
   return out;
+}
+
+export type TranslationGroup = {
+  partOfSpeech: string;
+  words: string[];
+  source?: "ai";
+};
+
+/**
+ * Groups translations by part of speech so the detail panel never repeats the
+ * same `NOUN` label for every sense. Words are deduplicated within a group and
+ * capped per group to keep the block scannable.
+ */
+export function translationGroups(
+  entries: Entry[],
+  language: string,
+  limitPerGroup = 6,
+) {
+  const groups: TranslationGroup[] = [];
+  const index = new Map<string, number>();
+
+  for (const entry of entries) {
+    for (const sense of entry.senses) {
+      const words = sense.translations[language];
+      if (!words || words.length === 0) continue;
+
+      const key = entry.partOfSpeech.trim().toLowerCase();
+      const existing = index.get(key);
+
+      if (existing === undefined) {
+        index.set(key, groups.length);
+        groups.push({
+          partOfSpeech: entry.partOfSpeech,
+          words: words.slice(0, limitPerGroup),
+          source: sense.translationSource,
+        });
+        continue;
+      }
+
+      const group = groups[existing];
+      for (const word of words) {
+        if (group.words.length >= limitPerGroup) break;
+        if (
+          group.words.some((item) => item.toLowerCase() === word.toLowerCase())
+        ) {
+          continue;
+        }
+        group.words.push(word);
+      }
+      if (sense.translationSource === "ai") group.source = "ai";
+    }
+  }
+
+  return groups;
 }
 
 /** Clamps the requested page so a shrinking list never shows a blank page. */

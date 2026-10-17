@@ -44,14 +44,14 @@ export function WordRow({
     return (
       <div className="flex flex-wrap items-center gap-2 rounded-xl border border-hard-soft bg-hard-soft/40 p-3">
         <span className="mr-auto text-[12px] font-medium text-hard">
-          Hapus &ldquo;{item.word}&rdquo;?
+          Remove &ldquo;{item.word}&rdquo;?
         </span>
         <button
           className="inline-flex h-8 items-center justify-center rounded-lg border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           type="button"
           onClick={() => setConfirming(false)}
         >
-          Batal
+          Cancel
         </button>
         <button
           className="inline-flex h-8 items-center justify-center rounded-lg bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -62,7 +62,7 @@ export function WordRow({
             onUnsave(item);
           }}
         >
-          {unsaving ? "Menghapus…" : "Ya"}
+          {unsaving ? "Removing…" : "Yes"}
         </button>
       </div>
     );
@@ -99,17 +99,17 @@ export function WordRow({
 
         {translation ? (
           <>
-            <span className="mt-1 line-clamp-1 block text-[12px] leading-relaxed text-ink-soft">
+            <span className="mt-1 line-clamp-1 text-[12px] leading-relaxed text-ink-soft">
               {translation}
             </span>
             {definition ? (
-              <span className="mt-0.5 line-clamp-1 block text-[11px] leading-relaxed text-faint">
+              <span className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-faint">
                 {definition}
               </span>
             ) : null}
           </>
         ) : definition ? (
-          <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-muted">
+          <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-muted">
             {definition}
           </span>
         ) : null}
@@ -119,7 +119,7 @@ export function WordRow({
         <span className="flex shrink-0 items-center gap-1.5">
           <span
             className="inline-flex size-8 items-center justify-center rounded-lg bg-easy-soft text-easy"
-            title="Sudah dihafal"
+            title="Already memorised"
           >
             <Check size={16} aria-hidden="true" />
           </span>
@@ -129,8 +129,8 @@ export function WordRow({
               type="button"
               disabled={unsaving}
               onClick={() => setConfirming(true)}
-              title={`Hapus "${item.word}" dari Remembered`}
-              aria-label={`Hapus ${item.word} dari Remembered`}
+              title={`Remove "${item.word}" from Remembered`}
+              aria-label={`Remove ${item.word} from Remembered`}
             >
               <Trash2 size={15} aria-hidden="true" />
             </button>
@@ -142,8 +142,8 @@ export function WordRow({
           type="button"
           disabled={saving}
           onClick={() => onSave(item.word)}
-          title={`Tandai "${item.word}" sudah hafal`}
-          aria-label={`Tandai ${item.word} sudah hafal`}
+          title={`Mark "${item.word}" as memorised`}
+          aria-label={`Mark ${item.word} as memorised`}
         >
           <Plus size={16} aria-hidden="true" />
         </button>

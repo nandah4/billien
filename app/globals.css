@@ -92,6 +92,46 @@ body {
 }
 
 /*
+ * Profile banner: a soft accent panel with a dotted texture. The texture lives
+ * on a pseudo-element so it never intercepts pointer events, and the mask fades
+ * it towards the bottom where the avatar sits.
+ */
+.profile-banner {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--color-accent-soft);
+}
+
+.profile-banner::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    var(--color-accent-line) 1px,
+    transparent 1px
+  );
+  background-size: 16px 16px;
+  background-position: center;
+  opacity: 0.9;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.9) 10%,
+    rgb(0 0 0 / 0.35) 70%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.9) 10%,
+    rgb(0 0 0 / 0.35) 70%,
+    transparent 100%
+  );
+}
+
+/*
  * Low-opacity grid drawn behind the workspace. The lines come from two 1px
  * gradients on a pseudo-element, so nothing affects layout and the content is
  * never masked. The element keeps `isolation: isolate` so the negative

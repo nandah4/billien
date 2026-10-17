@@ -6,9 +6,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app/app-header";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { DetailAside } from "@/components/app/detail-aside";
+import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { LanguageModal } from "@/components/preferences/language-modal";
 import { WordListPanel } from "@/components/words/word-list-panel";
-import { useDrill } from "@/hooks/use-drill";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import {
   dictionaryQueryOptions,
@@ -21,16 +22,18 @@ import {
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_LANGUAGE } from "@/lib/language";
 import {
-  buildFilters,
-  filterItems,
   paginate,
+  searchItems,
   sortItems,
-  type FilterId,
   type LibraryWord,
   type SortId,
   type View,
 } from "@/lib/library";
 import type { SavedWord, UserPreferences } from "@/lib/types";
+
+/** Typing pauses longer than this trigger a dictionary lookup. */
+const SEARCH_DEBOUNCE_MS = 450;
+const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
 
 export function EnWordsApp() {
   const router = useRouter();
@@ -40,12 +43,17 @@ export function EnWordsApp() {
 
   const [view, setView] = useState<View>("discovery");
   const [query, setQuery] = useState("");
-  // Discovery has no seeded list: `discoveryWord` is the last lookup and is the
+  // Discovery has no seeded list: the debounced query is the only lookup and the
   // only row shown there. `selectedName` decides whether its detail is open, so
   // switching views can collapse the panel without losing the result.
-  const [discoveryWord, setDiscoveryWord] = useState<string | null>(null);
+  const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
+  const lookupWord = useMemo(() => {
+    const word = debouncedQuery.trim().toLowerCase();
+    // Two characters is the shortest English word worth a request, and the
+    // pattern keeps punctuation from reaching the API.
+    return word.length >= 2 && WORD_PATTERN.test(word) ? word : null;
+  }, [debouncedQuery]);
   const [selectedName, setSelectedName] = useState<string | null>(null);
-  const [filter, setFilter] = useState<FilterId>("all");
   const [sort, setSort] = useState<SortId>("recent");
   const [page, setPage] = useState(1);
   const [selectedSavedWord, setSelectedSavedWord] = useState<SavedWord | null>(
@@ -66,15 +74,10 @@ export function EnWordsApp() {
     preferencesQuery.data?.translationLanguage ?? DEFAULT_LANGUAGE;
 
   const library = useWordLibrary(signedIn, preferredLanguage);
-  const drill = useDrill({
-    signedIn,
-    onRequireAuth: openAuthModal,
-    onNotice: setNotice,
-  });
 
   const dictionaryQuery = useQuery({
-    ...dictionaryQueryOptions(discoveryWord ?? "", preferredLanguage),
-    enabled: Boolean(discoveryWord),
+    ...dictionaryQueryOptions(lookupWord ?? "", preferredLanguage),
+    enabled: Boolean(lookupWord),
   });
   const savedDetailQuery = useQuery(
     savedWordDetailQueryOptions(selectedSavedId),
@@ -84,16 +87,16 @@ export function EnWordsApp() {
   // Remembered list confirms it, and it keeps the English definition as the
   // primary line (translations are a Remembered affordance).
   const discoveryItems = useMemo<LibraryWord[]>(() => {
-    if (!discoveryWord) return [];
-    const saved = library.savedByKey.get(discoveryWord);
+    if (!lookupWord) return [];
+    const saved = library.savedByKey.get(lookupWord);
     const entry = dictionaryQuery.data ?? null;
     // While the lookup is in flight (or after it failed) there is no row to
-    // show; the panel handles the loading and error states.
+    // show; the list handles the loading and empty states.
     if (!entry && !saved) return [];
     return [
       {
-        key: discoveryWord,
-        word: entry?.word ?? discoveryWord,
+        key: lookupWord,
+        word: entry?.word ?? lookupWord,
         phonetic:
           entry?.entries[0]?.pronunciations[0]?.text ?? saved?.phonetic ?? null,
         entries: entry?.entries ?? saved?.entries ?? [],
@@ -101,25 +104,36 @@ export function EnWordsApp() {
         savedWord: saved ?? null,
       },
     ];
-  }, [discoveryWord, dictionaryQuery.data, library.savedByKey]);
+  }, [lookupWord, dictionaryQuery.data, library.savedByKey]);
 
   const viewItems =
     view === "discovery" ? discoveryItems : library.rememberedItems;
-  const filters = useMemo(() => buildFilters(viewItems), [viewItems]);
   const visibleItems = useMemo(() => {
-    // In Discovery the input is a lookup box, not a filter, so editing it must
-    // not hide the word that is already displayed.
-    if (view === "discovery") {
-      return filterItems(discoveryItems, { query: "", filter });
-    }
-    return sortItems(filterItems(viewItems, { query, filter }), sort);
-  }, [view, discoveryItems, viewItems, query, filter, sort]);
+    // In Discovery the input is a lookup box, not a filter, so the typed text
+    // must not hide the word already resolved for it.
+    if (view === "discovery") return discoveryItems;
+    return sortItems(searchItems(viewItems, query), sort);
+  }, [view, discoveryItems, viewItems, query, sort]);
   const { pageCount, currentPage, pageItems } = paginate(visibleItems, page);
 
+  // A selection is only valid while it still matches the current lookup; editing
+  // the query closes a stale detail panel without an effect.
+  const activeDictionaryWord =
+    selectedName !== null && selectedName === lookupWord ? selectedName : null;
+  const activeSavedWord =
+    selectedSavedWord !== null &&
+    (view === "remembered" || selectedSavedWord.normalized_word === lookupWord)
+      ? selectedSavedWord
+      : null;
+  const activeSavedId =
+    selectedSavedId !== null && activeSavedWord !== null
+      ? selectedSavedId
+      : null;
+
   const detailWord =
-    selectedSavedId !== null
-      ? (savedDetailQuery.data ?? selectedSavedWord)
-      : selectedName !== null
+    activeSavedId !== null
+      ? (savedDetailQuery.data ?? activeSavedWord)
+      : activeDictionaryWord !== null
         ? (dictionaryQuery.data ?? null)
         : null;
   const detailSavedWord =
@@ -127,50 +141,59 @@ export function EnWordsApp() {
   // One key identifies the highlighted row whether it came from the saved list
   // or from a fresh dictionary lookup.
   const selectedKey =
-    selectedSavedWord?.normalized_word ?? selectedName ?? null;
+    activeSavedWord?.normalized_word ?? activeDictionaryWord ?? null;
   const showDetailPanel =
-    drill.active ||
-    selectedSavedId !== null ||
-    selectedName !== null ||
-    Boolean(detailWord);
-  const showDrillLauncher = view === "remembered" && signedIn && !drill.active;
+    activeSavedId !== null || activeDictionaryWord !== null;
   const showSignInPrompt = view === "remembered" && !signedIn;
+  const queryTrimmed = query.trim();
+  const queryValid =
+    queryTrimmed.length >= 2 && WORD_PATTERN.test(queryTrimmed.toLowerCase());
   const isListLoading =
     view === "discovery"
-      ? dictionaryQuery.isLoading &&
-        !(discoveryWord && library.savedByKey.has(discoveryWord))
+      ? queryValid &&
+        (lookupWord === null ||
+          (dictionaryQuery.isLoading && !library.savedByKey.has(lookupWord)))
       : isSessionPending || (signedIn && library.isLoading);
   const activeError = library.isError
     ? messageFor(library.error, "Unable to load your memorised words.")
     : null;
+  // A 404 is an expected outcome for an unknown word, so it becomes the list's
+  // empty state; anything else is a real failure worth an alert.
+  const discoveryErrorMessage =
+    view === "discovery" && lookupWord && dictionaryQuery.isError
+      ? messageFor(dictionaryQuery.error, "Unable to look this word up.")
+      : null;
+  const listError =
+    activeError ??
+    (discoveryErrorMessage && discoveryErrorMessage !== "Word not found."
+      ? discoveryErrorMessage
+      : null);
   const detailError =
-    selectedSavedId !== null
-      ? savedDetailQuery.isError && !selectedSavedWord
+    activeSavedId !== null
+      ? savedDetailQuery.isError && !activeSavedWord
         ? messageFor(savedDetailQuery.error, "Unable to load this word.")
         : null
-      : selectedName !== null && dictionaryQuery.isError
+      : activeDictionaryWord !== null && dictionaryQuery.isError
         ? messageFor(dictionaryQuery.error, "Unable to load dictionary detail.")
         : null;
   const detailLoading =
-    selectedSavedId !== null
-      ? savedDetailQuery.isLoading && !selectedSavedWord
-      : selectedName !== null && dictionaryQuery.isLoading;
+    activeSavedId !== null
+      ? savedDetailQuery.isLoading && !activeSavedWord
+      : activeDictionaryWord !== null && dictionaryQuery.isLoading;
   const showOnboarding =
     signedIn &&
     preferencesQuery.isSuccess &&
     preferencesQuery.data.onboardedAt === null;
 
-  const drillIds = useMemo(
-    () =>
-      visibleItems
-        .map((item) => item.savedWord?.id)
-        .filter((id): id is string => Boolean(id))
-        .slice(0, 50),
-    [visibleItems],
-  );
-
   function openAuthModal() {
     setAuthOpen(true);
+  }
+
+  /** Closes the detail surface. */
+  function closeDetail() {
+    setSelectedName(null);
+    setSelectedSavedWord(null);
+    setSelectedSavedId(null);
   }
 
   /** Opens the searched word, preferring its saved record when one exists. */
@@ -201,18 +224,9 @@ export function EnWordsApp() {
   }
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
+    // The lookup already runs on the debounced value; Enter must not reload the
+    // page or duplicate the request.
     event.preventDefault();
-    // Remembered filters live as the user types; Enter must not open a lookup.
-    if (view === "remembered") return;
-    const word = query.trim().toLowerCase();
-    if (!/^[a-z][a-z'-]*$/i.test(word)) {
-      setNotice("Enter one valid English word to look it up.");
-      return;
-    }
-    setNotice(null);
-    setPage(1);
-    setDiscoveryWord(word);
-    openDiscoveryWord(word);
   }
 
   function changeView(next: View) {
@@ -223,11 +237,6 @@ export function EnWordsApp() {
     setSelectedName(null);
     setSelectedSavedWord(null);
     setSelectedSavedId(null);
-  }
-
-  function changeFilter(next: FilterId) {
-    setFilter(next);
-    setPage(1);
   }
 
   function changeQuery(next: string) {
@@ -242,7 +251,7 @@ export function EnWordsApp() {
 
   function resetFilters() {
     setQuery("");
-    setFilter("all");
+    setSort("recent");
     setPage(1);
   }
 
@@ -262,12 +271,11 @@ export function EnWordsApp() {
       queryClient.removeQueries({ queryKey: ["remembered-words"] });
       queryClient.removeQueries({ queryKey: ["streak"] });
       queryClient.removeQueries({ queryKey: ["preferences"] });
-      drill.close();
       setAuthOpen(false);
       setSelectedSavedWord(null);
       setSelectedSavedId(null);
       setSelectedName(null);
-      setDiscoveryWord(null);
+      setQuery("");
       setNotice("Signed out. Your progress remains safely in your account.");
       router.refresh();
     } finally {
@@ -338,11 +346,11 @@ export function EnWordsApp() {
         setSelectedSavedId(null);
         setSelectedSavedWord(null);
         // Keep the Discovery detail open after un-saving its searched word.
-        if (discoveryWord === word.normalized_word) {
-          setSelectedName(discoveryWord);
+        if (lookupWord === word.normalized_word) {
+          setSelectedName(lookupWord);
         }
       }
-      setNotice(`"${word.word}" dihapus dari Remembered.`);
+      setNotice(`"${word.word}" was removed from Remembered.`);
     } catch (error) {
       queryClient.setQueryData(cacheKey, previous);
       setNotice(messageFor(error, "Unable to remove this word."));
@@ -357,7 +365,7 @@ export function EnWordsApp() {
 
   return (
     <>
-      <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 py-5 sm:px-6 sm:py-6 lg:h-dvh lg:overflow-hidden">
+      <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pt-[4.5rem] pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6">
         <div className="mx-auto flex w-full max-w-310 flex-col gap-4 lg:h-full lg:min-h-0">
           <AppHeader
             view={view}
@@ -389,11 +397,6 @@ export function EnWordsApp() {
                 onChange: changeQuery,
                 onSubmit: handleSearchSubmit,
               }}
-              filters={{
-                items: filters,
-                active: filter,
-                onChange: changeFilter,
-              }}
               sort={sort}
               items={pageItems}
               pagination={{
@@ -404,11 +407,14 @@ export function EnWordsApp() {
                 onNext: () => setPage(Math.min(pageCount, currentPage + 1)),
               }}
               notice={notice}
-              errorMessage={activeError}
+              errorMessage={listError}
               isLoading={isListLoading}
               showSignInPrompt={showSignInPrompt}
               hasAnyItems={viewItems.length > 0}
-              isDiscoveryIdle={view === "discovery" && !discoveryWord}
+              isDiscoveryIdle={view === "discovery" && queryTrimmed === ""}
+              isDiscoveryTooShort={
+                view === "discovery" && queryTrimmed !== "" && !queryValid
+              }
               savedCount={library.savedWords.length}
               selectedKey={selectedKey}
               savingKey={savingKey}
@@ -425,13 +431,15 @@ export function EnWordsApp() {
               onSignIn={openAuthModal}
               onChangeSort={changeSort}
               onResetFilters={resetFilters}
-              onRetry={() => void library.refetch()}
+              onRetry={() => {
+                if (view === "discovery") void dictionaryQuery.refetch();
+                else void library.refetch();
+              }}
               onGoToDiscovery={() => changeView("discovery")}
             />
 
             <DetailAside
               open={showDetailPanel}
-              drillActive={drill.active}
               detail={{
                 word: detailWord,
                 preferredLanguage,
@@ -450,33 +458,24 @@ export function EnWordsApp() {
                   : undefined,
                 onSignIn: !signedIn ? openAuthModal : undefined,
                 onRetry: () => {
-                  if (selectedSavedId) void savedDetailQuery.refetch();
-                  else if (discoveryWord) void dictionaryQuery.refetch();
+                  if (activeSavedId) void savedDetailQuery.refetch();
+                  else if (lookupWord) void dictionaryQuery.refetch();
                 },
               }}
-              drill={{
-                current: drill.current,
-                index: drill.index,
-                total: drill.total,
-                flipped: drill.flipped,
-                complete: drill.complete,
-                loading: drill.loading,
-                onFlip: drill.flip,
-                onAnswer: (result) => void drill.answer(result),
-                onClose: drill.close,
-              }}
-              launcher={{
-                visible: showDrillLauncher,
-                loading: drill.loading,
-                count: drillIds.length,
-                onStart: () => void drill.start(drillIds),
-              }}
+              onClose={closeDetail}
             />
           </div>
 
           {/*<AppFooter />*/}
         </div>
       </div>
+
+      <MobileBottomNav
+        view={view}
+        onChangeView={changeView}
+        signedIn={signedIn}
+        onSignIn={openAuthModal}
+      />
 
       <AuthModal
         open={authOpen && !signedIn}
