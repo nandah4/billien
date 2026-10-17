@@ -106,12 +106,12 @@ export function WordListPanel({
             onChange={(event) => search.onChange(event.target.value)}
             placeholder={
               view === "remembered"
-                ? "Cari kata atau terjemahan…"
+                ? "Search a word or translation…"
                 : "Search an English word…"
             }
             aria-label={
               view === "remembered"
-                ? "Cari kata atau terjemahan"
+                ? "Search a word or translation"
                 : "Search an English word"
             }
           />
@@ -120,7 +120,7 @@ export function WordListPanel({
               className="inline-flex size-6 shrink-0 items-center justify-center rounded-full text-faint transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus"
               type="button"
               onClick={() => search.onChange("")}
-              aria-label="Hapus pencarian"
+              aria-label="Clear search"
             >
               <X size={14} aria-hidden="true" />
             </button>
@@ -130,12 +130,12 @@ export function WordListPanel({
         {view === "remembered" ? (
           <div className="mt-3 flex items-center justify-end">
             <label className="inline-flex items-center gap-2 text-[11px] font-medium text-muted">
-              Urutkan
+              Sort
               <select
                 className="h-9 rounded-lg border border-line bg-surface px-2 text-[12px] font-medium text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 value={sort}
                 onChange={(event) => onChangeSort(event.target.value as SortId)}
-                aria-label="Urutkan kata"
+                aria-label="Sort words"
               >
                 {SORT_OPTIONS.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -160,7 +160,7 @@ export function WordListPanel({
               type="button"
               onClick={onRetry}
             >
-              Coba lagi
+              Try again
             </button>
           </div>
         ) : null}
@@ -191,47 +191,47 @@ export function WordListPanel({
           <ListSkeleton />
         ) : isDiscoveryIdle ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Ketik kata bahasa Inggris di kolom pencarian.
+            Type an English word in the search field.
             <br />
-            Hasilnya muncul otomatis tanpa perlu menekan Enter.
+            Results appear automatically, no need to press Enter.
           </div>
         ) : isDiscoveryTooShort ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Ketik kata bahasa Inggris, minimal 2 huruf dan tanpa angka.
+            Type an English word with at least 2 letters and no digits.
           </div>
         ) : filteredEmpty ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
             <p className="text-[13px] text-muted">
-              Tidak ada kata yang cocok dengan filter ini.
+              No words match this filter.
             </p>
             <button
               className={`${outlineButton} mt-4`}
               type="button"
               onClick={onResetFilters}
             >
-              Reset filter
+              Reset filters
             </button>
           </div>
         ) : items.length === 0 ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
             {view === "remembered" ? (
               <>
-                Belum ada kata tersimpan.
+                No saved words yet.
                 <br />
-                Cari kata di Discovery lalu tandai sudah hafal.
+                Search a word in Discovery and mark it as memorised.
                 <button
                   className={`${primaryButton} mt-4`}
                   type="button"
                   onClick={onGoToDiscovery}
                 >
-                  Cari kata di Discovery
+                  Find words in Discovery
                 </button>
               </>
             ) : (
               <>
-                Kata yang kamu cari tidak ditemukan.
+                We could not find that word.
                 <br />
-                Periksa ejaan atau coba kata lain.
+                Check the spelling or try another word.
               </>
             )}
           </div>

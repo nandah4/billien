@@ -266,7 +266,7 @@ export function WordDetail({
         {savedWord ? (
           <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
             <CheckCircle2 size={12} aria-hidden="true" />
-            Sudah Dihafal
+            Already memorised
           </span>
         ) : null}
       </PanelHeader>
@@ -311,13 +311,13 @@ export function WordDetail({
       <section className="mt-4 rounded-lg border border-line bg-subtle">
         <div className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
           <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Arti / Definisi ({languageLabel(preferredLanguage)})
+            Meaning ({languageLabel(preferredLanguage)})
           </h3>
           <div className="flex shrink-0 items-center gap-2">
             {hasAiTranslation ? (
               <span
                 className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
-                title="Diterjemahkan otomatis, bukan dari kamus"
+                title="Machine translated, not from the dictionary"
               >
                 AI
               </span>
@@ -332,7 +332,7 @@ export function WordDetail({
               {groups.map((group) => (
                 <div key={group.partOfSpeech || "unknown"}>
                   <p className="text-[10px] font-semibold tracking-wider text-faint uppercase">
-                    {group.partOfSpeech || "Lainnya"}
+                    {group.partOfSpeech || "Other"}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {group.words.map((translation) => (
@@ -349,7 +349,7 @@ export function WordDetail({
             </div>
           ) : (
             <p className="text-[13px] text-muted">
-              Terjemahan belum tersedia untuk bahasa ini.
+              No translation available for this language yet.
             </p>
           )}
 
@@ -370,7 +370,7 @@ export function WordDetail({
                 className="transition-transform group-open:rotate-90"
                 aria-hidden="true"
               />
-              Definisi bahasa Inggris
+              English definitions
             </summary>
             <ol className="mt-2 grid list-none gap-2 p-0">
               {englishDefinitions.map((item, index) => (
@@ -393,7 +393,7 @@ export function WordDetail({
 
       {forms.length > 0 ? (
         <section className="mt-4">
-          <SectionHeading>Bentuk Kata</SectionHeading>
+          <SectionHeading>Word Forms</SectionHeading>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {forms.map((form) => (
               <span
@@ -412,12 +412,13 @@ export function WordDetail({
           aside={
             examples.length > 0 ? (
               <span className="text-[11px] font-medium text-accent">
-                {examples.length} Contoh
+                {examples.length}{" "}
+                {examples.length === 1 ? "Example" : "Examples"}
               </span>
             ) : null
           }
         >
-          Contoh Kalimat
+          Example Sentences
         </SectionHeading>
         {examples.length > 0 ? (
           <ol className="mt-2 grid list-none gap-2 p-0">
@@ -437,15 +438,15 @@ export function WordDetail({
           </ol>
         ) : (
           <p className="mt-2 text-[12px] text-muted">
-            Tidak ada contoh kalimat untuk kata ini.
+            No example sentences for this word.
           </p>
         )}
       </section>
 
       {synonyms.length > 0 || antonyms.length > 0 ? (
         <section className="mt-4 grid gap-2">
-          <TagRow label="Sinonim" tags={synonyms} tone="synonym" />
-          <TagRow label="Antonim" tags={antonyms} tone="antonym" />
+          <TagRow label="Synonyms" tags={synonyms} tone="synonym" />
+          <TagRow label="Antonyms" tags={antonyms} tone="antonym" />
         </section>
       ) : null}
 
@@ -459,10 +460,10 @@ export function WordDetail({
             />
             <div>
               <p className="text-[13px] font-semibold text-ink">
-                Sudah Dihafalkan
+                Already memorised
               </p>
               <p className="mt-0.5 text-[12px] text-muted">
-                Tersimpan di daftar Remembered kamu.
+                Saved to your Remembered list.
               </p>
             </div>
           </div>
@@ -474,7 +475,7 @@ export function WordDetail({
             onClick={onSave}
           >
             <Plus size={16} aria-hidden="true" />
-            {isSaving ? "Menyimpan…" : "Tandai Sudah Hafal"}
+            {isSaving ? "Saving…" : "Mark as memorised"}
           </button>
         ) : onSignIn ? (
           <button
@@ -490,13 +491,13 @@ export function WordDetail({
         {savedWord ? (
           <dl className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line-soft pt-3.5 text-[12px]">
             <div>
-              <dt className="text-muted">Dihafal</dt>
+              <dt className="text-muted">Saved</dt>
               <dd className="mt-0.5 font-semibold text-ink">
                 {formatDate(savedWord.added_at)}
               </dd>
             </div>
             <div>
-              <dt className="text-muted">Terakhir di-review</dt>
+              <dt className="text-muted">Last reviewed</dt>
               <dd className="mt-0.5 font-semibold text-ink">
                 {formatDate(savedWord.last_reviewed_at)}
               </dd>
@@ -508,7 +509,7 @@ export function WordDetail({
               </dd>
             </div>
             <div>
-              <dt className="text-muted">Ingat / Lupa</dt>
+              <dt className="text-muted">Remembered / forgotten</dt>
               <dd className="mt-0.5 font-semibold text-ink">
                 {savedWord.remembered_count} / {savedWord.forgotten_count}
               </dd>
@@ -520,14 +521,14 @@ export function WordDetail({
           confirmingUnsave ? (
             <div className="mt-3.5 flex flex-wrap items-center gap-2 rounded-md border border-hard-soft bg-hard-soft/40 p-2.5">
               <span className="mr-auto text-[12px] font-medium text-hard">
-                Hapus kata ini dari Remembered?
+                Remove this word from Remembered?
               </span>
               <button
                 className="inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 type="button"
                 onClick={() => setConfirmingUnsave(false)}
               >
-                Batal
+                Cancel
               </button>
               <button
                 className="inline-flex h-8 items-center justify-center rounded-md bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -538,7 +539,7 @@ export function WordDetail({
                   onUnsave();
                 }}
               >
-                {isUnsaving ? "Menghapus…" : "Ya, hapus"}
+                {isUnsaving ? "Removing…" : "Yes, remove"}
               </button>
             </div>
           ) : (
@@ -549,7 +550,7 @@ export function WordDetail({
               onClick={() => setConfirmingUnsave(true)}
             >
               <Trash2 size={15} aria-hidden="true" />
-              Hapus dari Remembered
+              Remove from Remembered
             </button>
           )
         ) : null}
@@ -557,7 +558,7 @@ export function WordDetail({
 
       {source ? (
         <section className="mt-4 border-t border-line-soft pt-3">
-          <SectionHeading>Sumber</SectionHeading>
+          <SectionHeading>Source</SectionHeading>
           <a
             className="mt-1.5 block text-[12px] text-accent underline decoration-accent-line wrap-anywhere hover:decoration-accent"
             href={source.url}

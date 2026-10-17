@@ -23,12 +23,12 @@ export function DrillLauncher({
           </span>
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-ink">
-              Uji Pemahaman Kata Ini
+              Test Your Understanding
             </p>
             <p className="mt-0.5 text-[12px] text-muted">
               {count > 0
-                ? `Mulai drill dari ${count} kata`
-                : "Tidak ada kata pada filter ini"}
+                ? `Start a drill with ${count} ${count === 1 ? "word" : "words"}`
+                : "No words in this filter"}
             </p>
           </div>
         </div>
@@ -36,7 +36,7 @@ export function DrillLauncher({
           className={outlineButton}
           type="button"
           disabled={disabled}
-          title={count < 1 ? "Tidak ada kata untuk di-drill." : undefined}
+          title={count < 1 ? "There are no words to drill." : undefined}
           onClick={onStart}
         >
           Start Drill

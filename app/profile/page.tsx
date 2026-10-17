@@ -5,7 +5,7 @@ import { getUserPreferences } from "@/lib/preferences";
 import { getUserSummary } from "@/lib/user-words";
 
 export const metadata = {
-  title: "Profil — Billien",
+  title: "Profile — Billien",
 };
 
 // The page reads the session cookie, so it is never prerendered.

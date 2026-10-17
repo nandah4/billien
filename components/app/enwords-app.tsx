@@ -360,7 +360,7 @@ export function EnWordsApp() {
           setSelectedName(lookupWord);
         }
       }
-      setNotice(`"${word.word}" dihapus dari Remembered.`);
+      setNotice(`"${word.word}" was removed from Remembered.`);
     } catch (error) {
       queryClient.setQueryData(cacheKey, previous);
       setNotice(messageFor(error, "Unable to remove this word."));

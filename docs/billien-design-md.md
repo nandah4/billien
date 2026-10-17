@@ -187,7 +187,7 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 
 - **Bentuk**: `rounded-lg`, ikon `Search` 16px di kiri, tinggi `40px` di mobile / `36px` di desktop, `bg-subtle` → `bg-surface` saat fokus dengan `border-accent`.
 - **Font**: `16px` di mobile (mencegah auto-zoom iOS), `13px` di desktop.
-- **Tombol clear**: ikon `X` 14px dalam bulatan `24px`, hanya muncul saat field berisi; `aria-label="Hapus pencarian"`.
+- **Tombol clear**: ikon `X` 14px dalam bulatan `24px`, hanya muncul saat field berisi; `aria-label="Clear search"`.
 - **Debounce**: `450ms` setelah ketikan terakhir.
 - **Validasi**: minimal `2` karakter dan hanya `[a-z'-]`; input lain tidak dikirim ke API.
 - **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik.
@@ -197,7 +197,7 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
   2. _Terlalu pendek / karakter tidak valid_ — petunjuk validasi, tanpa request.
   3. _Loading_ — skeleton baris selama debounce + fetch.
   4. _Tidak ditemukan_ — pesan netral + saran periksa ejaan.
-  5. _Gagal jaringan_ — `role="alert"` + tombol **Coba lagi**.
+  5. _Gagal jaringan_ — `role="alert"` + tombol **Try again**.
 
 Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
 
@@ -207,33 +207,33 @@ Panel kanan (desktop) atau blok di bawah daftar (mobile). Semua kartu di dalam p
 
 #### F.1 Urutan Blok
 
-1. **Panel header** — label `Detail Words` 12px/`600` + badge `Sudah Dihafal` (opsional), dipisah garis `1px` `#F1F5F9`.
+1. **Panel header** — label `Detail Words` 12px/`600` + badge `Already memorised` (opsional), dipisah garis `1px` `#F1F5F9`.
 2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` rata kanan atas.
-3. **Arti / Definisi** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
-4. **Bentuk Kata** — chip datar, hanya dirender bila ada.
-5. **Contoh Kalimat** — kartu bernomor, maksimal 3.
-6. **Sinonim / Antonim** — baris chip, hanya dirender bila ada.
+3. **Meaning** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
+4. **Word Forms** — chip datar, hanya dirender bila ada.
+5. **Example Sentences** — kartu bernomor, maksimal 3.
+6. **Synonyms / Antonyms** — baris chip, hanya dirender bila ada.
 7. **Status hafalan** — kartu ringkasan + riwayat review + aksi hapus.
-8. **Sumber** — tautan lisensi, dipisah garis atas.
+8. **Source** — tautan lisensi, dipisah garis atas.
 
 Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`.
 
-#### F.2 Blok Arti / Definisi
+#### F.2 Blok Meaning
 
 - Header kartu: label 11px/`700` uppercase `#64748B` + badge `AI` (bila hasil fallback) + ikon `Languages`.
 - Terjemahan **dikelompokkan per part of speech**, bukan per sense. Satu label POS hanya muncul sekali; kata digabung dan di-dedup, maksimal 6 per POS.
 - Label POS: 10px/`600` uppercase `#94A3B8`.
 - Kata terjemahan: chip `rounded-md`, `border #E4E4E7`, `bg #FFFFFF`, 13px/`500` `#09090B`.
 - Definisi bahasa Inggris ada di dalam `<details>` dengan ikon `ChevronRight` yang berputar 90° saat terbuka; default tertutup. Ringkasan 12px `#64748B`.
-- Bila tidak ada terjemahan: teks 13px `#64748B` "Terjemahan belum tersedia untuk bahasa ini." dan definisi Inggris tetap dapat dibuka.
+- Bila tidak ada terjemahan: teks 13px `#64748B` "No translation available for this language yet." dan definisi Inggris tetap dapat dibuka.
 
 #### F.3 Blok Lain
 
-- **Bentuk Kata**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
-- **Contoh Kalimat**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
-- **Sinonim**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonim**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
+- **Word Forms**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
+- **Example Sentences**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
+- **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
 - **Status hafalan**: kartu `bg #FAFAFA`, ikon `CheckCircle2` `#16A34A`, riwayat sebagai `dl` dua kolom 12px, konfirmasi hapus inline (bukan `window.confirm`).
-- **Sumber**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
+- **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
 
 ---
 

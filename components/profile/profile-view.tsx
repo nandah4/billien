@@ -67,7 +67,7 @@ export function ProfileView({
         queryKey: ["remembered-words"],
       });
       setSavedLanguage(response.data.translationLanguage);
-      setStatus("Preferensi bahasa tersimpan.");
+      setStatus("Language preference saved.");
     } catch (requestError) {
       setError(messageFor(requestError, "Unable to save your preference."));
     } finally {
@@ -96,15 +96,15 @@ export function ProfileView({
           href="/"
         >
           <ArrowLeft size={14} aria-hidden="true" />
-          Kembali ke beranda
+          Back to home
         </Link>
 
         <header className="mt-4">
           <h1 className="text-[22px] leading-tight font-bold tracking-[-0.02em] text-ink">
-            Profil
+            Profile
           </h1>
           <p className="mt-1 text-[13px] text-muted">
-            Kelola bahasa terjemahan dan lihat ringkasan belajar kamu.
+            Manage your translation language and review your learning summary.
           </p>
         </header>
 
@@ -116,17 +116,17 @@ export function ProfileView({
                 id="profile-language"
                 className="text-[14px] font-semibold text-ink"
               >
-                Bahasa terjemahan
+                Translation language
               </h2>
             </div>
             <p className="mt-1 text-[12px] text-muted">
-              Detail kata menampilkan arti dalam bahasa ini.
+              Word details show the meaning in this language.
             </p>
 
             <div
               className="mt-3 grid gap-2"
               role="radiogroup"
-              aria-label="Bahasa terjemahan"
+              aria-label="Translation language"
             >
               {LANGUAGES.map((item) => {
                 const active = language === item.code;
@@ -152,7 +152,7 @@ export function ProfileView({
                         {item.nativeName}
                       </span>
                       <span className="mt-0.5 block text-[12px] text-muted">
-                        {item.name} · contoh: {item.sample}
+                        {item.name} · example: {item.sample}
                       </span>
                     </span>
                     {active ? (
@@ -187,7 +187,7 @@ export function ProfileView({
               disabled={saving || !dirty}
               onClick={() => void save()}
             >
-              {saving ? "Menyimpan…" : "Simpan preferensi"}
+              {saving ? "Saving…" : "Save preferences"}
             </button>
           </section>
 
@@ -201,12 +201,12 @@ export function ProfileView({
                 id="profile-account"
                 className="text-[14px] font-semibold text-ink"
               >
-                Akun
+                Account
               </h2>
             </div>
             <dl className="mt-3 grid grid-cols-1 gap-3 text-[12px] sm:grid-cols-2">
               <div>
-                <dt className="text-muted">Nama</dt>
+                <dt className="text-muted">Name</dt>
                 <dd className="mt-0.5 font-semibold text-ink">
                   {user.name || "—"}
                 </dd>
@@ -218,13 +218,13 @@ export function ProfileView({
                 </dd>
               </div>
               <div>
-                <dt className="text-muted">Kata tersimpan</dt>
+                <dt className="text-muted">Saved words</dt>
                 <dd className="mt-0.5 font-semibold text-ink">
                   {summary.savedCount}
                 </dd>
               </div>
               <div>
-                <dt className="text-muted">Streak saat ini</dt>
+                <dt className="text-muted">Current streak</dt>
                 <dd className="mt-0.5 inline-flex items-center gap-1 font-semibold text-ink">
                   <Flame size={13} className="text-medium" aria-hidden="true" />
                   {summary.currentStreak}

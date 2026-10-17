@@ -31,7 +31,7 @@ export function DrillPanel({
       <div className="flex items-center justify-between gap-3">
         <span className="flex items-center gap-2 text-[13px] font-semibold text-ink">
           <Brain size={16} className="text-accent" aria-hidden="true" />
-          Drill Hafalan
+          Memory Drill
         </span>
         <button
           className="inline-flex size-7 items-center justify-center rounded-lg border border-line bg-surface text-muted transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -69,7 +69,7 @@ export function DrillPanel({
                   disabled={loading}
                   onClick={() => onAnswer("forgotten")}
                 >
-                  Lupa
+                  Forgot
                 </button>
                 <button
                   className="inline-flex items-center justify-center gap-2 rounded-lg bg-easy px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
@@ -77,7 +77,7 @@ export function DrillPanel({
                   disabled={loading}
                   onClick={() => onAnswer("remembered")}
                 >
-                  Ingat
+                  Remembered
                 </button>
               </div>
             </>

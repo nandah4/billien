@@ -17,9 +17,9 @@ export const PAGE_SIZE = 8;
 export const DRILL_SIZE = 5;
 
 export const SORT_OPTIONS: { id: SortId; label: string }[] = [
-  { id: "recent", label: "Terbaru" },
+  { id: "recent", label: "Newest" },
   { id: "az", label: "A–Z" },
-  { id: "reviews", label: "Paling sering di-review" },
+  { id: "reviews", label: "Most reviewed" },
 ];
 
 export function capitalize(value: string) {

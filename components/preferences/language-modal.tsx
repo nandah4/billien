@@ -73,17 +73,21 @@ export function LanguageModal({
         id="language-modal-title"
         className="mt-4 text-[20px] leading-tight font-bold tracking-[-0.02em]"
       >
-        Pilih bahasa terjemahan
+        Choose your translation language
       </h2>
       <p
         id="language-modal-description"
         className="mt-2 text-[13px] leading-relaxed text-muted"
       >
-        Setiap kata akan menampilkan artinya dalam bahasa ini. Kamu bisa
-        mengubahnya nanti di halaman profil.
+        Every word will show its meaning in this language. You can change it
+        later on your profile page.
       </p>
 
-      <div className="mt-5 grid gap-2" role="radiogroup" aria-label="Bahasa terjemahan">
+      <div
+        className="mt-5 grid gap-2"
+        role="radiogroup"
+        aria-label="Translation language"
+      >
         {LANGUAGES.map((language) => {
           const active = selected === language.code;
           return (
@@ -144,7 +148,7 @@ export function LanguageModal({
           disabled={pending !== null}
           onClick={() => void submit(true)}
         >
-          {pending === "skip" ? "Menyimpan…" : "Lewati"}
+          {pending === "skip" ? "Saving…" : "Skip"}
         </button>
         <button
           className={primaryButton}
@@ -152,7 +156,7 @@ export function LanguageModal({
           disabled={pending !== null}
           onClick={() => void submit(false)}
         >
-          {pending === "save" ? "Menyimpan…" : "Simpan"}
+          {pending === "save" ? "Saving…" : "Save"}
         </button>
       </div>
     </Modal>
