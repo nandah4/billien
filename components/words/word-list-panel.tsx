@@ -3,25 +3,53 @@
 import type { FormEvent } from "react";
 import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
 import { WordRow } from "@/components/words/word-row";
-import type { FilterId, FilterOption, LibraryWord, View } from "@/lib/library";
-import { cardClass, primaryButton } from "@/lib/ui";
+import {
+  SORT_OPTIONS,
+  type FilterId,
+  type FilterOption,
+  type LibraryWord,
+  type SortId,
+  type View,
+} from "@/lib/library";
+import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
+
+function ListSkeleton() {
+  return (
+    <div className="grid gap-2" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <div
+          className="h-[68px] animate-pulse rounded-xl border border-line bg-subtle"
+          key={index}
+        />
+      ))}
+    </div>
+  );
+}
 
 export function WordListPanel({
   view,
   search,
   filters,
+  sort,
   items,
   pagination,
   notice,
   errorMessage,
   isLoading,
   showSignInPrompt,
+  hasAnyItems,
   savedCount,
   selectedKey,
   savingKey,
+  unsavingKey,
   onSelect,
   onSave,
+  onUnsave,
   onSignIn,
+  onChangeSort,
+  onResetFilters,
+  onRetry,
+  onGoToDiscovery,
 }: {
   view: View;
   search: {
@@ -34,6 +62,7 @@ export function WordListPanel({
     active: FilterId;
     onChange: (id: FilterId) => void;
   };
+  sort: SortId;
   items: LibraryWord[];
   pagination: {
     page: number;
@@ -46,14 +75,22 @@ export function WordListPanel({
   errorMessage: string | null;
   isLoading: boolean;
   showSignInPrompt: boolean;
+  hasAnyItems: boolean;
   savedCount: number;
   selectedKey: string | null;
   savingKey: string | null;
+  unsavingKey: string | null;
   onSelect: (item: LibraryWord) => void;
   onSave: (word: string) => void;
+  onUnsave: (item: LibraryWord) => void;
   onSignIn: () => void;
+  onChangeSort: (sort: SortId) => void;
+  onResetFilters: () => void;
+  onRetry: () => void;
+  onGoToDiscovery: () => void;
 }) {
   const normalizedQuery = search.value.trim().toLowerCase();
+  const filteredEmpty = !isLoading && items.length === 0 && hasAnyItems;
 
   return (
     <section className={`${cardClass} flex min-w-0 flex-col lg:min-h-0`}>
@@ -72,8 +109,16 @@ export function WordListPanel({
             className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-placeholder"
             value={search.value}
             onChange={(event) => search.onChange(event.target.value)}
-            placeholder="Search an English word…"
-            aria-label="Search an English word"
+            placeholder={
+              view === "remembered"
+                ? "Cari kata atau terjemahan…"
+                : "Search an English word…"
+            }
+            aria-label={
+              view === "remembered"
+                ? "Cari kata atau terjemahan"
+                : "Search an English word"
+            }
           />
           {normalizedQuery ? (
             <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-medium text-accent">
@@ -112,17 +157,42 @@ export function WordListPanel({
               </button>
             );
           })}
+
+          {view === "remembered" ? (
+            <label className="ml-auto inline-flex items-center gap-2 text-[11px] font-medium text-muted">
+              Urutkan
+              <select
+                className="h-9 rounded-lg border border-line bg-surface px-2 text-[12px] font-medium text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                value={sort}
+                onChange={(event) => onChangeSort(event.target.value as SortId)}
+                aria-label="Urutkan kata"
+              >
+                {SORT_OPTIONS.map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </div>
       </div>
 
       <div className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {errorMessage ? (
-          <p
+          <div
             className="mb-3 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
             role="alert"
           >
-            {errorMessage}
-          </p>
+            <p>{errorMessage}</p>
+            <button
+              className="mt-2 inline-flex h-8 items-center justify-center rounded-lg border border-hard-soft bg-surface px-2.5 text-[12px] font-semibold text-hard transition hover:bg-hard-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              type="button"
+              onClick={onRetry}
+            >
+              Coba lagi
+            </button>
+          </div>
         ) : null}
         {notice ? (
           <p
@@ -148,17 +218,34 @@ export function WordListPanel({
             </button>
           </div>
         ) : isLoading && items.length === 0 ? (
-          <div className="flex items-center justify-center gap-2 py-10 text-[12px] text-muted">
-            <span className="size-2 animate-pulse rounded-full bg-accent" />
-            Loading your word library…
+          <ListSkeleton />
+        ) : filteredEmpty ? (
+          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
+            <p className="text-[13px] text-muted">
+              Tidak ada kata yang cocok dengan filter ini.
+            </p>
+            <button
+              className={`${outlineButton} mt-4`}
+              type="button"
+              onClick={onResetFilters}
+            >
+              Reset filter
+            </button>
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[12px] text-muted">
+          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
             {view === "remembered" ? (
               <>
-                No memorised words match this view yet.
+                Belum ada kata tersimpan.
                 <br />
-                Add a word from Discovery first.
+                Cari kata di Discovery lalu tandai sudah hafal.
+                <button
+                  className={`${primaryButton} mt-4`}
+                  type="button"
+                  onClick={onGoToDiscovery}
+                >
+                  Cari kata di Discovery
+                </button>
               </>
             ) : (
               <>
@@ -176,8 +263,10 @@ export function WordListPanel({
                   item={item}
                   active={selectedKey === item.key}
                   saving={savingKey === item.key}
+                  unsaving={unsavingKey === item.key}
                   onSelect={onSelect}
                   onSave={onSave}
+                  onUnsave={onUnsave}
                 />
               </li>
             ))}

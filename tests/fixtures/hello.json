@@ -1,0 +1,56 @@
+{
+  "word": "hello",
+  "entries": [
+    {
+      "language": { "code": "en", "name": "English" },
+      "partOfSpeech": "interjection",
+      "pronunciations": [
+        {
+          "type": "ipa",
+          "text": "/hɛˈloʊ/",
+          "tags": ["General American"]
+        }
+      ],
+      "forms": [
+        { "word": "hallo", "tags": ["alternative"] },
+        { "word": "Hallo", "tags": ["alternative"] }
+      ],
+      "senses": [
+        {
+          "definition": "A greeting (salutation) said when meeting someone.",
+          "tags": [],
+          "examples": ["Hello, everyone.", "Hello there."],
+          "quotes": [{ "text": "A quote", "reference": "Someone" }],
+          "synonyms": ["hi"],
+          "antonyms": [],
+          "translations": [
+            { "language": { "code": "id", "name": "Indonesian" }, "word": "hai" },
+            { "language": { "code": "id", "name": "Indonesian" }, "word": "salam" },
+            { "language": { "code": "id", "name": "Indonesian" }, "word": "hai" },
+            { "language": { "code": "es", "name": "Spanish" }, "word": "hola" }
+          ]
+        },
+        {
+          "definition": "A call for attention.",
+          "tags": [],
+          "examples": ["Hello?"],
+          "synonyms": [],
+          "antonyms": [],
+          "translations": [
+            { "language": { "code": "id", "name": "Indonesian" }, "word": "halo" }
+          ],
+          "subsenses": [{ "definition": "Nested and recursive." }]
+        }
+      ],
+      "synonyms": ["hi"],
+      "antonyms": []
+    }
+  ],
+  "source": {
+    "url": "https://en.wiktionary.org/wiki/hello",
+    "license": {
+      "name": "CC BY-SA 4.0",
+      "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+    }
+  }
+}

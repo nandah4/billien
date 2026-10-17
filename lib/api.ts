@@ -1,4 +1,4 @@
-import type { DictionaryEntry, SavedWord } from "@/lib/types";
+import type { DictionaryResult, SavedWord, UserPreferences } from "@/lib/types";
 
 export type ApiEnvelope<T> = {
   data: T;
@@ -21,28 +21,53 @@ export function messageFor(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
 }
 
-export function dictionaryQueryOptions(word: string) {
+export function dictionaryQueryOptions(word: string, language?: string) {
+  const query = language ? `?lang=${encodeURIComponent(language)}` : "";
   return {
-    queryKey: ["dictionary-word", word],
+    queryKey: ["dictionary-word", word, language ?? "auto"],
     queryFn: ({ signal }: { signal: AbortSignal }) =>
-      request<ApiEnvelope<DictionaryEntry[]>>(
-        `/api/dictionary/${encodeURIComponent(word)}`,
+      request<ApiEnvelope<DictionaryResult>>(
+        `/api/dictionary/${encodeURIComponent(word)}${query}`,
         { signal },
       ),
     retry: false,
     staleTime: 1000 * 60 * 30,
-    select: (response: ApiEnvelope<DictionaryEntry[]>) =>
-      response.data[0] ?? null,
+    select: (response: ApiEnvelope<DictionaryResult>) => response.data,
   };
 }
 
-export function rememberedWordsQueryOptions(enabled: boolean) {
+export function rememberedWordsQueryOptions(
+  enabled: boolean,
+  language?: string,
+) {
+  const query = language ? `?lang=${encodeURIComponent(language)}` : "";
   return {
-    queryKey: ["remembered-words"],
+    queryKey: ["remembered-words", language ?? "auto"],
     enabled,
     queryFn: ({ signal }: { signal: AbortSignal }) =>
-      request<ApiEnvelope<SavedWord[]>>("/api/words", { signal }),
+      request<ApiEnvelope<SavedWord[]>>(`/api/words${query}`, { signal }),
     select: (response: ApiEnvelope<SavedWord[]>) => response.data,
+  };
+}
+
+/** Detail always asks for every language so switching preference is instant. */
+export function savedWordDetailQueryOptions(id: string | null) {
+  return {
+    queryKey: ["remembered-word", id],
+    enabled: Boolean(id),
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<SavedWord>>(`/api/words/${id}`, { signal }),
+    select: (response: ApiEnvelope<SavedWord>) => response.data,
+  };
+}
+
+export function preferencesQueryOptions(enabled: boolean) {
+  return {
+    queryKey: ["preferences"],
+    enabled,
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<UserPreferences>>("/api/preferences", { signal }),
+    select: (response: ApiEnvelope<UserPreferences>) => response.data,
   };
 }
 

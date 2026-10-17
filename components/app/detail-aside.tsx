@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { DrillLauncher } from "@/components/drill/drill-launcher";
 import { DrillPanel } from "@/components/drill/drill-panel";
 import { WordDetail } from "@/components/words/word-detail";
-import type { DictionaryEntry, SavedWord } from "@/lib/types";
+import type { DictionaryResult, SavedWord } from "@/lib/types";
 import { cardClass } from "@/lib/ui";
 
 /**
@@ -22,12 +22,16 @@ export function DetailAside({
   open: boolean;
   drillActive: boolean;
   detail: {
-    word: SavedWord | DictionaryEntry | null;
+    word: SavedWord | DictionaryResult | null;
+    preferredLanguage: string;
     isLoading: boolean;
     errorMessage: string | null;
     isSaving: boolean;
+    isUnsaving: boolean;
     onSave?: () => void;
+    onUnsave?: () => void;
     onSignIn?: () => void;
+    onRetry?: () => void;
   };
   drill: {
     current: SavedWord | null;
@@ -43,6 +47,7 @@ export function DetailAside({
   launcher: {
     visible: boolean;
     loading: boolean;
+    count: number;
     onStart: () => void;
   };
 }) {
@@ -75,12 +80,17 @@ export function DetailAside({
                 />
               ) : (
                 <WordDetail
+                  key={detail.word?.word ?? "empty"}
                   word={detail.word}
+                  preferredLanguage={detail.preferredLanguage}
                   isLoading={detail.isLoading}
                   errorMessage={detail.errorMessage}
                   isSaving={detail.isSaving}
+                  isUnsaving={detail.isUnsaving}
                   onSave={detail.onSave}
+                  onUnsave={detail.onUnsave}
                   onSignIn={detail.onSignIn}
+                  onRetry={detail.onRetry}
                 />
               )}
             </div>
@@ -88,6 +98,7 @@ export function DetailAside({
             {launcher.visible ? (
               <DrillLauncher
                 loading={launcher.loading}
+                count={launcher.count}
                 onStart={launcher.onStart}
               />
             ) : null}

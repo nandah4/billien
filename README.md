@@ -1,12 +1,12 @@
 # Billien
 
-Billien is a multi-user English vocabulary app. Anyone can search an English word as a guest; Google sign-in makes Remembered words, random flip/review, and daily streak personal to a verified account.
+Billien is a multi-user English vocabulary app. Anyone can search an English word as a guest; Google sign-in makes Remembered words, translation preferences, drills, and the daily streak personal to a verified account.
 
 ## Run locally
 
 1. Copy `.env.example` to `.env.local`.
 2. Add the Neon `DATABASE_URL`, the branch's `NEON_AUTH_BASE_URL`, and a random `NEON_AUTH_COOKIE_SECRET` (at least 32 characters).
-3. Run [`neon/schema.sql`](./neon/schema.sql) in the Neon SQL Editor or through the Neon MCP connection.
+3. Apply the database schema. For a fresh database run [`neon/schema.sql`](./neon/schema.sql); for an existing one apply [`neon/migrations/001_dictionary_v2.sql`](./neon/migrations/001_dictionary_v2.sql), then run the backfill below, then apply [`neon/migrations/002_drop_legacy_dictionary.sql`](./neon/migrations/002_drop_legacy_dictionary.sql).
 4. In Neon Console → **Auth**, enable the Google provider and disable the Email/Password provider. If Neon asks for Google OAuth credentials, create the OAuth client in Google Cloud Console and copy the redirect URI shown by Neon exactly into that client.
 5. Add `http://localhost:3000` and the production origin to Neon Auth's trusted domains. Add `http://localhost:3001` too when port 3000 is occupied locally.
 6. Install and start the app:
@@ -18,11 +18,32 @@ npm run dev
 
 Open `http://localhost:3000`.
 
+### Backfilling pre-v2 words
+
+Words saved before the dictionary migration have an empty `entries` array. Fill them once before dropping the legacy columns:
+
+```bash
+node scripts/backfill-dictionary-v2.mjs
+```
+
+The script is idempotent and only touches rows with `jsonb_array_length(entries) = 0`.
+
 ## Checks
 
 ```bash
+npx tsc --noEmit
 npm run lint
 npm run build
+npm test
 ```
 
-The browser talks only to Next.js API routes and the Neon Auth proxy. [`proxy.ts`](./proxy.ts) exchanges the OAuth callback verifier for the app's first-party session cookie. `DATABASE_URL` and `NEON_AUTH_COOKIE_SECRET` stay server-only and must never use the `NEXT_PUBLIC_` prefix. The data routes derive the user ID from the server-side session, so one account cannot access another account's saved words, reviews, or streak. Words are searched directly through Free Dictionary API; Billien does not provide a discovery feed or Datamuse autocomplete.
+## Architecture
+
+- **Dictionary source.** `lib/dictionary.ts` calls `https://freedictionaryapi.com/api/v1/entries/en/{word}?translations=true` with an 8-second timeout and a 7-day fetch cache. `lib/normalize.ts` deduplicates and caps the payload (8 senses per entry, 3 translations per language per sense, 5 examples, 12 forms) and drops recursive `subsenses`.
+- **Storage.** `vocabulary_words` keeps the normalized `entries`, a global `translations` map, `forms`, and `source`. Every language is stored; list responses project to the signed-in user's preferred language and detail responses return all languages.
+- **Preferences.** `user_preferences` stores `translation_language` (`id`, `en`, `es`; default `id`) and `onboarded_at`. `GET/PATCH /api/preferences` is session-scoped; guests fall back to the `billien_lang` cookie and then to `id`. The onboarding modal appears once per account, and `/profile` lets the user change the language later.
+- **Routes.** `GET /api/dictionary/[word]` (supports `?lang=` and `?lang=all`), `GET/POST /api/words`, `GET/DELETE /api/words/[id]`, `POST /api/words/[id]/review`, `GET /api/review` (supports `?ids=` for filtered drills), `GET /api/streak`, and `GET/PATCH /api/preferences`.
+- **Detail panel.** Translation-first: the preferred language is the primary block, English definitions live in a collapsible `<details>`, and pronunciation uses the browser's `speechSynthesis` (the provider has no audio URLs).
+- **Remembered view.** Rows show the preferred translation, search matches English or translation, POS filters and sorting compose, un-save is optimistic, and drills can be scoped to the active filter result.
+
+The browser talks only to Next.js API routes and the Neon Auth proxy. [`proxy.ts`](./proxy.ts) exchanges the OAuth callback verifier for the app's first-party session cookie. `DATABASE_URL` and `NEON_AUTH_COOKIE_SECRET` stay server-only and must never use the `NEXT_PUBLIC_` prefix. Data routes derive the user ID from the server-side session, so one account cannot access another account's saved words, reviews, preferences, or streak.

@@ -5,11 +5,11 @@ create table if not exists public.vocabulary_words (
   word text not null,
   normalized_word text not null unique,
   phonetic text,
-  phonetics jsonb not null default '[]'::jsonb,
-  meanings jsonb not null default '[]'::jsonb,
-  license jsonb,
-  source_urls text[] not null default '{}',
-  api_entries jsonb not null,
+  entries jsonb not null default '[]'::jsonb,
+  translations jsonb not null default '{}'::jsonb,
+  forms jsonb not null default '[]'::jsonb,
+  source jsonb,
+  entries_fetched_at timestamptz,
   created_at timestamptz not null default now()
 );
 
@@ -35,4 +35,11 @@ create table if not exists public.user_streaks (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key (user_id, activity_date)
+);
+
+create table if not exists public.user_preferences (
+  user_id uuid primary key references neon_auth."user"(id) on delete cascade,
+  translation_language text not null default 'id',
+  onboarded_at timestamptz,
+  updated_at timestamptz not null default now()
 );

@@ -1,49 +1,68 @@
-export type DictionaryPhonetic = {
-  text?: string;
-  audio?: string;
-  sourceUrl?: string;
-  license?: { name?: string; url?: string };
-};
-
-export type DictionaryDefinition = {
-  definition: string;
-  example?: string;
-  synonyms?: string[];
-  antonyms?: string[];
-};
-
-export type DictionaryMeaning = {
-  partOfSpeech: string;
-  definitions: DictionaryDefinition[];
-  synonyms?: string[];
-  antonyms?: string[];
-};
-
-export type DictionaryEntry = {
+export type DictionaryTranslation = {
+  language: { code: string; name: string };
   word: string;
-  phonetic?: string;
-  phonetics?: DictionaryPhonetic[];
-  meanings: DictionaryMeaning[];
-  license?: { name?: string; url?: string };
-  sourceUrls?: string[];
-  [key: string]: unknown;
 };
 
+export type DictionarySource = {
+  url: string;
+  license: { name: string; url: string } | null;
+};
+
+export type Pronunciation = {
+  type: string;
+  text: string;
+  tags: string[];
+};
+
+export type WordForm = {
+  word: string;
+  tags: string[];
+};
+
+export type Sense = {
+  definition: string;
+  tags: string[];
+  examples: string[];
+  synonyms: string[];
+  antonyms: string[];
+  /** Deduplicated words keyed by language code, e.g. `{ id: ["hai", "salam"] }`. */
+  translations: Record<string, string[]>;
+};
+
+export type Entry = {
+  partOfSpeech: string;
+  pronunciations: Pronunciation[];
+  forms: WordForm[];
+  senses: Sense[];
+};
+
+export type DictionaryResult = {
+  word: string;
+  entries: Entry[];
+  source: DictionarySource | null;
+};
+
+/** A word in `vocabulary_words` joined with the current user's review state. */
 export type SavedWord = {
   id: string;
   word: string;
   normalized_word: string;
   phonetic: string | null;
-  phonetics: DictionaryPhonetic[];
-  meanings: DictionaryMeaning[];
-  license: { name?: string; url?: string } | null;
-  source_urls: string[];
-  api_entries: DictionaryEntry[];
+  entries: Entry[];
+  /** Every language returned by the provider, so the detail panel can switch instantly. */
+  translations: Record<string, string[]>;
+  forms: WordForm[];
+  source: DictionarySource | null;
   added_at: string;
   last_reviewed_at: string | null;
   review_count: number;
   remembered_count: number;
   forgotten_count: number;
+};
+
+export type UserPreferences = {
+  translationLanguage: string;
+  onboardedAt: string | null;
 };
 
 export type StreakDay = {

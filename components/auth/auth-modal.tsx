@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
-import { AnimatePresence, motion } from "framer-motion";
 import { X } from "lucide-react";
+import { Modal } from "@/components/ui/modal";
 import { authClient } from "@/lib/auth-client";
 
 function GoogleMark() {
@@ -27,9 +27,6 @@ function GoogleMark() {
     </svg>
   );
 }
-
-const FOCUSABLE =
-  'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 /**
  * Dialog contents. Rendered only while the modal is open, so the error and
@@ -137,103 +134,35 @@ export function AuthModal({
   onClose: () => void;
   callbackURL?: string;
 }) {
-  const panelRef = useRef<HTMLDivElement | null>(null);
   const primaryRef = useRef<HTMLButtonElement | null>(null);
   // Mirrors the body's pending state so the overlay and Escape key can decline
   // to dismiss while the Google redirect is in flight.
   const pendingRef = useRef(false);
-  // Keep the latest handler without re-running the open/close effect, so focus
-  // and the scroll lock are not reset on every parent render.
-  const onCloseRef = useRef(onClose);
+
   useEffect(() => {
-    onCloseRef.current = onClose;
-  });
+    if (open) pendingRef.current = false;
+  }, [open]);
 
   function requestDismiss() {
     if (pendingRef.current) return;
-    onCloseRef.current();
+    onClose();
   }
 
-  useEffect(() => {
-    if (!open) return;
-
-    // A previous attempt may have left this set; never open in a locked state.
-    pendingRef.current = false;
-    const previouslyFocused =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    primaryRef.current?.focus();
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        if (!pendingRef.current) onCloseRef.current();
-        return;
-      }
-      if (event.key !== "Tab") return;
-      // Keep focus inside the dialog while it is open.
-      const panel = panelRef.current;
-      if (!panel) return;
-      const focusable = Array.from(
-        panel.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((element) => element.offsetParent !== null);
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      const active = document.activeElement;
-      if (event.shiftKey && (active === first || !panel.contains(active))) {
-        event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && active === last) {
-        event.preventDefault();
-        first.focus();
-      }
-    }
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      previouslyFocused?.focus();
-    };
-  }, [open]);
-
   return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          onClick={(event) => {
-            if (event.target === event.currentTarget) requestDismiss();
-          }}
-        >
-          <motion.div
-            ref={panelRef}
-            className="w-full max-w-105 rounded-xl border border-line bg-surface p-6 shadow-xl"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="auth-modal-title"
-            aria-describedby="auth-modal-description"
-            initial={{ opacity: 0, y: 12, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 320, damping: 26 }}
-          >
-            <AuthDialogBody
-              callbackURL={callbackURL}
-              pendingRef={pendingRef}
-              primaryRef={primaryRef}
-              onDismiss={requestDismiss}
-            />
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
+    <Modal
+      open={open}
+      onClose={onClose}
+      labelledBy="auth-modal-title"
+      describedBy="auth-modal-description"
+      initialFocusRef={primaryRef}
+      canDismiss={() => !pendingRef.current}
+    >
+      <AuthDialogBody
+        callbackURL={callbackURL}
+        pendingRef={pendingRef}
+        primaryRef={primaryRef}
+        onDismiss={requestDismiss}
+      />
+    </Modal>
   );
 }

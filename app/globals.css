@@ -90,3 +90,43 @@ body {
     transition: none;
   }
 }
+
+/*
+ * Low-opacity grid drawn behind the workspace. The lines come from two 1px
+ * gradients on a pseudo-element, so nothing affects layout and the content is
+ * never masked. The element keeps `isolation: isolate` so the negative
+ * z-index stays inside its own stacking context (above the element's
+ * background, below its children). Cell size and line colour are overridable.
+ */
+.grid-pattern {
+  --grid-size: 32px;
+  --grid-line: rgb(9 9 11 / 0.05);
+  position: relative;
+  isolation: isolate;
+}
+
+.grid-pattern::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+  background-position: center center;
+  /* Fade towards the edges so it reads as texture rather than tiling. */
+  -webkit-mask-image: radial-gradient(
+    ellipse at center,
+    #000 35%,
+    rgb(0 0 0 / 0.45) 70%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(
+    ellipse at center,
+    #000 35%,
+    rgb(0 0 0 / 0.45) 70%,
+    transparent 100%
+  );
+}

@@ -1,55 +1,78 @@
-import type { DictionaryEntry } from "@/lib/types";
+import "server-only";
+import type { RawDictionary } from "@/lib/normalize";
 
-const BASE_URL = "https://api.dictionaryapi.dev/api/v2/entries/en";
+const BASE_URL = "https://freedictionaryapi.com/api/v1/entries/en";
 const TIMEOUT_MS = 8_000;
+const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
 
-export async function lookupWord(rawWord: string): Promise<DictionaryEntry[]> {
+export class DictionaryError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "DictionaryError";
+    this.status = status;
+  }
+}
+
+/**
+ * Fetches the raw provider payload. Validation is intentionally shallow: the
+ * normalizer owns shaping, while this function owns transport errors and the
+ * word format contract shared by every route.
+ */
+export async function lookupWord(rawWord: string): Promise<RawDictionary> {
   const word = rawWord.trim().toLowerCase();
-  if (!word || !/^[a-z][a-z'-]*$/i.test(word)) {
-    throw new Error("Please enter a valid English word.");
+  if (!word || !WORD_PATTERN.test(word)) {
+    throw new DictionaryError("Please enter a valid English word.", 400);
   }
 
   let response: Response;
   try {
-    response = await fetch(`${BASE_URL}/${encodeURIComponent(word)}`, {
-      headers: { Accept: "application/json" },
-      next: { revalidate: 60 * 60 * 24 * 7 },
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-    });
+    response = await fetch(
+      `${BASE_URL}/${encodeURIComponent(word)}?translations=true`,
+      {
+        headers: { Accept: "application/json" },
+        next: { revalidate: 60 * 60 * 24 * 7 },
+        signal: AbortSignal.timeout(TIMEOUT_MS),
+      },
+    );
   } catch {
-    throw new Error("Dictionary request timed out. Please try again.");
+    throw new DictionaryError(
+      "Dictionary request timed out. Please try again.",
+      504,
+    );
   }
+
   if (!response.ok) {
-    if (response.status === 404) throw new Error("Word not found.");
-    throw new Error("Dictionary service is unavailable.");
+    if (response.status === 404) {
+      throw new DictionaryError("Word not found.", 404);
+    }
+    throw new DictionaryError("Dictionary service is unavailable.", 502);
   }
 
-  const data: unknown = await response.json();
-  if (!Array.isArray(data) || !data[0] || typeof data[0] !== "object" ||
-    typeof (data[0] as { word?: unknown }).word !== "string" ||
-    !Array.isArray((data[0] as { meanings?: unknown }).meanings)) {
-    throw new Error("Unexpected dictionary response.");
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new DictionaryError("Unexpected dictionary response.", 502);
   }
 
-  return data as DictionaryEntry[];
-}
+  const record =
+    typeof payload === "object" && payload !== null && !Array.isArray(payload)
+      ? (payload as RawDictionary)
+      : null;
+  if (
+    !record ||
+    typeof record.word !== "string" ||
+    !Array.isArray(record.entries)
+  ) {
+    throw new DictionaryError("Unexpected dictionary response.", 502);
+  }
 
-export function normalizeForInsert(entries: DictionaryEntry[]) {
-  const first = entries[0];
-  const fallbackPhonetic = first.phonetics?.find(
-    (item) => typeof item?.text === "string" && item.text.length > 0,
-  );
+  // The provider answers 200 with an empty `entries` array for unknown words.
+  if (record.entries.length === 0) {
+    throw new DictionaryError("Word not found.", 404);
+  }
 
-  return {
-    word: first.word,
-    normalized_word: first.word.toLocaleLowerCase("en"),
-    phonetic: first.phonetic ?? fallbackPhonetic?.text ?? null,
-    phonetics: Array.isArray(first.phonetics) ? first.phonetics : [],
-    meanings: Array.isArray(first.meanings) ? first.meanings : [],
-    license: first.license && typeof first.license === "object" ? first.license : null,
-    source_urls: Array.isArray(first.sourceUrls)
-      ? first.sourceUrls.filter((value): value is string => typeof value === "string")
-      : [],
-    api_entries: entries,
-  };
+  return record;
 }

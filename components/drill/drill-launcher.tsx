@@ -5,11 +5,15 @@ import { cardClass, outlineButton } from "@/lib/ui";
 
 export function DrillLauncher({
   loading,
+  count,
   onStart,
 }: {
   loading: boolean;
+  count: number;
   onStart: () => void;
 }) {
+  const disabled = loading || count < 1;
+
   return (
     <div className={`${cardClass} shrink-0 p-4`}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -22,14 +26,17 @@ export function DrillLauncher({
               Uji Pemahaman Kata Ini
             </p>
             <p className="mt-0.5 text-[12px] text-muted">
-              Latihan kalimat rumpang &amp; flashcard instan
+              {count > 0
+                ? `Mulai drill dari ${count} kata`
+                : "Tidak ada kata pada filter ini"}
             </p>
           </div>
         </div>
         <button
           className={outlineButton}
           type="button"
-          disabled={loading}
+          disabled={disabled}
+          title={count < 1 ? "Tidak ada kata untuk di-drill." : undefined}
           onClick={onStart}
         >
           Start Drill

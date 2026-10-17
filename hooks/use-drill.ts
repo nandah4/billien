@@ -38,7 +38,8 @@ export function useDrill({
     setComplete(false);
   }
 
-  async function start() {
+  /** `ids` scopes the drill to the active Remembered filter result. */
+  async function start(ids?: string[]) {
     if (!signedIn) {
       onRequireAuth();
       return;
@@ -46,9 +47,12 @@ export function useDrill({
     setLoading(true);
     onNotice(null);
     try {
-      const response = await request<ApiEnvelope<SavedWord[]>>(
-        `/api/review?count=${DRILL_SIZE}`,
-      );
+      const scoped = ids?.filter(Boolean) ?? [];
+      const url =
+        scoped.length > 0
+          ? `/api/review?ids=${encodeURIComponent(scoped.join(","))}`
+          : `/api/review?count=${DRILL_SIZE}`;
+      const response = await request<ApiEnvelope<SavedWord[]>>(url);
       if (response.data.length === 0) {
         onNotice("Add some words before starting a drill.");
         return;
@@ -70,14 +74,11 @@ export function useDrill({
     setLoading(true);
     onNotice(null);
     try {
-      await request<ApiEnvelope<SavedWord>>(
-        `/api/words/${current.id}/review`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ result }),
-        },
-      );
+      await request<ApiEnvelope<SavedWord>>(`/api/words/${current.id}/review`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result }),
+      });
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["remembered-words"] }),
         queryClient.invalidateQueries({ queryKey: ["streak"] }),

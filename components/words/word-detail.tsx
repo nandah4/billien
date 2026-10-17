@@ -1,45 +1,28 @@
 "use client";
 
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   BookOpenText,
   CheckCircle2,
   Languages,
   LogIn,
   Plus,
+  Trash2,
   Volume2,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import type { DictionaryEntry, SavedWord } from "@/lib/types";
-import { outlineButton, primaryButton } from "@/lib/ui";
+import {
+  collectExamples,
+  collectForms,
+  collectTags,
+  distinctPartsOfSpeech,
+  isSavedWord,
+  primaryDefinition,
+} from "@/lib/library";
+import { languageLabel } from "@/lib/language";
+import type { DictionaryResult, Entry, SavedWord } from "@/lib/types";
+import { headerOutline, outlineButton, primaryButton } from "@/lib/ui";
 
-type DetailWord = DictionaryEntry | SavedWord;
-
-function audioUrl(word: DetailWord | null) {
-  const url = word?.phonetics?.map((item) => item.audio?.trim()).find(Boolean);
-  if (!url) return null;
-  const normalized = url.startsWith("//") ? `https:${url}` : url;
-  try {
-    const parsed = new URL(normalized);
-    const isAllowed =
-      parsed.protocol === "https:" &&
-      ((parsed.hostname === "ssl.gstatic.com" &&
-        parsed.pathname.startsWith("/dictionary/static/sounds/")) ||
-        (parsed.hostname === "api.dictionaryapi.dev" &&
-          parsed.pathname.startsWith("/media/pronunciations/")));
-    if (!isAllowed) return null;
-    const asset = btoa(parsed.toString())
-      .replaceAll("+", "-")
-      .replaceAll("/", "_")
-      .replaceAll("=", "");
-    return `/api/asset?asset=${asset}`;
-  } catch {
-    return null;
-  }
-}
-
-function isSavedWord(word: DetailWord): word is SavedWord {
-  return "id" in word;
-}
+type DetailWord = SavedWord | DictionaryResult;
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -50,61 +33,60 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function primaryDefinition(word: DetailWord) {
-  return word.meanings?.[0]?.definitions?.[0]?.definition?.trim() ?? null;
+function subscribeToNothing() {
+  return () => {};
 }
 
-function distinctPartsOfSpeech(word: DetailWord, limit = 3) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const meaning of word.meanings ?? []) {
-    const part = meaning.partOfSpeech?.trim();
-    if (!part) continue;
-    const key = part.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(part);
-    if (out.length >= limit) break;
-  }
-  return out;
+function StatePanel({
+  title,
+  children,
+  onRetry,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onRetry?: () => void;
+}) {
+  return (
+    <article>
+      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <BookOpenText size={16} className="text-accent" aria-hidden="true" />
+        Detail Words
+      </div>
+      <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
+        {title}
+      </p>
+      <div className="mt-2 text-[13px] leading-relaxed text-muted">
+        {children}
+      </div>
+      {onRetry ? (
+        <button
+          className={`${outlineButton} mt-4`}
+          type="button"
+          onClick={onRetry}
+        >
+          Coba lagi
+        </button>
+      ) : null}
+    </article>
+  );
 }
 
-function collectTags(
-  word: DetailWord,
-  kind: "synonyms" | "antonyms",
-  limit = 6,
-) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  const push = (values?: string[]) => {
-    for (const value of values ?? []) {
-      const tag = value?.trim();
-      if (!tag) continue;
-      const key = tag.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(tag);
-      if (out.length >= limit) return;
-    }
-  };
-  for (const meaning of word.meanings ?? []) {
-    push(meaning[kind]);
-    for (const definition of meaning.definitions ?? []) push(definition[kind]);
-    if (out.length >= limit) break;
-  }
-  return out;
-}
-
-function collectExamples(word: DetailWord, limit = 3) {
-  const out: string[] = [];
-  for (const meaning of word.meanings ?? []) {
-    for (const definition of meaning.definitions ?? []) {
-      const example = definition.example?.trim();
-      if (example) out.push(example);
-      if (out.length >= limit) return out;
-    }
-  }
-  return out;
+function DetailSkeleton() {
+  return (
+    <article aria-busy="true" aria-label="Memuat detail kata">
+      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <BookOpenText size={16} className="text-accent" aria-hidden="true" />
+        Detail Words
+      </div>
+      <div className="mt-5 grid gap-3">
+        <span className="h-8 w-2/3 animate-pulse rounded-lg bg-subtle" />
+        <span className="h-4 w-1/3 animate-pulse rounded bg-subtle" />
+        <span className="mt-2 h-20 w-full animate-pulse rounded-xl bg-subtle" />
+        <span className="h-14 w-full animate-pulse rounded-xl bg-subtle" />
+        <span className="h-14 w-full animate-pulse rounded-xl bg-subtle" />
+      </div>
+    </article>
+  );
 }
 
 function TagRow({
@@ -136,114 +118,109 @@ function TagRow({
   );
 }
 
-function StatePanel({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <article>
-      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
-        <BookOpenText size={16} className="text-accent" aria-hidden="true" />
-        Detail Words
-      </div>
-      <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
-        {title}
-      </p>
-      <div className="mt-2 text-[13px] leading-relaxed text-muted">
-        {children}
-      </div>
-    </article>
-  );
+type TranslationSense = {
+  partOfSpeech: string;
+  words: string[];
+};
+
+function translationSenses(entries: Entry[], language: string) {
+  const out: TranslationSense[] = [];
+  for (const entry of entries) {
+    for (const sense of entry.senses) {
+      const words = sense.translations[language];
+      if (!words || words.length === 0) continue;
+      out.push({ partOfSpeech: entry.partOfSpeech, words });
+      if (out.length >= 6) return out;
+    }
+  }
+  return out;
+}
+
+function definitions(entries: Entry[]) {
+  const out: { partOfSpeech: string; definition: string }[] = [];
+  for (const entry of entries) {
+    for (const sense of entry.senses) {
+      if (!sense.definition) continue;
+      out.push({
+        partOfSpeech: entry.partOfSpeech,
+        definition: sense.definition,
+      });
+      if (out.length >= 8) return out;
+    }
+  }
+  return out;
 }
 
 export function WordDetail({
   word,
+  preferredLanguage,
   isLoading = false,
   errorMessage = null,
   isSaving = false,
+  isUnsaving = false,
   onSave,
+  onUnsave,
   onSignIn,
+  onRetry,
 }: {
   word: DetailWord | null;
+  preferredLanguage: string;
   isLoading?: boolean;
   errorMessage?: string | null;
   isSaving?: boolean;
+  isUnsaving?: boolean;
   onSave?: () => void;
+  onUnsave?: () => void;
   onSignIn?: () => void;
+  onRetry?: () => void;
 }) {
-  const playerRef = useRef<HTMLAudioElement | null>(null);
-  const objectUrlRef = useRef<string | null>(null);
-  const [audioError, setAudioError] = useState<{
-    source: string;
-    message: string;
-  } | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const audio = audioUrl(word);
+  const [speaking, setSpeaking] = useState(false);
+  const [confirmingUnsave, setConfirmingUnsave] = useState(false);
+  const wordText = word?.word ?? "";
+
+  const speechSupported = useSyncExternalStore(
+    subscribeToNothing,
+    () => typeof window !== "undefined" && "speechSynthesis" in window,
+    () => false,
+  );
+
+  // Stop any utterance when the word changes or the panel unmounts.
+  useEffect(() => {
+    if (!speechSupported) return;
+    return () => {
+      window.speechSynthesis.cancel();
+    };
+  }, [speechSupported, wordText]);
 
   useEffect(() => {
-    const player = playerRef.current;
-    player?.pause();
-    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-    objectUrlRef.current = null;
-    return () => {
-      player?.pause();
-    };
-  }, [audio]);
-
-  async function playPronunciation() {
-    const player = playerRef.current;
-    if (!player || !audio) return;
-
-    setAudioError(null);
-    setIsPlaying(true);
-
-    try {
-      const response = await fetch(audio);
-      const payload = (await response.json()) as { audio?: string };
-      if (!response.ok || !payload.audio)
-        throw new Error("Audio asset unavailable.");
-
-      const binary = atob(payload.audio);
-      const bytes = Uint8Array.from(binary, (character) =>
-        character.charCodeAt(0),
-      );
-      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = URL.createObjectURL(
-        new Blob([bytes], { type: "audio/mpeg" }),
-      );
-
-      player.pause();
-      player.src = objectUrlRef.current;
-      player.currentTime = 0;
-      player.muted = false;
-      player.volume = 1;
-      await player.play();
-    } catch {
-      setAudioError({
-        source: audio,
-        message:
-          "Pronunciation audio could not be played. Please try another word.",
-      });
-    } finally {
-      setIsPlaying(false);
+    if (!confirmingUnsave) return;
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setConfirmingUnsave(false);
     }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [confirmingUnsave]);
+
+  function speak() {
+    if (!speechSupported || !wordText) return;
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    const utterance = new SpeechSynthesisUtterance(wordText);
+    utterance.lang = "en-US";
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    setSpeaking(true);
+    synth.speak(utterance);
   }
 
-  if (isLoading) {
-    return (
-      <StatePanel title="Loading">
-        <p>Loading the selected word…</p>
-      </StatePanel>
-    );
-  }
+  if (isLoading && !word) return <DetailSkeleton />;
 
   if (errorMessage) {
     return (
-      <StatePanel title="Could not load">
-        <p className="text-hard">{errorMessage}</p>
+      <StatePanel title="Could not load" onRetry={onRetry}>
+        <p className="text-hard" role="alert">
+          {errorMessage}
+        </p>
       </StatePanel>
     );
   }
@@ -259,33 +236,30 @@ export function WordDetail({
     );
   }
 
-  const saved = isSavedWord(word);
-  const partsOfSpeech = distinctPartsOfSpeech(word);
-  const synonyms = collectTags(word, "synonyms");
-  const antonyms = collectTags(word, "antonyms");
-  const examples = collectExamples(word);
-  const definition = primaryDefinition(word);
-  const sourceUrls = saved ? word.source_urls : (word.sourceUrls ?? []);
+  const savedWord = isSavedWord(word) ? word : null;
+  const entries = word.entries ?? [];
+  const partsOfSpeech = distinctPartsOfSpeech(entries);
+  const phonetic =
+    savedWord?.phonetic ??
+    entries.flatMap((entry) => entry.pronunciations)[0]?.text ??
+    null;
+  const translations = translationSenses(entries, preferredLanguage);
+  const englishDefinitions = definitions(entries);
+  const forms = collectForms(entries);
+  const examples = collectExamples(entries);
+  const synonyms = collectTags(entries, "synonyms");
+  const antonyms = collectTags(entries, "antonyms");
+  const source = word.source;
+  const fallbackDefinition = primaryDefinition(word);
 
   return (
     <article>
-      <audio
-        ref={playerRef}
-        onError={() =>
-          audio &&
-          setAudioError({
-            source: audio,
-            message: "Pronunciation audio could not be loaded for this word.",
-          })
-        }
-      />
-
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
           <BookOpenText size={16} className="text-accent" aria-hidden="true" />
           Detail Words
         </div>
-        {saved ? (
+        {savedWord ? (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-easy-soft px-2.5 py-1 text-[11px] font-semibold text-easy">
             <CheckCircle2 size={13} aria-hidden="true" />
             Sudah Dihafal
@@ -298,22 +272,24 @@ export function WordDetail({
           <h2 className="text-[28px] leading-tight font-bold tracking-[-0.02em] wrap-anywhere">
             {word.word}
           </h2>
-          {word.phonetic ? (
-            <p className="mt-1 text-[13px] text-muted italic">
-              {word.phonetic}
-            </p>
+          {phonetic ? (
+            <p className="mt-1 text-[13px] text-muted italic">{phonetic}</p>
           ) : null}
         </div>
-        {audio ? (
+        {speechSupported ? (
           <button
-            className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-[12px] font-semibold text-ink transition hover:bg-hover disabled:cursor-wait disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            className={`${headerOutline} shrink-0`}
             type="button"
-            disabled={isPlaying}
+            aria-pressed={speaking}
             title={`Play pronunciation for ${word.word}`}
-            onClick={() => void playPronunciation()}
+            onClick={speak}
           >
-            <Volume2 size={15} aria-hidden="true" />
-            Listen{word.phonetic ? ` ${word.phonetic}` : ""}
+            <Volume2
+              size={15}
+              className={speaking ? "animate-pulse" : undefined}
+              aria-hidden="true"
+            />
+            Listen
           </button>
         ) : null}
       </div>
@@ -331,31 +307,115 @@ export function WordDetail({
         </div>
       ) : null}
 
-      {audioError?.source === audio ? (
-        <p className="mt-3 text-[12px] text-hard" role="status">
-          {audioError.message}
-        </p>
-      ) : null}
-
       <section className="mt-5 rounded-xl border border-line bg-subtle p-4">
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Arti / Definisi
+            Arti / Definisi ({languageLabel(preferredLanguage).toUpperCase()})
           </h3>
           <Languages size={15} className="text-faint" aria-hidden="true" />
         </div>
-        {definition ? (
-          <p className="mt-3 text-[15px] leading-relaxed text-ink italic">
-            &ldquo;{definition}&rdquo;
-          </p>
+
+        {translations.length > 0 ? (
+          <>
+            <ul className="mt-3 grid list-none gap-3 p-0">
+              {translations.map((sense, index) => (
+                <li key={`${sense.partOfSpeech}-${index}`}>
+                  {sense.partOfSpeech ? (
+                    <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">
+                      {sense.partOfSpeech}
+                    </span>
+                  ) : null}
+                  <div className="mt-1 flex flex-wrap gap-1.5">
+                    {sense.words.map((translation) => (
+                      <span
+                        className="rounded-full border border-accent-line bg-surface px-2.5 py-1 text-[13px] font-medium text-ink"
+                        key={translation}
+                      >
+                        {translation}
+                      </span>
+                    ))}
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            {englishDefinitions.length > 0 ? (
+              <details className="mt-4 border-t border-line-soft pt-3">
+                <summary className="cursor-pointer text-[12px] font-medium text-muted transition hover:text-ink">
+                  Definisi bahasa Inggris
+                </summary>
+                <ol className="mt-2 grid list-none gap-2 p-0">
+                  {englishDefinitions.map((item, index) => (
+                    <li
+                      className="text-[12px] leading-relaxed text-ink-soft"
+                      key={`${item.partOfSpeech}-${index}`}
+                    >
+                      {item.partOfSpeech ? (
+                        <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
+                          {item.partOfSpeech}
+                        </span>
+                      ) : null}
+                      {item.definition}
+                    </li>
+                  ))}
+                </ol>
+              </details>
+            ) : null}
+          </>
         ) : (
-          <p className="mt-3 text-[13px] text-muted">
-            The dictionary did not provide a definition for this word.
-          </p>
+          <>
+            <p className="mt-3 text-[13px] text-muted">
+              Terjemahan belum tersedia untuk bahasa ini.
+            </p>
+            {englishDefinitions.length > 0 ? (
+              <ol className="mt-3 grid list-none gap-2 p-0">
+                {englishDefinitions.map((item, index) => (
+                  <li
+                    className="text-[13px] leading-relaxed text-ink-soft"
+                    key={`${item.partOfSpeech}-${index}`}
+                  >
+                    {item.partOfSpeech ? (
+                      <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
+                        {item.partOfSpeech}
+                      </span>
+                    ) : null}
+                    {item.definition}
+                  </li>
+                ))}
+              </ol>
+            ) : fallbackDefinition ? (
+              <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">
+                {fallbackDefinition}
+              </p>
+            ) : null}
+          </>
         )}
+
         <TagRow label="Sinonim" tags={synonyms} tone="synonym" />
         <TagRow label="Antonim" tags={antonyms} tone="antonym" />
       </section>
+
+      {forms.length > 0 ? (
+        <section className="mt-5">
+          <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
+            Bentuk Kata
+          </h3>
+          <div className="mt-2 flex flex-wrap items-center gap-1.5">
+            {forms.map((form, index) => (
+              <span className="inline-flex items-center gap-1.5" key={form}>
+                {index > 0 ? (
+                  <span className="text-[11px] text-faint" aria-hidden="true">
+                    ·
+                  </span>
+                ) : null}
+                <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] font-medium text-ink-soft">
+                  {form}
+                </span>
+              </span>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="mt-5">
         <div className="flex items-center justify-between gap-3">
@@ -392,7 +452,7 @@ export function WordDetail({
       </section>
 
       <section className="mt-5 rounded-xl border border-line bg-subtle p-4">
-        {saved ? (
+        {savedWord ? (
           <div className="flex items-start gap-3">
             <CheckCircle2
               size={18}
@@ -429,54 +489,103 @@ export function WordDetail({
           </button>
         ) : null}
 
-        {saved ? (
+        {savedWord ? (
           <dl className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 text-[12px]">
             <div>
               <dt className="text-muted">Dihafal</dt>
               <dd className="mt-0.5 font-semibold text-ink">
-                {formatDate(word.added_at)}
+                {formatDate(savedWord.added_at)}
               </dd>
             </div>
             <div>
               <dt className="text-muted">Terakhir di-review</dt>
               <dd className="mt-0.5 font-semibold text-ink">
-                {formatDate(word.last_reviewed_at)}
+                {formatDate(savedWord.last_reviewed_at)}
               </dd>
             </div>
             <div>
               <dt className="text-muted">Total review</dt>
               <dd className="mt-0.5 font-semibold text-ink">
-                {word.review_count}
+                {savedWord.review_count}
               </dd>
             </div>
             <div>
               <dt className="text-muted">Ingat / Lupa</dt>
               <dd className="mt-0.5 font-semibold text-ink">
-                {word.remembered_count} / {word.forgotten_count}
+                {savedWord.remembered_count} / {savedWord.forgotten_count}
               </dd>
             </div>
           </dl>
         ) : null}
+
+        {savedWord && onUnsave ? (
+          confirmingUnsave ? (
+            <div className="mt-4 flex flex-wrap items-center gap-2 rounded-lg border border-hard-soft bg-hard-soft/40 p-2.5">
+              <span className="mr-auto text-[12px] font-medium text-hard">
+                Hapus kata ini dari Remembered?
+              </span>
+              <button
+                className="inline-flex h-8 items-center justify-center rounded-lg border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                type="button"
+                onClick={() => setConfirmingUnsave(false)}
+              >
+                Batal
+              </button>
+              <button
+                className="inline-flex h-8 items-center justify-center rounded-lg bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                type="button"
+                disabled={isUnsaving}
+                onClick={() => {
+                  setConfirmingUnsave(false);
+                  onUnsave();
+                }}
+              >
+                {isUnsaving ? "Menghapus…" : "Ya, hapus"}
+              </button>
+            </div>
+          ) : (
+            <button
+              className={`${outlineButton} mt-4`}
+              type="button"
+              disabled={isUnsaving}
+              onClick={() => setConfirmingUnsave(true)}
+            >
+              <Trash2 size={15} aria-hidden="true" />
+              Hapus dari Remembered
+            </button>
+          )
+        ) : null}
       </section>
 
-      {sourceUrls.length > 0 ? (
+      {source ? (
         <section className="mt-5 border-t border-line-soft pt-4">
           <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
             Source
           </h3>
-          <div className="mt-2 grid gap-1">
-            {sourceUrls.map((url) => (
-              <a
-                className="text-[12px] text-accent underline decoration-accent-line wrap-anywhere hover:decoration-accent"
-                href={url}
-                key={url}
-                target="_blank"
-                rel="noreferrer"
-              >
-                {url}
-              </a>
-            ))}
-          </div>
+          <a
+            className="mt-2 block text-[12px] text-accent underline decoration-accent-line wrap-anywhere hover:decoration-accent"
+            href={source.url}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {source.url}
+          </a>
+          {source.license ? (
+            <p className="mt-1 text-[11px] text-faint">
+              {source.license.url ? (
+                <a
+                  className="underline decoration-line hover:text-muted"
+                  href={source.license.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {source.license.name}
+                </a>
+              ) : (
+                source.license.name
+              )}
+            </p>
+          ) : null}
         </section>
       ) : null}
     </article>

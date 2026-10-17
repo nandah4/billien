@@ -1,0 +1,22 @@
+{
+  "word": "eat",
+  "entries": [
+    {
+      "language": { "code": "en", "name": "English" },
+      "partOfSpeech": "verb",
+      "pronunciations": [{ "type": "ipa", "text": "/iːt/", "tags": [] }],
+      "forms": [{ "word": "ate", "tags": ["past"] }],
+      "senses": [
+        {
+          "definition": "To consume food.",
+          "tags": [],
+          "examples": [],
+          "synonyms": [],
+          "antonyms": [],
+          "translations": []
+        }
+      ]
+    }
+  ],
+  "source": null
+}

@@ -17,7 +17,7 @@ export function AppFooter() {
         Definitions by{" "}
         <a
           className="font-medium text-accent underline decoration-accent-line hover:decoration-accent"
-          href="https://dictionaryapi.dev"
+          href="https://freedictionaryapi.com"
           target="_blank"
           rel="noreferrer"
         >
