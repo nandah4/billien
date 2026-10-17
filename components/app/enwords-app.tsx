@@ -6,6 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppHeader } from "@/components/app/app-header";
 import { AuthModal } from "@/components/auth/auth-modal";
 import { DetailAside } from "@/components/app/detail-aside";
+import { MobileBottomNav } from "@/components/app/mobile-bottom-nav";
 import { LanguageModal } from "@/components/preferences/language-modal";
 import { WordListPanel } from "@/components/words/word-list-panel";
 import { useDrill } from "@/hooks/use-drill";
@@ -357,7 +358,7 @@ export function EnWordsApp() {
 
   return (
     <>
-      <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 py-5 sm:px-6 sm:py-6 lg:h-dvh lg:overflow-hidden">
+      <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pt-[4.5rem] pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6">
         <div className="mx-auto flex w-full max-w-310 flex-col gap-4 lg:h-full lg:min-h-0">
           <AppHeader
             view={view}
@@ -477,6 +478,13 @@ export function EnWordsApp() {
           {/*<AppFooter />*/}
         </div>
       </div>
+
+      <MobileBottomNav
+        view={view}
+        onChangeView={changeView}
+        signedIn={signedIn}
+        onSignIn={openAuthModal}
+      />
 
       <AuthModal
         open={authOpen && !signedIn}

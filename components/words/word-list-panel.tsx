@@ -98,7 +98,7 @@ export function WordListPanel({
     <section className={`${cardClass} flex min-w-0 flex-col lg:min-h-0`}>
       <div className="shrink-0 border-b border-line p-4">
         <form
-          className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2 transition focus-within:border-accent focus-within:bg-surface"
+          className="flex items-center gap-2 rounded-lg border border-line bg-subtle px-3 py-2.5 transition focus-within:border-accent focus-within:bg-surface sm:py-2"
           onSubmit={search.onSubmit}
           role="search"
         >
@@ -108,7 +108,7 @@ export function WordListPanel({
             aria-hidden="true"
           />
           <input
-            className="w-full min-w-0 bg-transparent text-[13px] text-ink outline-none placeholder:text-placeholder"
+            className="w-full min-w-0 bg-transparent text-[16px] text-ink outline-none placeholder:text-placeholder sm:text-[13px]"
             value={search.value}
             onChange={(event) => search.onChange(event.target.value)}
             placeholder={
@@ -143,7 +143,7 @@ export function WordListPanel({
             return (
               <button
                 key={item.id}
-                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
+                className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-2 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus sm:py-1.5 ${
                   active
                     ? "border-primary bg-primary text-surface"
                     : "border-line bg-surface text-muted hover:bg-hover"
