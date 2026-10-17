@@ -205,6 +205,14 @@ export function EnWordsApp() {
     setAuthOpen(true);
   }
 
+  /** Closes the detail surface and any drill running inside it. */
+  function closeDetail() {
+    setSelectedName(null);
+    setSelectedSavedWord(null);
+    setSelectedSavedId(null);
+    if (drill.active) drill.close();
+  }
+
   /** Opens the searched word, preferring its saved record when one exists. */
   function openDiscoveryWord(word: string) {
     const saved = library.savedByKey.get(word);
@@ -490,6 +498,7 @@ export function EnWordsApp() {
                 count: drillIds.length,
                 onStart: () => void drill.start(drillIds),
               }}
+              onClose={closeDetail}
             />
           </div>
 

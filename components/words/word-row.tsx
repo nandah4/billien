@@ -99,17 +99,17 @@ export function WordRow({
 
         {translation ? (
           <>
-            <span className="mt-1 line-clamp-1 block text-[12px] leading-relaxed text-ink-soft">
+            <span className="mt-1 line-clamp-1 text-[12px] leading-relaxed text-ink-soft">
               {translation}
             </span>
             {definition ? (
-              <span className="mt-0.5 line-clamp-1 block text-[11px] leading-relaxed text-faint">
+              <span className="mt-0.5 line-clamp-1 text-[11px] leading-relaxed text-faint">
                 {definition}
               </span>
             ) : null}
           </>
         ) : definition ? (
-          <span className="mt-1 line-clamp-2 block text-[12px] leading-relaxed text-muted">
+          <span className="mt-1 line-clamp-2 text-[12px] leading-relaxed text-muted">
             {definition}
           </span>
         ) : null}

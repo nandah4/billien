@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Volume2,
+  X,
 } from "lucide-react";
 import {
   collectExamples,
@@ -43,14 +44,32 @@ function subscribeToNothing() {
   return () => {};
 }
 
-function PanelHeader({ children }: { children?: React.ReactNode }) {
+function PanelHeader({
+  children,
+  onClose,
+}: {
+  children?: React.ReactNode;
+  onClose?: () => void;
+}) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-line-soft pb-3">
       <span className="flex items-center gap-2 text-[12px] font-semibold text-ink">
         <BookOpenText size={15} className="text-accent" aria-hidden="true" />
         Detail Words
       </span>
-      {children}
+      <div className="flex shrink-0 items-center gap-2">
+        {children}
+        {onClose ? (
+          <button
+            className="-mr-1 inline-flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            type="button"
+            onClick={onClose}
+            aria-label="Close detail"
+          >
+            <X size={16} aria-hidden="true" />
+          </button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -76,14 +95,16 @@ function StatePanel({
   title,
   children,
   onRetry,
+  onClose,
 }: {
   title: string;
   children: React.ReactNode;
   onRetry?: () => void;
+  onClose?: () => void;
 }) {
   return (
     <article>
-      <PanelHeader />
+      <PanelHeader onClose={onClose} />
       <p className="mt-4 text-[11px] font-semibold tracking-wider text-faint uppercase">
         {title}
       </p>
@@ -103,10 +124,10 @@ function StatePanel({
   );
 }
 
-function DetailSkeleton() {
+function DetailSkeleton({ onClose }: { onClose?: () => void }) {
   return (
     <article aria-busy="true" aria-label="Memuat detail kata">
-      <PanelHeader />
+      <PanelHeader onClose={onClose} />
       <div className="mt-5 grid gap-3">
         <span className="h-8 w-2/3 animate-pulse rounded-lg bg-subtle" />
         <span className="h-4 w-1/3 animate-pulse rounded bg-subtle" />
@@ -169,6 +190,7 @@ export function WordDetail({
   onUnsave,
   onSignIn,
   onRetry,
+  onClose,
 }: {
   word: DetailWord | null;
   preferredLanguage: string;
@@ -180,6 +202,7 @@ export function WordDetail({
   onUnsave?: () => void;
   onSignIn?: () => void;
   onRetry?: () => void;
+  onClose?: () => void;
 }) {
   const [speaking, setSpeaking] = useState(false);
   const [confirmingUnsave, setConfirmingUnsave] = useState(false);
@@ -220,11 +243,11 @@ export function WordDetail({
     synth.speak(utterance);
   }
 
-  if (isLoading && !word) return <DetailSkeleton />;
+  if (isLoading && !word) return <DetailSkeleton onClose={onClose} />;
 
   if (errorMessage) {
     return (
-      <StatePanel title="Could not load" onRetry={onRetry}>
+      <StatePanel title="Could not load" onRetry={onRetry} onClose={onClose}>
         <p className="text-hard" role="alert">
           {errorMessage}
         </p>
@@ -234,7 +257,7 @@ export function WordDetail({
 
   if (!word) {
     return (
-      <StatePanel title="No word selected">
+      <StatePanel title="No word selected" onClose={onClose}>
         <p>
           Select a word from the list to see its meaning, example sentences, and
           pronunciation.
@@ -262,7 +285,7 @@ export function WordDetail({
 
   return (
     <article>
-      <PanelHeader>
+      <PanelHeader onClose={onClose}>
         {savedWord ? (
           <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
             <CheckCircle2 size={12} aria-hidden="true" />

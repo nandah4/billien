@@ -176,7 +176,13 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 #### E.3 Aturan Konten Mobile
 
 - Satu kolom, lebar penuh, padding horizontal `16px`.
-- Panel **Detail Words** muncul **di bawah** daftar (bukan overlay), sehingga konteks daftar tidak hilang.
+- Panel **Detail Words** terbuka sebagai **dialog (bottom-sheet style modal)** di atas daftar, bukan didorong ke bawah daftar. Alasannya: daftar tetap di tempatnya, navigasi kembali cukup satu tap, dan kata berikutnya tidak perlu scroll jauh.
+  - Panel: `rounded-xl` `bg #FFFFFF`, `max-w-lg`, tinggi maksimal `85dvh`, isi boleh di-scroll (`overflow-y-auto`, `overscroll-contain`).
+  - Overlay: `bg-black/50`, klik overlay atau `Escape` menutup dialog, fokus kembali ke pemicu, dan scroll halaman dikunci selama dialog terbuka.
+  - Tombol tutup: ikon `X` 16px di kanan header panel (`40×40`), `aria-label="Close detail"`.
+  - Dialog memakai `role="dialog"` + `aria-modal="true"` + `aria-label="Detail Words"`.
+  - Pada `lg` ke atas, panel tetap menjadi kolom kanan (bukan dialog).
+- Deskripsi pada baris daftar dibatasi **maksimal 2 baris** dengan ellipsis. Baris tersimpan menampilkan terjemahan 1 baris + definisi Inggris 1 baris; baris tanpa terjemahan menampilkan definisi maksimal 2 baris. Jangan menambahkan `block` pada elemen ber-`line-clamp` karena `display` akan menimpa `-webkit-box` dan clamp berhenti bekerja.
 - Scroll memakai halaman (bukan scroll ganda di dalam kartu); `overflow` internal hanya aktif di desktop.
 - Tombol hapus pada baris selalu terlihat di mobile (tidak bergantung hover).
 - Modal (auth, onboarding bahasa) memakai `max-w` dengan margin `16px` dan boleh di-scroll bila melebihi tinggi layar.
@@ -207,7 +213,7 @@ Panel kanan (desktop) atau blok di bawah daftar (mobile). Semua kartu di dalam p
 
 #### F.1 Urutan Blok
 
-1. **Panel header** — label `Detail Words` 12px/`600` + badge `Already memorised` (opsional), dipisah garis `1px` `#F1F5F9`.
+1. **Panel header** — label `Detail Words` 12px/`600` + badge `Already memorised` (opsional) + tombol tutup `X` (`aria-label="Close detail"`), dipisah garis `1px` `#F1F5F9`.
 2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` rata kanan atas.
 3. **Meaning** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
 4. **Word Forms** — chip datar, hanya dirender bila ada.
@@ -284,7 +290,7 @@ Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`
 │       └── [Signed in] Streak pill + Account menu (Profile, Sign out)
 ├── [Content] (.flex-1 .flex .flex-col .gap-4)
 │   └── [Word List Card] (search, filter chips, rows, pagination)
-│       └── [Detail Words] (muncul di bawah daftar saat kata dipilih)
+│       └── [Detail Words] (dialog modal di atas daftar saat kata dipilih)
 └── [Bottom Navigation] (.fixed .inset-x-0 .bottom-0 .border-t .bg-surface .z-40)
     ├── [Tab: Discovery]
     ├── [Tab: Remembered]
