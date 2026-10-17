@@ -38,6 +38,7 @@ export function WordListPanel({
   isLoading,
   showSignInPrompt,
   hasAnyItems,
+  isDiscoveryIdle,
   savedCount,
   selectedKey,
   savingKey,
@@ -76,13 +77,14 @@ export function WordListPanel({
   isLoading: boolean;
   showSignInPrompt: boolean;
   hasAnyItems: boolean;
+  isDiscoveryIdle: boolean;
   savedCount: number;
   selectedKey: string | null;
   savingKey: string | null;
   unsavingKey: string | null;
   onSelect: (item: LibraryWord) => void;
   onSave: (word: string) => void;
-  onUnsave: (item: LibraryWord) => void;
+  onUnsave?: (item: LibraryWord) => void;
   onSignIn: () => void;
   onChangeSort: (sort: SortId) => void;
   onResetFilters: () => void;
@@ -219,6 +221,12 @@ export function WordListPanel({
           </div>
         ) : isLoading && items.length === 0 ? (
           <ListSkeleton />
+        ) : isDiscoveryIdle ? (
+          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
+            Ketik kata bahasa Inggris di kolom pencarian lalu tekan Enter.
+            <br />
+            Hasilnya akan muncul di sini.
+          </div>
         ) : filteredEmpty ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
             <p className="text-[13px] text-muted">
@@ -249,9 +257,9 @@ export function WordListPanel({
               </>
             ) : (
               <>
-                No words match this view yet.
+                Kata yang kamu cari tidak ditemukan.
                 <br />
-                Type a word above and press Enter to look it up.
+                Periksa ejaan atau coba kata lain.
               </>
             )}
           </div>
@@ -274,43 +282,48 @@ export function WordListPanel({
         )}
       </div>
 
-      <div className="flex shrink-0 flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-[12px] text-muted">
-          Showing <strong className="text-ink">{items.length}</strong> of{" "}
-          <strong className="text-ink">{pagination.total}</strong> words
-          {savedCount > 0 ? (
-            <>
-              {" · "}
-              <span className="font-semibold text-easy">
-                {savedCount} memorised
+      {pagination.total > 0 ? (
+        <div className="flex shrink-0 flex-col gap-3 border-t border-line px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-[12px] text-muted">
+            Showing <strong className="text-ink">{items.length}</strong> of{" "}
+            <strong className="text-ink">{pagination.total}</strong>{" "}
+            {pagination.total === 1 ? "word" : "words"}
+            {savedCount > 0 ? (
+              <>
+                {" · "}
+                <span className="font-semibold text-easy">
+                  {savedCount} memorised
+                </span>
+              </>
+            ) : null}
+          </p>
+          {pagination.pageCount > 1 ? (
+            <div className="flex items-center gap-2">
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                type="button"
+                disabled={pagination.page <= 1}
+                onClick={pagination.onPrevious}
+              >
+                <ChevronLeft size={14} aria-hidden="true" />
+                Previous
+              </button>
+              <span className="text-[12px] text-muted">
+                Page {pagination.page} of {pagination.pageCount}
               </span>
-            </>
+              <button
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                type="button"
+                disabled={pagination.page >= pagination.pageCount}
+                onClick={pagination.onNext}
+              >
+                Next
+                <ChevronRight size={14} aria-hidden="true" />
+              </button>
+            </div>
           ) : null}
-        </p>
-        <div className="flex items-center gap-2">
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            type="button"
-            disabled={pagination.page <= 1}
-            onClick={pagination.onPrevious}
-          >
-            <ChevronLeft size={14} aria-hidden="true" />
-            Previous
-          </button>
-          <span className="text-[12px] text-muted">
-            Page {pagination.page} of {pagination.pageCount}
-          </span>
-          <button
-            className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] font-medium text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-            type="button"
-            disabled={pagination.page >= pagination.pageCount}
-            onClick={pagination.onNext}
-          >
-            Next
-            <ChevronRight size={14} aria-hidden="true" />
-          </button>
         </div>
-      </div>
+      ) : null}
     </section>
   );
 }

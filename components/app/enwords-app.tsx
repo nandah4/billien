@@ -40,10 +40,14 @@ export function EnWordsApp() {
 
   const [view, setView] = useState<View>("discovery");
   const [query, setQuery] = useState("");
+  // Discovery has no seeded list: `discoveryWord` is the last lookup and is the
+  // only row shown there. `selectedName` decides whether its detail is open, so
+  // switching views can collapse the panel without losing the result.
+  const [discoveryWord, setDiscoveryWord] = useState<string | null>(null);
+  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterId>("all");
   const [sort, setSort] = useState<SortId>("recent");
   const [page, setPage] = useState(1);
-  const [selectedName, setSelectedName] = useState<string | null>(null);
   const [selectedSavedWord, setSelectedSavedWord] = useState<SavedWord | null>(
     null,
   );
@@ -69,61 +73,88 @@ export function EnWordsApp() {
   });
 
   const dictionaryQuery = useQuery({
-    ...dictionaryQueryOptions(selectedName ?? "", preferredLanguage),
-    enabled: Boolean(selectedName),
+    ...dictionaryQueryOptions(discoveryWord ?? "", preferredLanguage),
+    enabled: Boolean(discoveryWord),
   });
   const savedDetailQuery = useQuery(
     savedWordDetailQueryOptions(selectedSavedId),
   );
 
+  // The searched word is the only Discovery row. It is marked as saved once the
+  // Remembered list confirms it, and it keeps the English definition as the
+  // primary line (translations are a Remembered affordance).
+  const discoveryItems = useMemo<LibraryWord[]>(() => {
+    if (!discoveryWord) return [];
+    const saved = library.savedByKey.get(discoveryWord);
+    const entry = dictionaryQuery.data ?? null;
+    // While the lookup is in flight (or after it failed) there is no row to
+    // show; the panel handles the loading and error states.
+    if (!entry && !saved) return [];
+    return [
+      {
+        key: discoveryWord,
+        word: entry?.word ?? discoveryWord,
+        phonetic:
+          entry?.entries[0]?.pronunciations[0]?.text ?? saved?.phonetic ?? null,
+        entries: entry?.entries ?? saved?.entries ?? [],
+        translation: [],
+        savedWord: saved ?? null,
+      },
+    ];
+  }, [discoveryWord, dictionaryQuery.data, library.savedByKey]);
+
   const viewItems =
-    view === "discovery" ? library.discoveryItems : library.rememberedItems;
+    view === "discovery" ? discoveryItems : library.rememberedItems;
   const filters = useMemo(() => buildFilters(viewItems), [viewItems]);
-  const visibleItems = useMemo(
-    () =>
-      sortItems(
-        filterItems(viewItems, { query, filter }),
-        view === "remembered" ? sort : "recent",
-      ),
-    [viewItems, query, filter, sort, view],
-  );
+  const visibleItems = useMemo(() => {
+    // In Discovery the input is a lookup box, not a filter, so editing it must
+    // not hide the word that is already displayed.
+    if (view === "discovery") {
+      return filterItems(discoveryItems, { query: "", filter });
+    }
+    return sortItems(filterItems(viewItems, { query, filter }), sort);
+  }, [view, discoveryItems, viewItems, query, filter, sort]);
   const { pageCount, currentPage, pageItems } = paginate(visibleItems, page);
 
   const detailWord =
     selectedSavedId !== null
       ? (savedDetailQuery.data ?? selectedSavedWord)
-      : (dictionaryQuery.data ?? null);
+      : selectedName !== null
+        ? (dictionaryQuery.data ?? null)
+        : null;
   const detailSavedWord =
     detailWord && "id" in detailWord ? (detailWord as SavedWord) : null;
   // One key identifies the highlighted row whether it came from the saved list
   // or from a fresh dictionary lookup.
-  const selectedKey = selectedSavedWord?.normalized_word ?? selectedName;
-  // Keep the panel mounted while a lookup is in flight so its loading state is
-  // visible; `selectedName` is set as soon as a word is clicked.
+  const selectedKey =
+    selectedSavedWord?.normalized_word ?? selectedName ?? null;
   const showDetailPanel =
     drill.active ||
-    Boolean(detailWord) ||
-    Boolean(selectedName) ||
-    selectedSavedId !== null;
+    selectedSavedId !== null ||
+    selectedName !== null ||
+    Boolean(detailWord);
   const showDrillLauncher = view === "remembered" && signedIn && !drill.active;
   const showSignInPrompt = view === "remembered" && !signedIn;
   const isListLoading =
-    view === "remembered" &&
-    (isSessionPending || (signedIn && library.isLoading));
+    view === "discovery"
+      ? dictionaryQuery.isLoading &&
+        !(discoveryWord && library.savedByKey.has(discoveryWord))
+      : isSessionPending || (signedIn && library.isLoading);
   const activeError = library.isError
     ? messageFor(library.error, "Unable to load your memorised words.")
     : null;
   const detailError =
-    selectedName && dictionaryQuery.isError
-      ? messageFor(dictionaryQuery.error, "Unable to load dictionary detail.")
-      : selectedSavedId && savedDetailQuery.isError && !selectedSavedWord
+    selectedSavedId !== null
+      ? savedDetailQuery.isError && !selectedSavedWord
         ? messageFor(savedDetailQuery.error, "Unable to load this word.")
+        : null
+      : selectedName !== null && dictionaryQuery.isError
+        ? messageFor(dictionaryQuery.error, "Unable to load dictionary detail.")
         : null;
   const detailLoading =
-    (Boolean(selectedName) && dictionaryQuery.isLoading) ||
-    (selectedSavedId !== null &&
-      savedDetailQuery.isLoading &&
-      !selectedSavedWord);
+    selectedSavedId !== null
+      ? savedDetailQuery.isLoading && !selectedSavedWord
+      : selectedName !== null && dictionaryQuery.isLoading;
   const showOnboarding =
     signedIn &&
     preferencesQuery.isSuccess &&
@@ -142,17 +173,31 @@ export function EnWordsApp() {
     setAuthOpen(true);
   }
 
+  /** Opens the searched word, preferring its saved record when one exists. */
+  function openDiscoveryWord(word: string) {
+    const saved = library.savedByKey.get(word);
+    if (saved) {
+      setSelectedName(null);
+      setSelectedSavedWord(saved);
+      setSelectedSavedId(saved.id);
+      return;
+    }
+    setSelectedName(word);
+    setSelectedSavedWord(null);
+    setSelectedSavedId(null);
+  }
+
   function selectLibraryWord(item: LibraryWord) {
     setNotice(null);
+    if (view === "discovery") {
+      openDiscoveryWord(item.key);
+      return;
+    }
     if (item.savedWord) {
       setSelectedSavedWord(item.savedWord);
       setSelectedSavedId(item.savedWord.id);
       setSelectedName(null);
-      return;
     }
-    setSelectedSavedWord(null);
-    setSelectedSavedId(null);
-    setSelectedName(item.key);
   }
 
   function handleSearchSubmit(event: FormEvent<HTMLFormElement>) {
@@ -164,16 +209,20 @@ export function EnWordsApp() {
       setNotice("Enter one valid English word to look it up.");
       return;
     }
-    setSelectedSavedWord(null);
-    setSelectedSavedId(null);
-    setSelectedName(word);
     setNotice(null);
+    setPage(1);
+    setDiscoveryWord(word);
+    openDiscoveryWord(word);
   }
 
   function changeView(next: View) {
     setView(next);
     setPage(1);
     setNotice(null);
+    // Collapse the panel so a word from the other view is not carried over.
+    setSelectedName(null);
+    setSelectedSavedWord(null);
+    setSelectedSavedId(null);
   }
 
   function changeFilter(next: FilterId) {
@@ -218,6 +267,7 @@ export function EnWordsApp() {
       setSelectedSavedWord(null);
       setSelectedSavedId(null);
       setSelectedName(null);
+      setDiscoveryWord(null);
       setNotice("Signed out. Your progress remains safely in your account.");
       router.refresh();
     } finally {
@@ -287,6 +337,10 @@ export function EnWordsApp() {
       if (selectedSavedId === word.id) {
         setSelectedSavedId(null);
         setSelectedSavedWord(null);
+        // Keep the Discovery detail open after un-saving its searched word.
+        if (discoveryWord === word.normalized_word) {
+          setSelectedName(discoveryWord);
+        }
       }
       setNotice(`"${word.word}" dihapus dari Remembered.`);
     } catch (error) {
@@ -354,15 +408,20 @@ export function EnWordsApp() {
               isLoading={isListLoading}
               showSignInPrompt={showSignInPrompt}
               hasAnyItems={viewItems.length > 0}
+              isDiscoveryIdle={view === "discovery" && !discoveryWord}
               savedCount={library.savedWords.length}
               selectedKey={selectedKey}
               savingKey={savingKey}
               unsavingKey={unsavingKey}
               onSelect={selectLibraryWord}
               onSave={(word) => void saveWord(word)}
-              onUnsave={(item) => {
-                if (item.savedWord) void unsaveWord(item.savedWord);
-              }}
+              onUnsave={
+                view === "remembered"
+                  ? (item) => {
+                      if (item.savedWord) void unsaveWord(item.savedWord);
+                    }
+                  : undefined
+              }
               onSignIn={openAuthModal}
               onChangeSort={changeSort}
               onResetFilters={resetFilters}
@@ -391,8 +450,8 @@ export function EnWordsApp() {
                   : undefined,
                 onSignIn: !signedIn ? openAuthModal : undefined,
                 onRetry: () => {
-                  if (selectedName) void dictionaryQuery.refetch();
-                  else if (selectedSavedId) void savedDetailQuery.refetch();
+                  if (selectedSavedId) void savedDetailQuery.refetch();
+                  else if (discoveryWord) void dictionaryQuery.refetch();
                 },
               }}
               drill={{
