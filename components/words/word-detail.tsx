@@ -10,13 +10,9 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { DictionaryEntry, SavedWord } from "@/lib/types";
+import { outlineButton, primaryButton } from "@/lib/ui";
 
 type DetailWord = DictionaryEntry | SavedWord;
-
-const primaryButton =
-  "inline-flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3.5 py-2.5 text-[13px] font-semibold text-surface transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
-const outlineButton =
-  "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2.5 text-[13px] font-semibold text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
 
 function audioUrl(word: DetailWord | null) {
   const url = word?.phonetics?.map((item) => item.audio?.trim()).find(Boolean);
@@ -414,7 +410,7 @@ export function WordDetail({
           </div>
         ) : onSave ? (
           <button
-            className={primaryButton}
+            className={`${primaryButton} w-full`}
             type="button"
             disabled={isSaving}
             onClick={onSave}
@@ -423,7 +419,11 @@ export function WordDetail({
             {isSaving ? "Saving…" : "Tandai Sudah Hafal"}
           </button>
         ) : onSignIn ? (
-          <button className={outlineButton} type="button" onClick={onSignIn}>
+          <button
+            className={`${outlineButton} w-full`}
+            type="button"
+            onClick={onSignIn}
+          >
             <LogIn size={16} aria-hidden="true" />
             Sign in to save
           </button>
