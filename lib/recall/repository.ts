@@ -1,5 +1,6 @@
 import "server-only";
 import { sql } from "@/lib/neon";
+import { ACTIVITY_TIME_ZONE } from "@/lib/streak";
 import type { Entry } from "@/lib/types";
 import type {
   RecallMode,
@@ -16,9 +17,6 @@ import type {
  * cap only guards against a pathological library.
  */
 const MAX_SCAN = 2000;
-
-/** The activity table is bucketed by this zone; the SQL below takes it as a parameter. */
-const ACTIVITY_TIME_ZONE = "Asia/Jakarta";
 
 type RecallRow = {
   id: string;
