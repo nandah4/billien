@@ -1,5 +1,10 @@
 import type { DictionaryResult, SavedWord, UserPreferences } from "@/lib/types";
 import type {
+  AnalyticsData,
+  AnalyticsPreset,
+  Granularity,
+} from "@/lib/analytics/types";
+import type {
   RecallScope,
   RecallSession,
   RecallStats,
@@ -122,5 +127,34 @@ export function recallStatsQueryOptions(enabled: boolean) {
     queryFn: ({ signal }: { signal: AbortSignal }) =>
       request<ApiEnvelope<RecallStats>>("/api/recall/stats", { signal }),
     select: (response: ApiEnvelope<RecallStats>) => response.data,
+  };
+}
+
+export type AnalyticsQuery = {
+  preset: AnalyticsPreset;
+  month?: string | null;
+  granularity?: Granularity | null;
+};
+
+export function analyticsQueryOptions(enabled: boolean, query: AnalyticsQuery) {
+  const params = new URLSearchParams({ preset: query.preset });
+  if (query.month) params.set("month", query.month);
+  if (query.granularity) params.set("granularity", query.granularity);
+
+  return {
+    queryKey: [
+      "analytics",
+      query.preset,
+      query.month ?? "",
+      query.granularity ?? "",
+    ],
+    enabled,
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<AnalyticsData>>(
+        `/api/analytics?${params.toString()}`,
+        { signal },
+      ),
+    select: (response: ApiEnvelope<AnalyticsData>) => response.data,
+    retry: false,
   };
 }

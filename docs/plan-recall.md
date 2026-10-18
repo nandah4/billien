@@ -13,10 +13,10 @@ Dokumen ini menggantikan `plan-active-recall.md`, `plan-dictionary-v2.md`, dan
 | ---- | ------------------------------------------ | ------------------------------------------------- |
 | 1    | Mesin grading, jadwal, kartu, dan API      | Selesai (`b8e9626`)                               |
 | 2    | Tab Recall dan UI sesi                     | Selesai (`2c11af8`), sebagian digantikan Task 3–4 |
-| 3    | Sesi sebagai satu baris fakta + API batch  | **Belum**                                         |
-| 4    | Layout dua kolom, rail nomor, review akhir | **Belum**                                         |
-| 5    | Perbaikan logika streak                    | **Belum**                                         |
-| 6    | Analytics harian dan bulanan               | **Belum**                                         |
+| 3    | Sesi sebagai satu baris fakta + API batch  | Selesai (`abc4f60`)                               |
+| 4    | Layout dua kolom, rail nomor, review akhir | Selesai (`e771226`)                               |
+| 5    | Perbaikan logika streak                    | Selesai (`f11fc64`)                               |
+| 6    | Analytics harian dan bulanan               | Selesai                                           |
 
 Task 3 dan 4 **menggantikan** tiga keputusan di Task 2: gate 20 kata, feedback
 per kartu, dan satu baris `recall_attempts` per jawaban. Alasannya ada di §2.

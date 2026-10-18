@@ -7,6 +7,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookMarked,
   Brain,
+  ChartColumn,
   ChevronLeft,
   ChevronRight,
   Flame,
@@ -274,6 +275,23 @@ export function ProfileView({
           >
             <Brain size={16} aria-hidden="true" />
             <span className="text-[14px]">Start practising</span>
+          </Link>
+        </SectionCard>
+
+        <SectionCard title="Insights">
+          <Link className={`${rowClass} hover:bg-hover`} href="/analytics">
+            <RowIcon icon={ChartColumn} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] text-ink">Analytics</span>
+              <span className="mt-0.5 block text-[12px] text-muted">
+                Daily and monthly activity
+              </span>
+            </span>
+            <ChevronRight
+              size={17}
+              className="shrink-0 text-faint"
+              aria-hidden="true"
+            />
           </Link>
         </SectionCard>
 

@@ -37,6 +37,17 @@
   --color-easy: #16a34a;
   --color-easy-soft: #dcfce7;
 
+  /*
+   * Analytics series. Four reuse palette values; chart-2 is new because the
+   * palette has no second neutral series hue. ChartConfig references these as
+   * var(--color-chart-N), so no component carries a hex value.
+   */
+  --color-chart-1: #7c3aed;
+  --color-chart-2: #0ea5e9;
+  --color-chart-3: #16a34a;
+  --color-chart-4: #d97706;
+  --color-chart-5: #dc2626;
+
   --color-focus: #7c3aed;
 
   /* Google brand marks */
