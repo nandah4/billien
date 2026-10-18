@@ -3,10 +3,11 @@
 import type { FormEvent } from "react";
 import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
+import { LetterFilter, SortControl } from "@/components/words/library-filters";
 import { WordRow } from "@/components/words/word-row";
 import emptyImage from "@/public/assets/empty.png";
 import helloImage from "@/public/assets/hello.webp";
-import { SORT_OPTIONS, type LibraryWord, type SortId } from "@/lib/library";
+import type { LibraryWord, SortId } from "@/lib/library";
 import type { View } from "@/lib/navigation";
 import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
 
@@ -36,6 +37,9 @@ export function WordListPanel({
   view,
   search,
   sort,
+  letter,
+  letters,
+  libraryCount,
   items,
   pagination,
   errorMessage,
@@ -53,6 +57,7 @@ export function WordListPanel({
   onUnsave,
   onSignIn,
   onChangeSort,
+  onChangeLetter,
   onResetFilters,
   onRetry,
   onGoToDiscovery,
@@ -64,6 +69,12 @@ export function WordListPanel({
     onSubmit: (event: FormEvent<HTMLFormElement>) => void;
   };
   sort: SortId;
+  /** Active first-letter filter, or `null` for every letter. */
+  letter: string | null;
+  /** Letters the library contains, for the chips. */
+  letters: string[];
+  /** Unfiltered count, so the "All" chip can show the full scope. */
+  libraryCount: number;
   items: LibraryWord[];
   pagination: {
     page: number;
@@ -87,6 +98,7 @@ export function WordListPanel({
   onUnsave?: (item: LibraryWord) => void;
   onSignIn: () => void;
   onChangeSort: (sort: SortId) => void;
+  onChangeLetter: (letter: string | null) => void;
   onResetFilters: () => void;
   onRetry: () => void;
   onGoToDiscovery: () => void;
@@ -134,22 +146,14 @@ export function WordListPanel({
         </form>
 
         {view === "remembered" ? (
-          <div className="mt-3 flex items-center justify-end">
-            <label className="inline-flex items-center gap-2 text-[11px] font-medium text-muted">
-              Sort
-              <select
-                className="h-9 rounded-lg border border-line bg-surface px-2 text-[12px] font-medium text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                value={sort}
-                onChange={(event) => onChangeSort(event.target.value as SortId)}
-                aria-label="Sort words"
-              >
-                {SORT_OPTIONS.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+            <SortControl sort={sort} onChange={onChangeSort} />
+            <LetterFilter
+              letters={letters}
+              value={letter}
+              onChange={onChangeLetter}
+              total={libraryCount}
+            />
           </div>
         ) : null}
       </div>

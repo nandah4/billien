@@ -9,7 +9,14 @@ import { WordListPanel } from "@/components/words/word-list-panel";
 import { useWordActions } from "@/hooks/use-word-actions";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import { messageFor, savedWordDetailQueryOptions } from "@/lib/api";
-import { paginate, searchItems, sortItems, type SortId } from "@/lib/library";
+import {
+  availableLetters,
+  filterByLetter,
+  paginate,
+  searchItems,
+  sortItems,
+  type SortId,
+} from "@/lib/library";
 import type { SavedWord } from "@/lib/types";
 
 /**
@@ -26,12 +33,26 @@ export function RememberedView() {
 
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortId>("recent");
+  const [letter, setLetter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const searched = useMemo(
+    () => searchItems(library.rememberedItems, query),
+    [library.rememberedItems, query],
+  );
+
+  // Chips come from the current search, so every offered letter has results.
+  const letters = useMemo(() => availableLetters(searched), [searched]);
+
+  // A letter that the search just eliminated falls back to "All" instead of
+  // leaving the list empty with no active chip.
+  const activeLetter =
+    letter !== null && letters.includes(letter) ? letter : null;
+
   const visibleItems = useMemo(
-    () => sortItems(searchItems(library.rememberedItems, query), sort),
-    [library.rememberedItems, query, sort],
+    () => sortItems(filterByLetter(searched, activeLetter), sort),
+    [searched, activeLetter, sort],
   );
   const { pageCount, currentPage, pageItems } = paginate(visibleItems, page);
 
@@ -52,6 +73,7 @@ export function RememberedView() {
   function resetFilters() {
     setQuery("");
     setSort("recent");
+    setLetter(null);
     setPage(1);
   }
 
@@ -81,6 +103,9 @@ export function RememberedView() {
           onSubmit: handleSubmit,
         }}
         sort={sort}
+        letter={activeLetter}
+        letters={letters}
+        libraryCount={searched.length}
         items={pageItems}
         pagination={{
           page: currentPage,
@@ -113,6 +138,10 @@ export function RememberedView() {
         onSignIn={openAuth}
         onChangeSort={(next) => {
           setSort(next);
+          setPage(1);
+        }}
+        onChangeLetter={(next) => {
+          setLetter(next);
           setPage(1);
         }}
         onResetFilters={resetFilters}
