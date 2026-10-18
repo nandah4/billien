@@ -16,10 +16,8 @@ type DetailProps = {
     isLoading: boolean;
     errorMessage: string | null;
     isSaving: boolean;
-    isUnsaving: boolean;
     isReviewing: boolean;
     onSave?: () => void;
-    onUnsave?: () => void;
     onReview?: () => void;
     onSignIn?: () => void;
     onRetry?: () => void;
@@ -40,10 +38,8 @@ function DetailBody({
       isLoading={detail.isLoading}
       errorMessage={detail.errorMessage}
       isSaving={detail.isSaving}
-      isUnsaving={detail.isUnsaving}
       isReviewing={detail.isReviewing}
       onSave={detail.onSave}
-      onUnsave={detail.onUnsave}
       onReview={detail.onReview}
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}

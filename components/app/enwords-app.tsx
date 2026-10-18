@@ -485,9 +485,6 @@ export function EnWordsApp() {
                 isLoading: detailLoading,
                 errorMessage: detailError,
                 isSaving: Boolean(detailWord && savingKey === detailWord.word),
-                isUnsaving: Boolean(
-                  detailSavedWord && unsavingKey === detailSavedWord.id,
-                ),
                 isReviewing: Boolean(
                   detailSavedWord && reviewingKey === detailSavedWord.id,
                 ),
@@ -495,9 +492,6 @@ export function EnWordsApp() {
                   signedIn && detailWord && !detailSavedWord
                     ? () => void saveSelected()
                     : undefined,
-                onUnsave: detailSavedWord
-                  ? () => void unsaveWord(detailSavedWord)
-                  : undefined,
                 onReview: detailSavedWord
                   ? () => void reviewWord(detailSavedWord)
                   : undefined,

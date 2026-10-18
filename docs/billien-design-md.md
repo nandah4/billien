@@ -244,10 +244,10 @@ Jarak antar blok `20px` (`mt-5`) dan jarak di dalam blok `16px` (`py-4`, `gap-4`
 - **Word Forms**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
 - **Example Sentences**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
 - **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
-- **Status hafalan**: kartu ringkas `bg #FAFAFA` berisi ikon `CheckCircle2` `#16A34A`, teks `Already memorised`, jumlah review (`N total reviews` / `No reviews yet`), lalu dua aksi di sisi kanan:
-  - **`Remembered`** — tombol compact primary (ikon `Check`), memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`. Ini satu-satunya cara manual menambah `review_count` sekarang karena UI drill sudah dihapus. Saat request berjalan tombol menjadi `Saving…` dan kedua tombol disabled.
-  - **`Remove`** — tombol compact outline (ikon `Trash2`), membuka konfirmasi inline di bawah baris (bukan `window.confirm`).
-    Detail tanggal, riwayat lengkap, dan hitungan ingat/lupa **tidak** ditampilkan agar tetap ringkas.
+- **Status hafalan**: kartu ringkas `bg #FAFAFA` berisi ikon `CheckCircle2` `#16A34A`, jumlah review (`N total reviews` / `No reviews yet`), dan satu tombol **`Remembered`** (compact primary, ikon `Check`, `hover:scale-105`) di sisi kanan.
+  - Tombol ini memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`, sehingga `review_count` dan `remembered_count` bertambah serta streak harian ikut naik. Ini satu-satunya cara manual menambah review karena UI drill sudah dihapus. Saat request berjalan label menjadi `Saving…` dan tombol disabled.
+  - **Tidak ada tombol hapus di panel detail.** Un-save hanya tersedia dari baris di daftar Remembered (ikon `Trash2` saat hover) agar kartu tetap ringkas dan aksi destruktif tidak berada di dua tempat.
+  - Judul `Already memorised` tidak ditampilkan; status sudah disampaikan oleh ikon centang dan konteks kartu.
 - **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
 
 ### G. Profile Page

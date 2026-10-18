@@ -9,7 +9,6 @@ import {
   Languages,
   LogIn,
   Plus,
-  Trash2,
   Volume2,
   X,
 } from "lucide-react";
@@ -191,10 +190,8 @@ export function WordDetail({
   isLoading = false,
   errorMessage = null,
   isSaving = false,
-  isUnsaving = false,
   isReviewing = false,
   onSave,
-  onUnsave,
   onReview,
   onSignIn,
   onRetry,
@@ -206,10 +203,8 @@ export function WordDetail({
   isLoading?: boolean;
   errorMessage?: string | null;
   isSaving?: boolean;
-  isUnsaving?: boolean;
   isReviewing?: boolean;
   onSave?: () => void;
-  onUnsave?: () => void;
   /** Records a successful recall, which increments the review counters. */
   onReview?: () => void;
   onSignIn?: () => void;
@@ -219,7 +214,6 @@ export function WordDetail({
   showHeader?: boolean;
 }) {
   const [speaking, setSpeaking] = useState(false);
-  const [confirmingUnsave, setConfirmingUnsave] = useState(false);
   const wordText = word?.word ?? "";
 
   const speechSupported = useSyncExternalStore(
@@ -235,15 +229,6 @@ export function WordDetail({
       window.speechSynthesis.cancel();
     };
   }, [speechSupported, wordText]);
-
-  useEffect(() => {
-    if (!confirmingUnsave) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setConfirmingUnsave(false);
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmingUnsave]);
 
   function speak() {
     if (!speechSupported || !wordText) return;
@@ -498,10 +483,7 @@ export function WordDetail({
                 aria-hidden="true"
               />
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold text-ink">
-                  Already memorised
-                </p>
-                <p className="mt-0.5 text-[12px] text-muted">
+                <p className="mt-0.5 font-medium text-sm text-muted">
                   {savedWord.review_count === 0
                     ? "No reviews yet"
                     : `${savedWord.review_count} total ${
@@ -514,26 +496,14 @@ export function WordDetail({
             <div className="flex shrink-0 flex-wrap items-center gap-2">
               {onReview ? (
                 <button
-                  className={compactPrimary}
+                  className={`${compactPrimary} cursor-pointer hover:scale-105`}
                   type="button"
-                  disabled={isReviewing || isUnsaving}
+                  disabled={isReviewing}
                   title="Record a successful recall"
                   onClick={onReview}
                 >
                   <Check size={14} aria-hidden="true" />
                   {isReviewing ? "Saving…" : "Remembered"}
-                </button>
-              ) : null}
-
-              {onUnsave && !confirmingUnsave ? (
-                <button
-                  className={compactOutline}
-                  type="button"
-                  disabled={isUnsaving || isReviewing}
-                  onClick={() => setConfirmingUnsave(true)}
-                >
-                  <Trash2 size={14} aria-hidden="true" />
-                  {isUnsaving ? "Removing…" : "Remove"}
                 </button>
               ) : null}
             </div>
@@ -557,32 +527,6 @@ export function WordDetail({
             <LogIn size={16} aria-hidden="true" />
             Sign in to save
           </button>
-        ) : null}
-
-        {savedWord && confirmingUnsave ? (
-          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-md border border-hard-soft bg-hard-soft/40 p-2.5">
-            <span className="mr-auto text-[12px] font-medium text-hard">
-              Remove this word from Remembered?
-            </span>
-            <button
-              className="inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-              type="button"
-              onClick={() => setConfirmingUnsave(false)}
-            >
-              Cancel
-            </button>
-            <button
-              className="inline-flex h-8 items-center justify-center rounded-md bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-              type="button"
-              disabled={isUnsaving}
-              onClick={() => {
-                setConfirmingUnsave(false);
-                onUnsave?.();
-              }}
-            >
-              {isUnsaving ? "Removing…" : "Yes, remove"}
-            </button>
-          </div>
         ) : null}
       </section>
 
