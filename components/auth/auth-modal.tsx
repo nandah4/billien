@@ -53,9 +53,14 @@ function AuthDialogBody({
     setPending(true);
     setError(null);
     try {
+      // The auth service resolves a relative callback against its own base URL,
+      // so "/" became the auth host root and the browser landed on a route that
+      // does not exist. Resolve against the app origin before sending it.
+      const target = new URL(callbackURL, window.location.origin).toString();
+
       const result = await authClient.signIn.social({
         provider: "google",
-        callbackURL,
+        callbackURL: target,
       });
       if (result.error) {
         setError(result.error.message || "We could not complete that request.");
