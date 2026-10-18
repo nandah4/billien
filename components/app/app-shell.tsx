@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AppShellContext.Provider value={context}>
       <div
-        className={`grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6 ${
+        className={`flex min-h-dvh flex-col bg-canvas px-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6 ${
           bare ? "pt-0" : bleed ? "pt-14" : "pt-[4.5rem]"
         }`}
       >

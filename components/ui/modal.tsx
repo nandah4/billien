@@ -52,9 +52,9 @@ export function Modal({
   const onCloseRef = useRef(onClose);
   const canDismissRef = useRef(canDismiss);
 
-  // Portalled to the body so no ancestor stacking context can trap it. The app
-  // shell uses `isolation: isolate` for its background texture, which would
-  // otherwise paint the fixed bottom navigation above a z-50 dialog.
+  // Portalled to the body so the dialog competes in the root stacking context.
+  // That is what keeps a z-50 dialog above the fixed bottom navigation, whatever
+  // ancestors later introduce their own stacking context.
   const mounted = useSyncExternalStore(
     subscribeToNothing,
     () => true,
