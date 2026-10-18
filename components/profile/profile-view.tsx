@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -28,6 +29,7 @@ import {
 } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
+import bannerImage from "@/public/assets/banner.webp";
 
 /** Rows share one height so each grouped card reads as a single table. */
 const rowClass =
@@ -175,13 +177,26 @@ export function ProfileView({
     <main className="min-h-dvh bg-canvas pb-10">
       {/* Banner is full-bleed: no page padding, no border, no radius. */}
       <div className="relative">
-        <div className="profile-banner h-32" />
+        {/* Photo banner. The scrim keeps the white controls readable over the
+            bright parts of the image. */}
+        <div className="relative h-32 w-full overflow-hidden bg-ink">
+          <Image
+            src={bannerImage}
+            alt=""
+            aria-hidden="true"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
+        </div>
 
         {/* Floating back control, aligned with the content column below. */}
         <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)_+_8px)]">
           <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
             <Link
-              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-white transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               href="/"
             >
               <ChevronLeft size={22} aria-hidden="true" />

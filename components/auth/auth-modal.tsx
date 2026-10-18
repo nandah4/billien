@@ -5,6 +5,7 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import helloImage from "@/public/assets/hello.webp";
+import logoMark from "@/public/assets/logo-mark.png";
 import { authClient } from "@/lib/auth-client";
 
 function GoogleMark() {
@@ -79,10 +80,12 @@ function AuthDialogBody({
   return (
     <>
       <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-ink">
-          <span className="size-2 rounded-full bg-accent" aria-hidden="true" />
-          Billien
-        </span>
+        <Image
+          src={logoMark}
+          alt="Billien"
+          sizes="28px"
+          className="h-7 w-7 object-contain"
+        />
         <button
           className="-mt-1 -mr-1 inline-flex size-8 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-ink disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           type="button"

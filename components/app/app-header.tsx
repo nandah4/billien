@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Bookmark, Brain, Compass } from "lucide-react";
 import { AccountControls } from "@/components/app/account-controls";
 import { MobileAppBar } from "@/components/app/mobile-app-bar";
 import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
 import { cardClass } from "@/lib/ui";
+import logoMark from "@/public/assets/logo-mark.png";
 
 const ICONS: Record<View, typeof Compass> = {
   discovery: Compass,
@@ -51,8 +53,13 @@ export function AppHeader({
         <header
           className={`${cardClass} flex min-w-0 flex-1 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between`}
         >
-          <p className="flex min-w-0 flex-wrap items-baseline gap-1.5">
-            <span className="text-[13px] font-semibold text-ink">Billien</span>
+          <p className="flex min-w-0 flex-wrap items-center gap-1.5">
+            <Image
+              src={logoMark}
+              alt="Billien"
+              sizes="28px"
+              className="h-7 w-7 shrink-0 object-contain"
+            />
             <span className="text-[13px] text-faint" aria-hidden="true">
               -
             </span>

@@ -1,6 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { AccountControls } from "@/components/app/account-controls";
+import logoMark from "@/public/assets/logo-mark.png";
 
 /**
  * Mobile app bar: brand on the left, account controls on the right. Fixed to
@@ -24,10 +26,14 @@ export function MobileAppBar({
   return (
     <header className="fixed inset-x-0 top-0 z-40 border-b border-line bg-surface lg:hidden">
       <div className="mx-auto flex h-14 w-full max-w-310 items-center justify-between gap-3 px-4">
-        <div className="min-w-0">
-          <p className="truncate text-[15px] leading-tight font-semibold text-ink">
-            Billien
-          </p>
+        <div className="flex min-w-0 items-center gap-2">
+          <Image
+            src={logoMark}
+            alt="Billien"
+            sizes="32px"
+            priority
+            className="h-8 w-8 shrink-0 object-contain"
+          />
           <p className="truncate text-[10px] leading-tight text-muted">
             Lexical Mastery Platform
           </p>
