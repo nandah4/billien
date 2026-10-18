@@ -212,6 +212,24 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 
 Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
 
+#### E.5 Ilustrasi State Kosong & Dialog
+
+Tiga ilustrasi 3D tersedia di `public/assets` dan dipakai lewat `components/ui/empty-state.tsx` (atau `next/image` langsung di dalam dialog). Semuanya ber-alpha, jadi boleh diletakkan langsung di atas `bg-surface` maupun `bg-subtle` tanpa kotak pembungkus.
+
+| Aset               | Dipakai di                                                             | Tinggi render               |
+| ------------------ | ---------------------------------------------------------------------- | --------------------------- |
+| `empty.png`        | Discovery idle, kata tidak ditemukan, filter kosong, Remembered kosong | `h-28` (112px)              |
+| `hello.webp`       | Modal sign-in, prompt sign-in di Remembered                            | `h-32` / `h-36` (128–144px) |
+| `preferences.webp` | Modal onboarding bahasa, modal pemilih bahasa di profile               | `h-20` – `h-28` (80–112px)  |
+
+Aturan:
+
+- Ilustrasi bersifat **dekoratif**: `alt=""` + `aria-hidden="true"`, makna dibawa oleh judul dan deskripsi.
+- Komposisi state kosong: ilustrasi → judul 14px/`600` `#09090B` → deskripsi 12px `#64748B` maksimal `max-w-xs` → aksi opsional, semuanya rata tengah.
+- Komposisi dialog: ilustrasi di tengah, lalu judul dan deskripsi juga rata tengah, sedangkan daftar pilihan dan tombol tetap rata kiri/penuh.
+- Selalu gunakan `next/image` dengan `sizes` sesuai tinggi render agar tidak mengunduh berkas 2048px.
+- State validasi singkat (mis. input < 2 huruf) **tidak** memakai ilustrasi agar tidak berkedip setiap ketikan.
+
 ### F. Detail Words Panel
 
 Panel kanan (desktop) atau dialog (mobile). Semua kartu di dalam panel memakai `rounded-lg` (`8px`) dan chip memakai `rounded-md` (`6px`) — tidak ada `rounded-full` kecuali status pill prioritas.

@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Check, Languages } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import preferencesImage from "@/public/assets/preferences.webp";
 import { messageFor, request, type ApiEnvelope } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
@@ -60,28 +62,36 @@ export function LanguageModal({
       canDismiss={() => pending === null}
       maxWidthClass="max-w-md"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-2 text-[13px] font-semibold text-ink">
-          <span className="inline-flex size-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
-            <Languages size={16} aria-hidden="true" />
-          </span>
-          Billien
+      <div className="flex items-center gap-2 text-[13px] font-semibold text-ink">
+        <span className="inline-flex size-8 items-center justify-center rounded-lg bg-accent-soft text-accent">
+          <Languages size={16} aria-hidden="true" />
         </span>
+        Billien
       </div>
 
-      <h2
-        id="language-modal-title"
-        className="mt-4 text-[20px] leading-tight font-bold tracking-[-0.02em]"
-      >
-        Choose your translation language
-      </h2>
-      <p
-        id="language-modal-description"
-        className="mt-2 text-[13px] leading-relaxed text-muted"
-      >
-        Every word will show its meaning in this language. You can change it
-        later on your profile page.
-      </p>
+      <div className="mt-1 flex flex-col items-center text-center">
+        <Image
+          src={preferencesImage}
+          alt=""
+          aria-hidden="true"
+          sizes="112px"
+          className="h-24 w-auto object-contain sm:h-28"
+        />
+
+        <h2
+          id="language-modal-title"
+          className="mt-3 text-[20px] leading-tight font-bold tracking-[-0.02em] text-ink"
+        >
+          Choose your translation language
+        </h2>
+        <p
+          id="language-modal-description"
+          className="mt-2 max-w-xs text-[13px] leading-relaxed text-muted"
+        >
+          Every word will show its meaning in this language. You can change it
+          later on your profile page.
+        </p>
+      </div>
 
       <div
         className="mt-5 grid gap-2"
