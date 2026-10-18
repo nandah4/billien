@@ -38,7 +38,6 @@ export function WordListPanel({
   sort,
   items,
   pagination,
-  notice,
   errorMessage,
   isLoading,
   showSignInPrompt,
@@ -73,7 +72,6 @@ export function WordListPanel({
     onPrevious: () => void;
     onNext: () => void;
   };
-  notice: string | null;
   errorMessage: string | null;
   isLoading: boolean;
   showSignInPrompt: boolean;
@@ -172,15 +170,6 @@ export function WordListPanel({
             </button>
           </div>
         ) : null}
-        {notice ? (
-          <p
-            className="mb-3 rounded-lg border border-line bg-sunken px-3 py-2 text-[12px] text-ink-soft"
-            role="status"
-          >
-            {notice}
-          </p>
-        ) : null}
-
         {showSignInPrompt ? (
           <StateCard>
             <EmptyState

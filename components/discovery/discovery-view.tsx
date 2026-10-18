@@ -139,7 +139,6 @@ export function DiscoveryView() {
           onPrevious: () => {},
           onNext: () => {},
         }}
-        notice={actions.notice}
         errorMessage={listError}
         isLoading={isListLoading}
         showSignInPrompt={false}

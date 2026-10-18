@@ -159,6 +159,15 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 
 * Menu akun (dropdown `w-56` berisi identitas, `Profile`, dan `Sign out`) hanya ada di header desktop.
 
+#### E.1.1 Komponen shadcn/ui
+
+Dua komponen dari shadcn/ui dipakai langsung, bukan ditulis ulang:
+
+- **Dropdown Menu** (`components/ui/dropdown-menu.tsx`, Radix) untuk menu akun. Memberi focus management, Escape, klik-di-luar, dan navigasi keyboard tanpa kode manual. Kelas bawaan shadcn (`bg-popover`, `text-popover-foreground`, `bg-accent`) dipetakan ke token proyek: `bg-surface`, `text-ink`, `border-line`, `hover:bg-hover`. Item destruktif memakai prop `tone="danger"` (`text-hard`, `focus:bg-hard-soft/50`).
+- **Sonner** (`components/ui/sonner.tsx`) dipasang sekali di root layout. Posisi `top-center` agar tidak menutupi bottom navigation.
+
+Karena proyek tidak memakai plugin animasi Tailwind, animasi `animate-in` bawaan shadcn diganti keyframe `.menu-surface` di `globals.css` (140ms, `prefers-reduced-motion` dihormati).
+
 - **Tidak ada segmented menu di app bar**; perpindahan view milik bottom navigation.
 
 #### E.2 Bottom Navigation (bawah, tinggi `56px` + safe area)
@@ -203,12 +212,25 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 - **Validasi**: minimal `2` karakter dan hanya `[a-z'-]`; input lain tidak dikirim ke API.
 - **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik.
 - **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan.
-- **State yang wajib ada**:
+
+* **State yang wajib ada**:
   1. _Idle_ — belum ada ketikan: petunjuk singkat, tanpa skeleton.
   2. _Terlalu pendek / karakter tidak valid_ — petunjuk validasi, tanpa request.
   3. _Loading_ — skeleton baris selama debounce + fetch.
   4. _Tidak ditemukan_ — pesan netral + saran periksa ejaan.
   5. _Gagal jaringan_ — `role="alert"` + tombol **Try again**.
+
+#### E.4.1 Feedback: toast vs alert inline
+
+Notifikasi dibagi dua, supaya tidak ada pesan basi yang menempel di daftar:
+
+| Jenis                          | Contoh                                                                                                          | Tampilan                                                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Event sementara**            | kata tersimpan, kata dihapus, review tercatat, preferensi bahasa tersimpan, sign out, gagal menyimpan/menghapus | **Sonner toast** (`toast.success` / `toast.error`)                                                                              |
+| **State persisten**            | gagal memuat daftar Remembered, gagal lookup kata                                                               | **Alert inline** `role="alert"` + tombol **Try again**, karena harus bertahan selama kondisi masih berlaku dan menyediakan aksi |
+| **Error di dalam form/dialog** | gagal PATCH preferensi, gagal OAuth                                                                             | **Inline di dalam dialog**, dekat kontrolnya                                                                                    |
+
+Aturan toast: satu pesan per aksi, kalimat lampau dan spesifik (`"eat" was added to your memorised list.`), tanpa emoji, dan tidak dipakai untuk progres loading (indikator loading ada di tombol).
 
 Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
 

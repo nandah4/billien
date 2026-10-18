@@ -15,6 +15,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { LanguagePickerModal } from "@/components/preferences/language-picker-modal";
+import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import { messageFor, request, type ApiEnvelope } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
@@ -96,8 +97,6 @@ export function ProfileView({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pickerError, setPickerError] = useState<string | null>(null);
 
   const activeLanguage =
@@ -115,7 +114,6 @@ export function ProfileView({
     const previous = language;
     setLanguage(code);
     setSavingLanguage(code);
-    setStatus(null);
     setPickerError(null);
     try {
       const response = await request<ApiEnvelope<UserPreferences>>(
@@ -135,7 +133,7 @@ export function ProfileView({
       );
       // The Remembered list is projected per language, so refetch it.
       await queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
-      setStatus("Translation language updated.");
+      toast.success("Translation language updated.");
       setPickerOpen(false);
     } catch (requestError) {
       setLanguage(previous);
@@ -149,14 +147,13 @@ export function ProfileView({
 
   async function signOut() {
     setSigningOut(true);
-    setError(null);
     try {
       await authClient.signOut();
       queryClient.clear();
       router.push("/");
       router.refresh();
     } catch {
-      setError("Unable to sign out. Please try again.");
+      toast.error("Unable to sign out. Please try again.");
       setSigningOut(false);
     }
   }
@@ -196,20 +193,6 @@ export function ProfileView({
             {user.email}
           </p>
         </div>
-
-        {error ? (
-          <p
-            className="mt-4 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
-        {status ? (
-          <p className="mt-4 text-center text-[12px] text-easy" role="status">
-            {status}
-          </p>
-        ) : null}
 
         <SectionCard title="Account">
           <ValueRow icon={UserRound} label="Name" value={user.name || "—"} />

@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { AppHeader } from "@/components/app/app-header";
 import {
   AppShellContext,
@@ -68,7 +69,10 @@ export function AppShell({ children }: { children: ReactNode }) {
       queryClient.removeQueries({ queryKey: ["streak"] });
       queryClient.removeQueries({ queryKey: ["preferences"] });
       setAuthOpen(false);
+      toast.success("Signed out. Your progress stays in your account.");
       router.refresh();
+    } catch {
+      toast.error("Unable to sign out. Please try again.");
     } finally {
       setSigningOut(false);
     }

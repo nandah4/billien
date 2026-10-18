@@ -9,12 +9,7 @@ import { WordListPanel } from "@/components/words/word-list-panel";
 import { useWordActions } from "@/hooks/use-word-actions";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import { messageFor, savedWordDetailQueryOptions } from "@/lib/api";
-import {
-  paginate,
-  searchItems,
-  sortItems,
-  type SortId,
-} from "@/lib/library";
+import { paginate, searchItems, sortItems, type SortId } from "@/lib/library";
 import type { SavedWord } from "@/lib/types";
 
 /**
@@ -45,12 +40,9 @@ export function RememberedView() {
       ?.savedWord ?? null;
   const savedDetailQuery = useQuery(savedWordDetailQueryOptions(selectedId));
   const detailWord: SavedWord | null =
-    selectedId !== null
-      ? (savedDetailQuery.data ?? selectedSavedWord)
-      : null;
+    selectedId !== null ? (savedDetailQuery.data ?? selectedSavedWord) : null;
 
-  const isListLoading =
-    isSessionPending || (signedIn && library.isLoading);
+  const isListLoading = isSessionPending || (signedIn && library.isLoading);
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     // Filtering is local and instant; Enter must not reload the page.
@@ -97,7 +89,6 @@ export function RememberedView() {
           onPrevious: () => setPage(Math.max(1, currentPage - 1)),
           onNext: () => setPage(Math.min(pageCount, currentPage + 1)),
         }}
-        notice={actions.notice}
         errorMessage={
           library.isError
             ? messageFor(library.error, "Unable to load your memorised words.")

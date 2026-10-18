@@ -132,6 +132,57 @@ body {
 }
 
 /*
+ * Radix dropdown enter animation. The component ships with shadcn's
+ * `animate-in` utilities, which need `tw-animate-css`; this project has no
+ * animation plugin, so the transition is expressed directly and respects
+ * reduced-motion preferences.
+ */
+.menu-surface[data-state="open"] {
+  animation: menu-in 140ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu-surface[data-state="open"] {
+    animation: none;
+  }
+}
+
+/*
+ * Sonner ships its own palette through CSS variables. Point them at the project
+ * tokens so toasts match the rest of the interface instead of sonner's default
+ * greys.
+ */
+.toaster [data-sonner-toast] {
+  --normal-bg: var(--color-surface);
+  --normal-text: var(--color-ink);
+  --normal-border: var(--color-line);
+  --success-bg: var(--color-surface);
+  --success-text: var(--color-ink);
+  --success-border: var(--color-easy-soft);
+  --error-bg: var(--color-surface);
+  --error-text: var(--color-ink);
+  --error-border: var(--color-hard-soft);
+  --warning-bg: var(--color-surface);
+  --warning-text: var(--color-ink);
+  --warning-border: var(--color-medium-soft);
+  --info-bg: var(--color-surface);
+  --info-text: var(--color-ink);
+  --info-border: var(--color-line);
+  border-radius: var(--radius-xl);
+}
+
+/*
  * Low-opacity grid drawn behind the workspace. The lines come from two 1px
  * gradients on a pseudo-element, so nothing affects layout and the content is
  * never masked. The element keeps `isolation: isolate` so the negative
