@@ -37,7 +37,7 @@ export function nextSchedule(
   timing: RecallTiming = {},
   now: Date = new Date(),
 ): RecallSchedule {
-  if (outcome === "wrong" || outcome === "revealed") {
+  if (outcome === "wrong") {
     return {
       streak: 0,
       lapses: current.lapses + 1,

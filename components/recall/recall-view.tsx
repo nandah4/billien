@@ -13,91 +13,139 @@ import {
 } from "@/components/recall/recall-state";
 import {
   RecallSession,
-  type SessionAttempt,
+  type SessionAnswer,
 } from "@/components/recall/recall-session";
 import { RecallSummary } from "@/components/recall/recall-summary";
-import { messageFor, recallSessionQueryOptions } from "@/lib/api";
-import type { RecallCard, RecallScope } from "@/lib/recall/types";
+import {
+  messageFor,
+  recallSessionQueryOptions,
+  request,
+  type ApiEnvelope,
+} from "@/lib/api";
+import { outlineButton } from "@/lib/ui";
+import type { RecallCard, RecallSessionResult } from "@/lib/recall/types";
 
 /**
- * `/recall` — a ten-card session drawn from the saved words. The queue is
- * fetched once and played to the end; `gcTime: 0` means coming back to the tab
- * starts a fresh one.
+ * `/recall` — a session drawn from the saved words. Answers are collected on
+ * the client and submitted once, so nothing is graded until the review screen.
  */
 export function RecallView() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const { signedIn, isSessionPending, openAuth } = useAppShell();
 
-  const [scope, setScope] = useState<RecallScope>("due");
-  // Set only when replaying missed cards; otherwise the fetched session is used.
-  const [queue, setQueue] = useState<RecallCard[] | null>(null);
   const [index, setIndex] = useState(0);
-  const [attempts, setAttempts] = useState<SessionAttempt[]>([]);
-  const [finished, setFinished] = useState(false);
-  // Bumped on every new run so replaying a single missed card remounts the
-  // session instead of reusing the previous card's feedback state.
-  const [runId, setRunId] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, SessionAnswer>>({});
+  const [clientSessionId] = useState(() => crypto.randomUUID());
+  const [startedAt] = useState(() => new Date().toISOString());
+  const [result, setResult] = useState<RecallSessionResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [repairing, setRepairing] = useState(false);
+  const [repairMessage, setRepairMessage] = useState<string | null>(null);
 
-  const session = useQuery(recallSessionQueryOptions(signedIn, scope));
+  const session = useQuery(recallSessionQueryOptions(signedIn, "due"));
 
-  const cards = queue ?? session.data?.cards ?? [];
+  const cards: RecallCard[] = session.data?.cards ?? [];
   const card = cards[index] ?? null;
 
-  function begin(nextCards: RecallCard[]) {
-    setQueue(nextCards);
-    setIndex(0);
-    setAttempts([]);
-    setFinished(false);
-    setRunId((previous) => previous + 1);
+  function record(answer: SessionAnswer) {
+    setAnswers((previous) => ({ ...previous, [answer.userWordId]: answer }));
   }
 
-  /** Idempotent by attempt id, so an override replaces rather than appends. */
-  function record(attempt: SessionAttempt) {
-    setAttempts((previous) => {
-      const at = previous.findIndex(
-        (item) => item.result.attemptId === attempt.result.attemptId,
-      );
-      if (at === -1) return [...previous, attempt];
-      const next = [...previous];
-      next[at] = attempt;
-      return next;
+  async function submit(nextCards: RecallCard[]) {
+    if (submitting || nextCards.length === 0) return;
+    setSubmitting(true);
+    setSubmitError(null);
+
+    const items = nextCards.map((entry, position) => {
+      const answer = answers[entry.id];
+      return {
+        userWordId: entry.id,
+        position,
+        mode: answer?.mode ?? entry.mode,
+        response: answer?.response ?? "",
+        durationMs: answer?.durationMs ?? 0,
+        usedHint: answer?.usedHint ?? false,
+      };
     });
+
+    try {
+      const response = await request<ApiEnvelope<RecallSessionResult>>(
+        "/api/recall/sessions",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            clientSessionId,
+            scope: "due",
+            mode: "auto",
+            startedAt,
+            durationMs: Date.now() - Date.parse(startedAt),
+            items,
+          }),
+        },
+      );
+      setResult(response.data);
+      void queryClient.invalidateQueries({ queryKey: ["recall-stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["streak"] });
+      void queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
+    } catch (error) {
+      setSubmitError(
+        messageFor(error, "Unable to submit this session. Try again."),
+      );
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   function next() {
     if (index + 1 >= cards.length) {
-      setFinished(true);
+      void submit(cards);
       return;
     }
     setIndex(index + 1);
   }
 
+  function restart() {
+    setIndex(0);
+    setAnswers({});
+    setResult(null);
+    setSubmitError(null);
+    void session.refetch();
+  }
+
+  async function repair() {
+    if (repairing) return;
+    setRepairing(true);
+    setRepairMessage(null);
+    try {
+      const response = await request<
+        ApiEnvelope<{ checked: number; repaired: number; remaining: number }>
+      >("/api/recall/repair", { method: "POST" });
+      const { repaired: fixed, remaining } = response.data;
+      setRepairMessage(
+        fixed > 0
+          ? `${fixed} ${fixed === 1 ? "word" : "words"} fixed${
+              remaining > 0 ? `, ${remaining} still need attention.` : "."
+            }`
+          : "Nothing could be filled automatically. Try another word.",
+      );
+      await session.refetch();
+    } catch (error) {
+      setRepairMessage(messageFor(error, "Unable to repair your words."));
+    } finally {
+      setRepairing(false);
+    }
+  }
+
   function leave() {
     void queryClient.invalidateQueries({ queryKey: ["recall-stats"] });
-    void queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
-    void queryClient.invalidateQueries({ queryKey: ["streak"] });
     router.push("/remembered");
   }
 
-  function repeatMissed() {
-    const missed = new Set(
-      attempts
-        .filter(
-          (item) =>
-            item.result.outcome === "wrong" ||
-            item.result.outcome === "revealed",
-        )
-        .map((item) => item.card.id),
-    );
-    const subset = cards.filter((item) => missed.has(item.id));
-    if (subset.length > 0) begin(subset);
-  }
-
   if (isSessionPending) return <RecallSkeleton />;
-
   if (!signedIn) return <RecallGuestState onSignIn={openAuth} />;
-
   if (session.isLoading) return <RecallSkeleton />;
 
   if (session.isError) {
@@ -112,44 +160,75 @@ export function RecallView() {
   const data = session.data;
   if (!data) return <RecallSkeleton />;
 
-  if (data.librarySize < data.minLibrarySize) {
+  if (data.eligibleCount < data.minSessionSize) {
     return (
       <RecallGateState
+        eligibleCount={data.eligibleCount}
         librarySize={data.librarySize}
-        minLibrarySize={data.minLibrarySize}
+        ineligibleCount={data.ineligibleCount}
+        minSessionSize={data.minSessionSize}
         onGoToDiscovery={() => router.push("/")}
+        onRepair={() => void repair()}
+        repairing={repairing}
+        repairMessage={repairMessage}
       />
     );
   }
 
-  if (finished) {
+  if (result) {
     return (
-      <RecallSummary
-        attempts={attempts}
-        onRepeatWrong={repeatMissed}
-        onDone={leave}
-      />
+      <RecallSummary result={result} onRepeatWrong={restart} onDone={leave} />
+    );
+  }
+
+  if (submitting) {
+    return (
+      <div className={`mx-auto w-full max-w-2xl`}>
+        <RecallSkeleton />
+        <p className="mt-3 text-center text-[12px] text-muted">
+          Checking your answers…
+        </p>
+      </div>
     );
   }
 
   if (!card) {
     return (
       <RecallCaughtUpState
-        canPractiseAll={scope === "due"}
-        onPractiseAll={() => setScope("all")}
+        canPractiseAll={false}
+        onPractiseAll={() => void session.refetch()}
       />
     );
   }
 
   return (
-    <RecallSession
-      key={`${runId}:${card.id}`}
-      card={card}
-      index={index}
-      total={cards.length}
-      onAttempt={record}
-      onNext={next}
-      onExit={leave}
-    />
+    <div className="mx-auto w-full max-w-2xl">
+      <RecallSession
+        key={card.id}
+        card={card}
+        index={index}
+        total={cards.length}
+        initialAnswer={answers[card.id]?.response}
+        onAnswer={record}
+        onNext={next}
+        onExit={leave}
+      />
+
+      {submitError ? (
+        <div
+          className="mt-3 rounded-lg border border-hard-soft bg-hard-soft/40 p-3"
+          role="alert"
+        >
+          <p className="text-[12px] leading-relaxed text-hard">{submitError}</p>
+          <button
+            className={`${outlineButton} mt-2`}
+            type="button"
+            onClick={() => void submit(cards)}
+          >
+            Try again
+          </button>
+        </div>
+      ) : null}
+    </div>
   );
 }

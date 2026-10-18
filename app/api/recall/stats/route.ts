@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { currentUserId } from "@/lib/auth";
 import { getUserPreferences } from "@/lib/preferences";
-import { isEligible } from "@/lib/recall/cards";
+import { eligibleWords, isDue } from "@/lib/recall/session";
 import {
-  attemptAccuracy,
   listRecallWords,
+  sessionTotals,
   weakestWords,
 } from "@/lib/recall/repository";
-import { isDue } from "@/lib/recall/session";
 import type { RecallStats } from "@/lib/recall/types";
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Headline numbers for the profile section and the Recall header. */
 export async function GET() {
@@ -21,22 +22,27 @@ export async function GET() {
   }
 
   try {
-    const [{ translationLanguage: language }, words, accuracy, weakest] =
-      await Promise.all([
-        getUserPreferences(userId),
-        listRecallWords(userId),
-        attemptAccuracy(userId),
-        weakestWords(userId),
-      ]);
+    const [{ translationLanguage: language }, words] = await Promise.all([
+      getUserPreferences(userId),
+      listRecallWords(userId),
+    ]);
 
-    const eligible = words.filter((word) => isEligible(word, language));
     const now = new Date();
+    const from = new Date(now.getTime() - WEEK_MS);
+
+    const [totals, weakest] = await Promise.all([
+      sessionTotals(userId, from, now),
+      weakestWords(userId, from, now),
+    ]);
+
+    const eligible = eligibleWords(words, language);
 
     const stats: RecallStats = {
       dueToday: eligible.filter((word) => isDue(word, now)).length,
       trackedWords: eligible.length,
-      accuracy7d: accuracy.attempts > 0 ? accuracy.correct / accuracy.attempts : 0,
-      attempts7d: accuracy.attempts,
+      accuracy7d: totals.items > 0 ? totals.correct / totals.items : 0,
+      sessions7d: totals.sessions,
+      items7d: totals.items,
       weakest,
     };
 

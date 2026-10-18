@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   DEFAULT_SESSION_SIZE,
-  MAX_SESSION_SIZE,
-  MIN_LIBRARY_SIZE,
+  MIN_SESSION_SIZE,
   clampLimit,
   isDue,
   orderQueue,
   posBucket,
   selectQueue,
+  sizeOptions,
 } from "../lib/recall/session.ts";
 import type { RecallWord } from "../lib/recall/types.ts";
 
@@ -62,16 +62,41 @@ function makeWord(
 const NOW = new Date("2026-01-10T00:00:00.000Z");
 const rng = () => 0.5;
 
-test("the session gate is twenty words", () => {
-  assert.equal(MIN_LIBRARY_SIZE, 20);
+test("the minimum session size is ten cards", () => {
+  assert.equal(MIN_SESSION_SIZE, 10);
+  assert.equal(DEFAULT_SESSION_SIZE, 10);
 });
 
-test("clampLimit keeps the requested size inside 1..30", () => {
-  assert.equal(clampLimit(10), 10);
-  assert.equal(clampLimit(0), 1);
-  assert.equal(clampLimit(-4), 1);
-  assert.equal(clampLimit(999), MAX_SESSION_SIZE);
-  assert.equal(clampLimit(Number.NaN), DEFAULT_SESSION_SIZE);
+test("clampLimit never goes below ten when ten words exist", () => {
+  assert.equal(clampLimit(5, 12), 10);
+  assert.equal(clampLimit(9, 12), 10);
+  assert.equal(clampLimit(10, 12), 10);
+});
+
+test("clampLimit never exceeds the eligible count", () => {
+  assert.equal(clampLimit(99, 12), 12);
+  assert.equal(clampLimit(12, 12), 12);
+});
+
+test("clampLimit returns the eligible count when that is a gate", () => {
+  assert.equal(clampLimit(10, 8), 8);
+  assert.equal(clampLimit(99, 0), 0);
+});
+
+test("clampLimit falls back to the default for a broken number", () => {
+  assert.equal(clampLimit(Number.NaN, 20), DEFAULT_SESSION_SIZE);
+});
+
+test("sizeOptions steps by five and ends at the eligible count", () => {
+  assert.deepEqual(sizeOptions(31), [10, 15, 20, 25, 30, 31]);
+  assert.deepEqual(sizeOptions(12), [10, 12]);
+  assert.deepEqual(sizeOptions(10), [10]);
+  assert.deepEqual(sizeOptions(15), [10, 15]);
+});
+
+test("sizeOptions is empty below the minimum, so the UI can gate", () => {
+  assert.deepEqual(sizeOptions(9), []);
+  assert.deepEqual(sizeOptions(0), []);
 });
 
 test("posBucket groups the long tail under other", () => {
@@ -84,15 +109,18 @@ test("posBucket groups the long tail under other", () => {
 
 test("a word is due when it was never practised or its date has passed", () => {
   assert.equal(isDue(makeWord("a", { dueAt: null }), NOW), true);
-  assert.equal(isDue(makeWord("a", { dueAt: "2026-01-09T00:00:00.000Z" }), NOW), true);
-  assert.equal(isDue(makeWord("a", { dueAt: "2026-01-11T00:00:00.000Z" }), NOW), false);
+  assert.equal(
+    isDue(makeWord("a", { dueAt: "2026-01-09T00:00:00.000Z" }), NOW),
+    true,
+  );
+  assert.equal(
+    isDue(makeWord("a", { dueAt: "2026-01-11T00:00:00.000Z" }), NOW),
+    false,
+  );
 });
 
 test("selectQueue drops words with nothing to prompt from", () => {
-  const words = [
-    makeWord("good"),
-    makeWord("empty", { translations: {} }),
-  ];
+  const words = [makeWord("good"), makeWord("empty", { translations: {} })];
 
   const queue = selectQueue(words, {
     language: "id",
@@ -152,17 +180,17 @@ test("pos narrows the queue", () => {
 });
 
 test("the queue is truncated to the requested size", () => {
-  const words = ["a", "b", "c", "d"].map((name) => makeWord(name));
+  const words = Array.from({ length: 12 }, (_, index) => makeWord(`w${index}`));
   const queue = selectQueue(words, {
     language: "id",
     scope: "all",
     pos: "all",
-    limit: 2,
+    limit: 10,
     now: NOW,
     rng,
   });
 
-  assert.equal(queue.length, 2);
+  assert.equal(queue.length, 10);
 });
 
 test("weak ordering puts the most lapses first, then the shortest streak", () => {

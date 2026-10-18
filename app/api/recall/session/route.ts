@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { currentUserId } from "@/lib/auth";
 import { getUserPreferences } from "@/lib/preferences";
-import {
-  buildCard,
-  isEligible,
-  type DistractorCandidate,
-} from "@/lib/recall/cards";
+import { buildCard, type DistractorCandidate } from "@/lib/recall/cards";
 import { countUserWords, listRecallWords } from "@/lib/recall/repository";
 import {
-  MIN_LIBRARY_SIZE,
+  DEFAULT_SESSION_SIZE,
+  MIN_SESSION_SIZE,
   clampLimit,
+  eligibleWords,
   isDue,
   selectQueue,
+  sizeOptions,
 } from "@/lib/recall/session";
 import type { RecallMode, RecallPos, RecallScope } from "@/lib/recall/types";
 
@@ -50,7 +49,6 @@ export async function GET(request: NextRequest) {
   const mode = pick(params.get("mode"), MODES, "auto");
   const scope = pick(params.get("scope"), SCOPES, "due");
   const pos = pick(params.get("pos"), POS_VALUES, "all");
-  const limit = clampLimit(Number.parseInt(params.get("limit") ?? "10", 10));
 
   try {
     const [{ translationLanguage: language }, words, librarySize] =
@@ -60,9 +58,14 @@ export async function GET(request: NextRequest) {
         countUserWords(userId),
       ]);
 
+    const eligible = eligibleWords(words, language);
+    const eligibleCount = eligible.length;
     const now = new Date();
-    const eligible = words.filter((word) => isEligible(word, language));
     const totalDue = eligible.filter((word) => isDue(word, now)).length;
+    const limit = clampLimit(
+      Number.parseInt(params.get("limit") ?? String(DEFAULT_SESSION_SIZE), 10),
+      eligibleCount,
+    );
 
     // `choice` draws its options from the rest of the library, including words
     // that are not eligible for a typing prompt.
@@ -82,13 +85,16 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       data: {
-        mode,
         scope,
+        mode,
         language,
         librarySize,
-        minLibrarySize: MIN_LIBRARY_SIZE,
+        eligibleCount,
+        ineligibleCount: librarySize - eligibleCount,
         totalDue,
-        totalEligible: eligible.length,
+        minSessionSize: MIN_SESSION_SIZE,
+        defaultSessionSize: DEFAULT_SESSION_SIZE,
+        sizeOptions: sizeOptions(eligibleCount),
         cards,
       },
     });

@@ -94,13 +94,17 @@ export function streakQueryOptions(enabled: boolean) {
 export function recallSessionQueryOptions(
   enabled: boolean,
   scope: RecallScope = "due",
+  limit?: number,
 ) {
+  const params = new URLSearchParams({ scope });
+  if (limit) params.set("limit", String(limit));
+
   return {
-    queryKey: ["recall-session", scope],
+    queryKey: ["recall-session", scope, limit ?? "default"],
     enabled,
     queryFn: ({ signal }: { signal: AbortSignal }) =>
       request<ApiEnvelope<RecallSession>>(
-        `/api/recall/session?scope=${scope}`,
+        `/api/recall/session?${params.toString()}`,
         { signal },
       ),
     select: (response: ApiEnvelope<RecallSession>) => response.data,

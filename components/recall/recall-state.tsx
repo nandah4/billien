@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Wrench } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
 import emptyImage from "@/public/assets/empty.png";
@@ -43,33 +43,71 @@ export function RecallGuestState({ onSignIn }: { onSignIn: () => void }) {
   );
 }
 
+/**
+ * Gate shown when fewer than ten saved words can produce a card. It also
+ * offers a repair action, because a word with empty entries is a data gap the
+ * app can usually close on demand.
+ */
 export function RecallGateState({
+  eligibleCount,
   librarySize,
-  minLibrarySize,
+  ineligibleCount,
+  minSessionSize,
   onGoToDiscovery,
+  onRepair,
+  repairing,
+  repairMessage,
 }: {
+  eligibleCount: number;
   librarySize: number;
-  minLibrarySize: number;
+  ineligibleCount: number;
+  minSessionSize: number;
   onGoToDiscovery: () => void;
+  onRepair: () => void;
+  repairing: boolean;
+  repairMessage: string | null;
 }) {
-  const remaining = Math.max(0, minLibrarySize - librarySize);
+  const remaining = Math.max(0, minSessionSize - eligibleCount);
 
   return (
     <div className={`${cardClass} mx-auto w-full max-w-2xl p-6`}>
       <EmptyState
         image={emptyImage}
         title="Save a few more words first"
-        description={`A session draws ten cards from your library, so it needs at least ${minLibrarySize} saved words. You have ${librarySize}; ${remaining} to go.`}
+        description={`A session needs at least ${minSessionSize} words that can become cards. You have ${eligibleCount} of ${librarySize} saved.`}
         action={
-          <button
-            className={primaryButton}
-            type="button"
-            onClick={onGoToDiscovery}
-          >
-            Find words
-          </button>
+          <div className="flex flex-wrap justify-center gap-2">
+            <button
+              className={primaryButton}
+              type="button"
+              onClick={onGoToDiscovery}
+            >
+              Find words
+            </button>
+            {ineligibleCount > 0 ? (
+              <button
+                className={outlineButton}
+                type="button"
+                disabled={repairing}
+                onClick={onRepair}
+              >
+                <Wrench size={14} aria-hidden="true" />
+                {repairing ? "Fixing…" : `Fix ${ineligibleCount} words`}
+              </button>
+            ) : null}
+          </div>
         }
       />
+      <p className="mt-3 text-center text-[12px] text-muted">
+        {remaining > 0
+          ? `${remaining} more ${remaining === 1 ? "word" : "words"} needed.`
+          : "Ready to start."}
+      </p>
+      {repairMessage ? (
+        <p className="mt-2 text-center text-[12px] text-muted" role="status">
+          {repairMessage}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -85,7 +123,9 @@ export function RecallCaughtUpState({
     <div className={`${cardClass} mx-auto w-full max-w-2xl p-6`}>
       <EmptyState
         image={emptyImage}
-        title={canPractiseAll ? "Nothing due right now" : "Nothing to practise yet"}
+        title={
+          canPractiseAll ? "Nothing due right now" : "Nothing to practise yet"
+        }
         description={
           canPractiseAll
             ? "Every word is scheduled for later. You can still run a session over the whole library."
@@ -127,7 +167,11 @@ export function RecallErrorState({
         />
         <p className="text-[12px] leading-relaxed text-hard">{message}</p>
       </div>
-      <button className={`${outlineButton} mt-4`} type="button" onClick={onRetry}>
+      <button
+        className={`${outlineButton} mt-4`}
+        type="button"
+        onClick={onRetry}
+      >
         <RefreshCw size={14} aria-hidden="true" />
         Try again
       </button>

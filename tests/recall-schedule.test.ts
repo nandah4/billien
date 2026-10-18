@@ -67,20 +67,18 @@ test("a hint or a slow answer removes the fast bonus", () => {
   assert.equal(slow.gained, 1);
 });
 
-test("wrong and revealed reset the streak and retry in ten minutes", () => {
-  for (const outcome of ["wrong", "revealed"] as const) {
-    const schedule = nextSchedule(
-      outcome,
-      { streak: 4, lapses: 2 },
-      { durationMs: 900 },
-      NOW,
-    );
+test("wrong resets the streak and retries in ten minutes", () => {
+  const schedule = nextSchedule(
+    "wrong",
+    { streak: 4, lapses: 2 },
+    { durationMs: 900 },
+    NOW,
+  );
 
-    assert.equal(schedule.streak, 0);
-    assert.equal(schedule.lapses, 3);
-    assert.equal(schedule.gained, 0);
-    assert.equal(schedule.dueAt.getTime() - NOW.getTime(), WRONG_DELAY_MS);
-  }
+  assert.equal(schedule.streak, 0);
+  assert.equal(schedule.lapses, 3);
+  assert.equal(schedule.gained, 0);
+  assert.equal(schedule.dueAt.getTime() - NOW.getTime(), WRONG_DELAY_MS);
 });
 
 test("almost counts as a success without the fast bonus", () => {
@@ -97,12 +95,7 @@ test("almost counts as a success without the fast bonus", () => {
 });
 
 test("the ladder clamps at the longest interval", () => {
-  const schedule = nextSchedule(
-    "correct",
-    { streak: 40, lapses: 0 },
-    {},
-    NOW,
-  );
+  const schedule = nextSchedule("correct", { streak: 40, lapses: 0 }, {}, NOW);
 
   assert.equal(daysFromNow(schedule.dueAt), LADDER_DAYS.at(-1));
 });
