@@ -111,6 +111,12 @@ export function AnalyticsView() {
       )}`
     : null;
 
+  // A range with activity but no recall session has nothing to plot, which read
+  // as a broken chart. Say so instead.
+  const hasAccuracy = Boolean(
+    data?.series.some((bucket) => bucket.recallAccuracy !== null),
+  );
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {/* This page owns its header: on phones the back control and the title
@@ -225,10 +231,17 @@ export function AnalyticsView() {
                   {data.range.granularity === "month" ? "month" : "day"}.
                 </p>
                 <div className="mt-3">
-                  <AccuracyChart
-                    series={data.series}
-                    granularity={data.range.granularity}
-                  />
+                  {hasAccuracy ? (
+                    <AccuracyChart
+                      series={data.series}
+                      granularity={data.range.granularity}
+                    />
+                  ) : (
+                    <p className="rounded-lg border border-line bg-subtle px-3 py-6 text-center text-[12px] text-muted">
+                      No recall sessions in this range yet. Run a session and
+                      its accuracy shows up here.
+                    </p>
+                  )}
                 </div>
               </section>
 

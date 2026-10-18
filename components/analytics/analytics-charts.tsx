@@ -83,6 +83,10 @@ export function ActivityChart({
 /**
  * Recall accuracy per bucket. `connectNulls` stays off so a bucket without a
  * session reads as a gap rather than a straight line through missing data.
+ *
+ * Dots are drawn on purpose: with gaps, a bucket can be an isolated point
+ * between nulls, and a line needs two points to draw a segment. Hiding the dot
+ * made a single session in the whole window render as an empty chart.
  */
 export function AccuracyChart({
   series,
@@ -131,7 +135,12 @@ export function AccuracyChart({
           dataKey="recallAccuracy"
           stroke="var(--color-recallAccuracy)"
           strokeWidth={2}
-          dot={false}
+          dot={{ r: 2.5, strokeWidth: 0, fill: "var(--color-recallAccuracy)" }}
+          activeDot={{
+            r: 5,
+            strokeWidth: 0,
+            fill: "var(--color-recallAccuracy)",
+          }}
           connectNulls={false}
         />
       </LineChart>
