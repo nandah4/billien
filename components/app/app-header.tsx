@@ -53,20 +53,23 @@ export function AppHeader({
         <header
           className={`${cardClass} flex min-w-0 flex-1 flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between`}
         >
-          <p className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <div className="flex min-w-0 items-center gap-2">
             <Image
               src={logoMark}
-              alt="Billien"
+              alt=""
+              aria-hidden="true"
               sizes="28px"
               className="h-7 w-7 shrink-0 object-contain"
             />
-            <span className="text-[13px] text-faint" aria-hidden="true">
-              -
+            <span className="flex min-w-0 flex-col">
+              <span className="text-[13px] leading-tight font-semibold text-ink">
+                Billien
+              </span>
+              <span className="text-[11px] leading-tight text-muted">
+                Learn English, one word at a time
+              </span>
             </span>
-            <span className="text-[11px] text-muted">
-              Lexical Mastery Platform
-            </span>
-          </p>
+          </div>
 
           <nav
             className="flex h-9 shrink-0 items-center gap-1 self-start rounded-lg border border-line bg-subtle p-1 sm:self-auto"
