@@ -131,6 +131,9 @@ export function DiscoveryView() {
           onSubmit: handleSubmit,
         }}
         sort="recent"
+        letter={null}
+        letters={[]}
+        libraryCount={items.length}
         items={items}
         pagination={{
           page: 1,
@@ -153,6 +156,7 @@ export function DiscoveryView() {
         onSave={(word) => void actions.saveWord(word)}
         onSignIn={openAuth}
         onChangeSort={() => {}}
+        onChangeLetter={() => {}}
         onResetFilters={resetSearch}
         onRetry={() => void dictionaryQuery.refetch()}
         onGoToDiscovery={resetSearch}

@@ -59,7 +59,7 @@ export function RecallRail({
           </span>
         </div>
 
-        <ol className="mt-2 flex gap-1.5 overflow-x-auto pb-1 lg:max-h-[28rem] lg:flex-col lg:overflow-y-auto lg:pb-0">
+        <ol className="no-scrollbar mt-2 flex gap-1.5 overflow-x-auto pb-1 lg:max-h-[28rem] lg:flex-col lg:overflow-y-auto lg:pb-0">
           {cards.map((card, position) => {
             const status = statusFor(position, index, result, card);
             const item = itemFor(result, card);

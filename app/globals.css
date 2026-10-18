@@ -103,46 +103,6 @@ body {
 }
 
 /*
- * Profile banner: a soft accent panel with a dotted texture. The texture lives
- * on a pseudo-element so it never intercepts pointer events, and the mask fades
- * it towards the bottom where the avatar sits.
- */
-.profile-banner {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  background-color: var(--color-accent-soft);
-}
-
-.profile-banner::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image: radial-gradient(
-    circle,
-    var(--color-accent-line) 1px,
-    transparent 1px
-  );
-  background-size: 16px 16px;
-  background-position: center;
-  opacity: 0.9;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 0.9) 10%,
-    rgb(0 0 0 / 0.35) 70%,
-    transparent 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    rgb(0 0 0 / 0.9) 10%,
-    rgb(0 0 0 / 0.35) 70%,
-    transparent 100%
-  );
-}
-
-/*
  * Radix dropdown enter animation. The component ships with shadcn's
  * `animate-in` utilities, which need `tw-animate-css`; this project has no
  * animation plugin, so the transition is expressed directly and respects
@@ -194,41 +154,15 @@ body {
 }
 
 /*
- * Low-opacity grid drawn behind the workspace. The lines come from two 1px
- * gradients on a pseudo-element, so nothing affects layout and the content is
- * never masked. The element keeps `isolation: isolate` so the negative
- * z-index stays inside its own stacking context (above the element's
- * background, below its children). Cell size and line colour are overridable.
+ * Hides the scrollbar while keeping the element scrollable. Used on the
+ * workspace columns, where a native bar would sit inside a rounded card and
+ * break its edge. Keyboard and wheel scrolling are unaffected.
  */
-.grid-pattern {
-  --grid-size: 32px;
-  --grid-line: rgb(9 9 11 / 0.05);
-  position: relative;
-  isolation: isolate;
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
-.grid-pattern::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background-image:
-    linear-gradient(to right, var(--grid-line) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--grid-line) 1px, transparent 1px);
-  background-size: var(--grid-size) var(--grid-size);
-  background-position: center center;
-  /* Fade towards the edges so it reads as texture rather than tiling. */
-  -webkit-mask-image: radial-gradient(
-    ellipse at center,
-    #000 35%,
-    rgb(0 0 0 / 0.45) 70%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse at center,
-    #000 35%,
-    rgb(0 0 0 / 0.45) 70%,
-    transparent 100%
-  );
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }

@@ -2,13 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   BookMarked,
   Brain,
   ChartColumn,
-  ChevronLeft,
   ChevronRight,
   Flame,
   Languages,
@@ -28,28 +28,34 @@ import {
 } from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
+import bannerImage from "@/public/assets/banner.webp";
 
 /** Rows share one height so each grouped card reads as a single table. */
 const rowClass =
   "flex w-full items-center gap-3 px-4 py-3 text-left transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
 
-function SectionCard({
+/** One white surface holding one or more labelled groups. */
+function GroupCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+      {children}
+    </div>
+  );
+}
+
+function Group({
   title,
   children,
 }: {
-  title?: string;
+  title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section className="mt-5">
-      {title ? (
-        <h2 className="mb-1.5 px-1 text-[11px] font-semibold tracking-wider text-muted uppercase">
-          {title}
-        </h2>
-      ) : null}
-      <div className="divide-y divide-line-soft overflow-hidden rounded-xl border border-line bg-surface">
-        {children}
-      </div>
+    <section>
+      <h2 className="px-4 pt-3 pb-1 text-[11px] font-semibold tracking-wider text-muted uppercase">
+        {title}
+      </h2>
+      <div className="divide-none">{children}</div>
     </section>
   );
 }
@@ -172,146 +178,186 @@ export function ProfileView({
   }
 
   return (
-    <main className="min-h-dvh bg-canvas pb-10">
-      {/* Banner is full-bleed: no page padding, no border, no radius. */}
-      <div className="relative">
-        <div className="profile-banner h-32" />
+    <main className="no-scrollbar lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      {/* The wrapper cancels the shell padding so the cover photo can run edge
+          to edge on phones; the inner blocks add it back where they need it. */}
+      <div className="-mx-4 pb-6 sm:-mx-6 lg:mx-0 lg:pb-2">
+        <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_19rem] lg:items-start lg:gap-6">
+          <div className="min-w-0">
+            {/* Cover photo and identity share one card: the photo's bottom
+                corners and the card's top corners are square, so the two read
+                as a single block rather than two stacked panels. */}
+            <div className="relative">
+              <div className="overflow-hidden rounded-b-xl border border-line bg-surface shadow-sm lg:rounded-xl">
+                <div className="relative h-36 w-full sm:h-44">
+                  <Image
+                    src={bannerImage}
+                    alt=""
+                    aria-hidden="true"
+                    fill
+                    priority
+                    sizes="(min-width: 1024px) 640px, 100vw"
+                    className="object-cover object-center"
+                  />
+                  <div
+                    className="absolute inset-0 bg-black/55"
+                    aria-hidden="true"
+                  />
+                </div>
 
-        {/* Floating back control, aligned with the content column below. */}
-        <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)_+_8px)]">
-          <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
-            <Link
-              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-              href="/"
-            >
-              <ChevronLeft size={22} aria-hidden="true" />
-              <span className="text-[15px] font-medium">Back</span>
-            </Link>
+                <div className="px-4 pt-12 pb-5 text-center">
+                  <h1 className="text-[20px] leading-tight font-semibold text-ink wrap-anywhere">
+                    {user.name || "Your account"}
+                  </h1>
+                  <p className="mt-0.5 text-[13px] text-muted wrap-anywhere">
+                    {user.email}
+                  </p>
+                </div>
+              </div>
+
+              {/* Avatar straddles the photo and the identity block. It sits
+                  outside the clipping card so its lower half is not cut. */}
+              <div className="pointer-events-none absolute inset-x-0 top-36 z-10 flex -translate-y-1/2 justify-center sm:top-44">
+                <span
+                  className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
+                  aria-hidden="true"
+                >
+                  {initial}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-4 px-4 sm:px-6 lg:px-0">
+              <GroupCard>
+                <div className="grid divide-none sm:grid-cols-2 ">
+                  <Group title="Account">
+                    <ValueRow
+                      icon={UserRound}
+                      label="Name"
+                      value={user.name || "—"}
+                    />
+                    <ValueRow
+                      icon={Mail}
+                      label="Email"
+                      value={user.email || "—"}
+                      wrap
+                    />
+                  </Group>
+
+                  <Group title="Translation language">
+                    <button
+                      className={`${rowClass} hover:bg-hover`}
+                      type="button"
+                      aria-haspopup="dialog"
+                      onClick={() => {
+                        setPickerError(null);
+                        setPickerOpen(true);
+                      }}
+                    >
+                      <RowIcon icon={Languages} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-[14px] text-ink">
+                          {activeLanguage.nativeName}
+                        </span>
+                        <span className="mt-0.5 block text-[12px] text-muted">
+                          {activeLanguage.name} · {activeLanguage.sample}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        size={17}
+                        className="shrink-0 text-faint"
+                        aria-hidden="true"
+                      />
+                    </button>
+                  </Group>
+                </div>
+              </GroupCard>
+
+              <GroupCard>
+                <div className="grid divide-none sm:grid-cols-2 ">
+                  <Group title="Progress">
+                    <ValueRow
+                      icon={BookMarked}
+                      label="Saved words"
+                      value={String(summary.savedCount)}
+                    />
+                    <ValueRow
+                      icon={Flame}
+                      label="Current streak"
+                      value={`${summary.currentStreak} ${
+                        summary.currentStreak === 1 ? "day" : "days"
+                      }`}
+                    />
+                  </Group>
+
+                  <Group title="Recall">
+                    <ValueRow
+                      icon={Brain}
+                      label="Due today"
+                      value={
+                        recallStats.data
+                          ? String(recallStats.data.dueToday)
+                          : "—"
+                      }
+                    />
+                    <ValueRow
+                      icon={Target}
+                      label="Accuracy (7 days)"
+                      value={
+                        recallStats.data
+                          ? `${Math.round(recallStats.data.accuracy7d * 100)}%`
+                          : "—"
+                      }
+                    />
+                  </Group>
+                </div>
+              </GroupCard>
+
+              <GroupCard>
+                <Link
+                  className={`${rowClass} hover:bg-hover`}
+                  href="/analytics"
+                >
+                  <RowIcon icon={ChartColumn} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block text-[14px] text-ink">
+                      Analytics
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-muted">
+                      Daily and monthly activity
+                    </span>
+                  </span>
+                  <ChevronRight
+                    size={17}
+                    className="shrink-0 text-faint"
+                    aria-hidden="true"
+                  />
+                </Link>
+                <button
+                  className={`${rowClass} justify-center font-semibold text-hard hover:bg-hard-soft/40 disabled:cursor-not-allowed disabled:opacity-50`}
+                  type="button"
+                  disabled={signingOut}
+                  onClick={() => void signOut()}
+                >
+                  <LogOut size={16} aria-hidden="true" />
+                  <span className="text-[14px]">
+                    {signingOut ? "Signing out…" : "Sign out"}
+                  </span>
+                </button>
+              </GroupCard>
+            </div>
           </div>
+
+          {/* Right column: today's word count with the week behind it. */}
+          {/*<aside className="mt-4 px-4 sm:px-6 lg:sticky lg:top-0 lg:mt-0 lg:px-0">
+            <div className="rounded-xl border border-line bg-surface p-4">
+              <TodayWordsChart
+                series={analytics.data?.series ?? []}
+                isLoading={analytics.isLoading}
+              />
+            </div>
+          </aside>*/}
         </div>
-
-        {/* Avatar is centred horizontally on the banner's bottom edge. */}
-        <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
-          <span
-            className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
-            aria-hidden="true"
-          >
-            {initial}
-          </span>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
-        <div className="mt-14 text-center">
-          <h1 className="text-[20px] leading-tight font-semibold text-ink wrap-anywhere">
-            {user.name || "Your account"}
-          </h1>
-          <p className="mt-0.5 text-[13px] text-muted wrap-anywhere">
-            {user.email}
-          </p>
-        </div>
-
-        <SectionCard title="Account">
-          <ValueRow icon={UserRound} label="Name" value={user.name || "—"} />
-          <ValueRow icon={Mail} label="Email" value={user.email || "—"} wrap />
-        </SectionCard>
-
-        <SectionCard title="Translation language">
-          <button
-            className={`${rowClass} hover:bg-hover`}
-            type="button"
-            aria-haspopup="dialog"
-            onClick={() => {
-              setPickerError(null);
-              setPickerOpen(true);
-            }}
-          >
-            <RowIcon icon={Languages} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] text-ink">
-                {activeLanguage.nativeName}
-              </span>
-              <span className="mt-0.5 block text-[12px] text-muted">
-                {activeLanguage.name} · {activeLanguage.sample}
-              </span>
-            </span>
-            <ChevronRight
-              size={17}
-              className="shrink-0 text-faint"
-              aria-hidden="true"
-            />
-          </button>
-        </SectionCard>
-
-        <SectionCard title="Progress">
-          <ValueRow
-            icon={BookMarked}
-            label="Saved words"
-            value={String(summary.savedCount)}
-          />
-          <ValueRow
-            icon={Flame}
-            label="Current streak"
-            value={`${summary.currentStreak} ${
-              summary.currentStreak === 1 ? "day" : "days"
-            }`}
-          />
-        </SectionCard>
-
-        <SectionCard title="Recall">
-          <ValueRow
-            icon={Brain}
-            label="Due today"
-            value={recallStats.data ? String(recallStats.data.dueToday) : "—"}
-          />
-          <ValueRow
-            icon={Target}
-            label="Accuracy (7 days)"
-            value={
-              recallStats.data
-                ? `${Math.round(recallStats.data.accuracy7d * 100)}%`
-                : "—"
-            }
-          />
-          <Link
-            className={`${rowClass} justify-center font-semibold text-accent hover:bg-accent-soft`}
-            href="/recall"
-          >
-            <Brain size={16} aria-hidden="true" />
-            <span className="text-[14px]">Start practising</span>
-          </Link>
-        </SectionCard>
-
-        <SectionCard title="Insights">
-          <Link className={`${rowClass} hover:bg-hover`} href="/analytics">
-            <RowIcon icon={ChartColumn} />
-            <span className="min-w-0 flex-1">
-              <span className="block text-[14px] text-ink">Analytics</span>
-              <span className="mt-0.5 block text-[12px] text-muted">
-                Daily and monthly activity
-              </span>
-            </span>
-            <ChevronRight
-              size={17}
-              className="shrink-0 text-faint"
-              aria-hidden="true"
-            />
-          </Link>
-        </SectionCard>
-
-        <SectionCard>
-          <button
-            className={`${rowClass} justify-center font-semibold text-hard hover:bg-hard-soft/40 disabled:cursor-not-allowed disabled:opacity-50`}
-            type="button"
-            disabled={signingOut}
-            onClick={() => void signOut()}
-          >
-            <LogOut size={16} aria-hidden="true" />
-            <span className="text-[14px]">
-              {signingOut ? "Signing out…" : "Sign out"}
-            </span>
-          </button>
-        </SectionCard>
       </div>
 
       <LanguagePickerModal

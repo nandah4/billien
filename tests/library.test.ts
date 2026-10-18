@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  ALPHABET,
+  OTHER_LETTER,
+  availableLetters,
+  filterByLetter,
+  letterOf,
   paginate,
   searchItems,
   sortItems,
@@ -219,4 +224,61 @@ test("translationGroups marks a group as AI when any sense is generated", () => 
 
   assert.equal(translationGroups(entries, "id")[0].source, "ai");
   assert.deepEqual(translationGroups(entries, "es"), []);
+});
+
+test("letterOf folds case and accents, and buckets the rest under #", () => {
+  assert.equal(letterOf("Apple"), "a");
+  assert.equal(letterOf("banana"), "b");
+  assert.equal(letterOf("Étude"), "e");
+  assert.equal(letterOf("123word"), OTHER_LETTER);
+  assert.equal(letterOf("—dash"), OTHER_LETTER);
+  assert.equal(letterOf(""), OTHER_LETTER);
+});
+
+test("availableLetters lists only the letters in use, # last", () => {
+  const items = [
+    word("apple"),
+    word("avocado"),
+    word("banana"),
+    word("123number"),
+  ];
+
+  assert.deepEqual(availableLetters(items), ["a", "b", OTHER_LETTER]);
+});
+
+test("availableLetters is empty for an empty library", () => {
+  assert.deepEqual(availableLetters([]), []);
+});
+
+test("filterByLetter keeps one letter and ignores the rest", () => {
+  const items = [word("apple"), word("avocado"), word("banana")];
+
+  assert.deepEqual(
+    filterByLetter(items, "a").map((item) => item.word),
+    ["apple", "avocado"],
+  );
+  assert.deepEqual(
+    filterByLetter(items, "b").map((item) => item.word),
+    ["banana"],
+  );
+});
+
+test("filterByLetter returns everything for no letter", () => {
+  const items = [word("apple"), word("banana")];
+
+  assert.equal(filterByLetter(items, null).length, 2);
+});
+
+test("ALPHABET covers every letter, so the toolbar never shrinks", () => {
+  assert.equal(ALPHABET.length, 26);
+  assert.equal(ALPHABET[0], "a");
+  assert.equal(ALPHABET.at(-1), "z");
+  assert.equal(new Set(ALPHABET).size, 26);
+});
+
+test("filterByLetter on an empty letter yields no items", () => {
+  const items = [word("apple"), word("act")];
+
+  assert.deepEqual(filterByLetter(items, "b"), []);
+  assert.equal(filterByLetter(items, "a").length, 2);
 });

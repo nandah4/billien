@@ -20,6 +20,43 @@ export const SORT_OPTIONS: { id: SortId; label: string }[] = [
   { id: "reviews", label: "Most reviewed" },
 ];
 
+/** Bucket used for words that do not start with a latin letter. */
+export const OTHER_LETTER = "#";
+
+/** Every letter the filter offers, in order. */
+export const ALPHABET = "abcdefghijklmnopqrstuvwxyz".split("");
+
+/**
+ * The letter a word files under. Accents and case are folded first, so `Étude`
+ * and `étude` land in the same place; anything else collects under `#`.
+ */
+export function letterOf(word: string): string {
+  const first = word
+    .trim()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .charAt(0)
+    .toLowerCase();
+  return /^[a-z]$/.test(first) ? first : OTHER_LETTER;
+}
+
+/** Letters present in the library, alphabetical with `#` last. */
+export function availableLetters(items: LibraryWord[]): string[] {
+  const seen = new Set<string>();
+  for (const item of items) seen.add(letterOf(item.word));
+  return [...seen].sort((a, b) => {
+    if (a === OTHER_LETTER) return 1;
+    if (b === OTHER_LETTER) return -1;
+    return a.localeCompare(b);
+  });
+}
+
+/** `null` means every letter. */
+export function filterByLetter(items: LibraryWord[], letter: string | null) {
+  if (!letter) return items;
+  return items.filter((item) => letterOf(item.word) === letter);
+}
+
 export function capitalize(value: string) {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }

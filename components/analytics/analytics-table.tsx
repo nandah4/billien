@@ -21,7 +21,7 @@ export function AnalyticsTable({
         View as table
       </summary>
 
-      <div className="mt-3 overflow-x-auto">
+      <div className="no-scrollbar mt-3 overflow-x-auto">
         <table className="w-full border-collapse text-left text-[12px]">
           <thead>
             <tr className="text-[10px] font-semibold tracking-wider text-faint uppercase">

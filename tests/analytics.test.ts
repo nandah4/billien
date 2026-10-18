@@ -167,9 +167,10 @@ test("monthly buckets cover every month in the window", () => {
 });
 
 test("fillSeries fills empty buckets with zeros", () => {
-  const series = fillSeries(["2026-10-17", "2026-10-18"], [
-    { bucket: "2026-10-18", wordsAdded: 4, reviews: 2 },
-  ]);
+  const series = fillSeries(
+    ["2026-10-17", "2026-10-18"],
+    [{ bucket: "2026-10-18", wordsAdded: 4, reviews: 2 }],
+  );
 
   assert.equal(series.length, 2);
   assert.deepEqual(series[0], {
@@ -184,27 +185,55 @@ test("fillSeries fills empty buckets with zeros", () => {
 });
 
 test("fillSeries reports null accuracy when a bucket had no session", () => {
-  const series = fillSeries(["2026-10-18"], [
-    {
-      bucket: "2026-10-18",
-      recallSessions: 0,
-      recallCards: 0,
-      recallCorrect: 0,
-    },
-  ]);
+  const series = fillSeries(
+    ["2026-10-18"],
+    [
+      {
+        bucket: "2026-10-18",
+        recallSessions: 0,
+        recallCards: 0,
+        recallCorrect: 0,
+      },
+    ],
+  );
 
   assert.equal(series[0].recallAccuracy, null);
 });
 
 test("fillSeries derives accuracy from cards, not sessions", () => {
-  const series = fillSeries(["2026-10-18"], [
+  const series = fillSeries(
+    ["2026-10-18"],
+    [
+      {
+        bucket: "2026-10-18",
+        recallSessions: 2,
+        recallCards: 20,
+        recallCorrect: 15,
+      },
+    ],
+  );
+
+  assert.equal(series[0].recallAccuracy, 0.75);
+});
+
+/**
+ * The shape the accuracy chart has to survive: one session in the whole window
+ * leaves a single non-null bucket between nulls. The chart draws a dot for it,
+ * because a line needs two points and would otherwise render nothing.
+ */
+test("one session in a window leaves a lone point surrounded by nulls", () => {
+  const keys = ["2026-10-16", "2026-10-17", "2026-10-18"];
+  const series = fillSeries(keys, [
     {
       bucket: "2026-10-18",
       recallSessions: 2,
-      recallCards: 20,
-      recallCorrect: 15,
+      recallCards: 10,
+      recallCorrect: 10,
     },
   ]);
 
-  assert.equal(series[0].recallAccuracy, 0.75);
+  assert.deepEqual(
+    series.map((bucket) => bucket.recallAccuracy),
+    [null, null, 1],
+  );
 });

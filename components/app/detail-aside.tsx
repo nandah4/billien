@@ -21,6 +21,13 @@ type DetailProps = {
     onReview?: () => void;
     onSignIn?: () => void;
     onRetry?: () => void;
+    /** Position inside the list the detail was opened from. */
+    navigation?: {
+      index: number;
+      total: number;
+      onPrevious: () => void;
+      onNext: () => void;
+    };
   };
   onClose: () => void;
 };
@@ -43,6 +50,7 @@ function DetailBody({
       onReview={detail.onReview}
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}
+      navigation={detail.navigation}
       onClose={onClose}
       showHeader={showHeader}
     />
@@ -92,11 +100,12 @@ export function DetailAside(props: DetailProps) {
         label="Detail Words"
         maxWidthClass="max-w-lg"
         panelClassName="flex max-h-full flex-col overflow-hidden p-0"
-        // Leave room for the fixed bottom navigation plus a visible gap.
-        overlayClassName="p-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))]"
+        // The dialog sits above the bottom navigation, so it can use the full
+        // height: only the safe-area inset is reserved, not a nav-sized gap.
+        overlayClassName="p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]"
       >
         <SheetHeader onClose={props.onClose} />
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <DetailBody {...props} showHeader={false} />
         </div>
       </Modal>
@@ -116,7 +125,7 @@ export function DetailAside(props: DetailProps) {
             transition={{ duration: 0.26, ease: "easeOut" }}
           >
             <div
-              className={`${cardClass} p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
+              className={`${cardClass} no-scrollbar p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
             >
               <DetailBody {...props} showHeader />
             </div>

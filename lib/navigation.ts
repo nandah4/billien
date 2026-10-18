@@ -23,3 +23,31 @@ export function viewFromPathname(pathname: string | null): View | null {
   if (pathname === "/") return "discovery";
   return null;
 }
+
+/**
+ * Routes that supply their own top header instead of the app bar. They are
+ * secondary pages reached from a menu, so a back control plus a title reads
+ * better than a bar whose brand block repeats the chrome above it.
+ */
+const HEADER_OWNED_ROUTES = ["/analytics"];
+
+export function ownsHeader(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return HEADER_OWNED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}
+
+/**
+ * Routes whose first block runs edge to edge under the mobile app bar, like a
+ * profile cover photo. The shell drops the gap and the extra breathing room for
+ * these, so the block can start at the bar's edge without negative margins.
+ */
+const BLEED_TOP_ROUTES = ["/profile"];
+
+export function bleedsTop(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return BLEED_TOP_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}

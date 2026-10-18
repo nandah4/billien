@@ -293,7 +293,7 @@ export function RecallView() {
   if (draft) {
     return (
       <div className="detail-split lg:min-h-0 lg:flex-1" style={SPLIT_STYLE}>
-        <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto">
+        <div className="no-scrollbar min-w-0 lg:min-h-0 lg:overflow-y-auto">
           {peekIndex !== null && draft.cards[peekIndex] ? (
             <RecallPeek
               card={draft.cards[peekIndex]}
@@ -368,7 +368,7 @@ export function RecallView() {
   if (result) {
     return (
       <div className="detail-split lg:min-h-0 lg:flex-1" style={SPLIT_STYLE}>
-        <div className="min-w-0 lg:min-h-0 lg:overflow-y-auto">
+        <div className="no-scrollbar min-w-0 lg:min-h-0 lg:overflow-y-auto">
           {peekIndex !== null && lastCards[peekIndex] ? (
             <RecallPeek
               card={lastCards[peekIndex]}

@@ -53,7 +53,9 @@ export function MobileBottomNav({
   signedIn: boolean;
   onSignIn: () => void;
 }) {
-  const view = viewFromPathname(usePathname());
+  const pathname = usePathname();
+  const view = viewFromPathname(pathname);
+  const onProfile = pathname === "/profile";
 
   return (
     <nav
@@ -80,8 +82,12 @@ export function MobileBottomNav({
         })}
 
         {signedIn ? (
-          <Link className={itemClass} href="/profile">
-            <ItemBody icon={UserRound} label="Profile" active={false} />
+          <Link
+            className={itemClass}
+            href="/profile"
+            aria-current={onProfile ? "page" : undefined}
+          >
+            <ItemBody icon={UserRound} label="Profile" active={onProfile} />
           </Link>
         ) : (
           <button className={itemClass} type="button" onClick={onSignIn}>

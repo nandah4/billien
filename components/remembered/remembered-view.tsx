@@ -9,7 +9,15 @@ import { WordListPanel } from "@/components/words/word-list-panel";
 import { useWordActions } from "@/hooks/use-word-actions";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import { messageFor, savedWordDetailQueryOptions } from "@/lib/api";
-import { paginate, searchItems, sortItems, type SortId } from "@/lib/library";
+import {
+  PAGE_SIZE,
+  availableLetters,
+  filterByLetter,
+  paginate,
+  searchItems,
+  sortItems,
+  type SortId,
+} from "@/lib/library";
 import type { SavedWord } from "@/lib/types";
 
 /**
@@ -26,14 +34,47 @@ export function RememberedView() {
 
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortId>("recent");
+  const [letter, setLetter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  const searched = useMemo(
+    () => searchItems(library.rememberedItems, query),
+    [library.rememberedItems, query],
+  );
+
+  // Which letters actually hold words; the toolbar dims the rest but still
+  // offers them, so the filter never looks like it collapsed to one chip.
+  const letters = useMemo(() => availableLetters(searched), [searched]);
+
   const visibleItems = useMemo(
-    () => sortItems(searchItems(library.rememberedItems, query), sort),
-    [library.rememberedItems, query, sort],
+    () => sortItems(filterByLetter(searched, letter), sort),
+    [searched, letter, sort],
   );
   const { pageCount, currentPage, pageItems } = paginate(visibleItems, page);
+
+  // Prev/next in the detail panel walks the whole filtered list, so a jump
+  // across a page boundary also moves the list under it.
+  const selectedIndex = selectedId
+    ? visibleItems.findIndex((item) => item.savedWord?.id === selectedId)
+    : -1;
+
+  function selectAt(index: number) {
+    const target = visibleItems[index];
+    if (!target?.savedWord) return;
+    setSelectedId(target.savedWord.id);
+    setPage(Math.floor(index / PAGE_SIZE) + 1);
+  }
+
+  const navigation =
+    selectedIndex >= 0
+      ? {
+          index: selectedIndex,
+          total: visibleItems.length,
+          onPrevious: () => selectAt(selectedIndex - 1),
+          onNext: () => selectAt(selectedIndex + 1),
+        }
+      : undefined;
 
   const selectedSavedWord =
     library.rememberedItems.find((item) => item.savedWord?.id === selectedId)
@@ -52,6 +93,7 @@ export function RememberedView() {
   function resetFilters() {
     setQuery("");
     setSort("recent");
+    setLetter(null);
     setPage(1);
   }
 
@@ -81,6 +123,9 @@ export function RememberedView() {
           onSubmit: handleSubmit,
         }}
         sort={sort}
+        letter={letter}
+        letters={letters}
+        libraryCount={searched.length}
         items={pageItems}
         pagination={{
           page: currentPage,
@@ -115,6 +160,10 @@ export function RememberedView() {
           setSort(next);
           setPage(1);
         }}
+        onChangeLetter={(next) => {
+          setLetter(next);
+          setPage(1);
+        }}
         onResetFilters={resetFilters}
         onRetry={() => void library.refetch()}
         onGoToDiscovery={() => router.push("/")}
@@ -138,6 +187,7 @@ export function RememberedView() {
             ? () => void actions.reviewWord(detailWord)
             : undefined,
           onRetry: () => void savedDetailQuery.refetch(),
+          navigation,
         }}
         onClose={() => setSelectedId(null)}
       />
