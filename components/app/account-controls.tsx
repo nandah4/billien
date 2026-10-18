@@ -82,7 +82,7 @@ export function AccountControls({
   return (
     <div className="flex items-center gap-2">
       <span
-        className={`inline-flex ${control} items-center gap-1.5 rounded-full bg-medium-soft px-3 text-[12px] font-semibold text-medium`}
+        className={`inline-flex ${control} items-center gap-1.5 rounded-full bg-streak-soft px-3 text-[12px] font-semibold text-streak`}
         title={`${streak} day streak`}
         aria-label={`${streak} day streak`}
       >

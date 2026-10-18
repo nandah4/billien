@@ -38,6 +38,16 @@
   --color-easy-soft: #dcfce7;
 
   /*
+   * Streak flame. A fire orange-red, distinct from the amber "almost" badge and
+   * from --color-hard, so a streak never reads as an error.
+   *
+   * The soft tint is the same hue one step lighter, kept light enough that the
+   * 12px label stays above a 4.5:1 contrast ratio.
+   */
+  --color-streak: #c2410c;
+  --color-streak-soft: #ffedd5;
+
+  /*
    * Analytics series. Four reuse palette values; chart-2 is new because the
    * palette has no second neutral series hue. ChartConfig references these as
    * var(--color-chart-N), so no component carries a hex value.
