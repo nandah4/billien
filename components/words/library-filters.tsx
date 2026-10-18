@@ -88,7 +88,7 @@ export function LibraryToolbar({
       </div>
 
       <div
-        className="mt-2 flex gap-1 overflow-x-auto border-t border-line-soft pt-2"
+        className="no-scrollbar mt-2 flex gap-1 overflow-x-auto border-t border-line-soft pt-2"
         role="group"
         aria-label="Filter by first letter"
       >

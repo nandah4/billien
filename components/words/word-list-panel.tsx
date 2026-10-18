@@ -157,7 +157,7 @@ export function WordListPanel({
         ) : null}
       </div>
 
-      <div className="p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+      <div className="no-scrollbar p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
         {errorMessage ? (
           <div
             className="mb-3 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"

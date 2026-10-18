@@ -152,3 +152,17 @@ body {
   --info-border: var(--color-line);
   border-radius: var(--radius-xl);
 }
+
+/*
+ * Hides the scrollbar while keeping the element scrollable. Used on the
+ * workspace columns, where a native bar would sit inside a rounded card and
+ * break its edge. Keyboard and wheel scrolling are unaffected.
+ */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -105,7 +105,7 @@ export function DetailAside(props: DetailProps) {
         overlayClassName="p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]"
       >
         <SheetHeader onClose={props.onClose} />
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <DetailBody {...props} showHeader={false} />
         </div>
       </Modal>
@@ -125,7 +125,7 @@ export function DetailAside(props: DetailProps) {
             transition={{ duration: 0.26, ease: "easeOut" }}
           >
             <div
-              className={`${cardClass} p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
+              className={`${cardClass} no-scrollbar p-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto`}
             >
               <DetailBody {...props} showHeader />
             </div>

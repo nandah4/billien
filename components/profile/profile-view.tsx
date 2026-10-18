@@ -181,7 +181,7 @@ export function ProfileView({
   }
 
   return (
-    <main className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+    <main className="no-scrollbar lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {/* The wrapper cancels the shell padding so the cover photo can run edge
           to edge on phones; the inner blocks add it back where they need it. */}
       <div className="-mx-4 pb-6 sm:-mx-6 lg:mx-0 lg:pb-2">
