@@ -64,7 +64,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   async function signOut() {
     setSigningOut(true);
     try {
-      await authClient.signOut();
+      // `signOut` reports failures both by throwing and by resolving with
+      // `error`; a resolved error must not be treated as a signed-out state.
+      const { error } = await authClient.signOut();
+      if (error) throw error;
       queryClient.removeQueries({ queryKey: ["remembered-words"] });
       queryClient.removeQueries({ queryKey: ["streak"] });
       queryClient.removeQueries({ queryKey: ["preferences"] });

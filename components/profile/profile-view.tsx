@@ -148,7 +148,11 @@ export function ProfileView({
   async function signOut() {
     setSigningOut(true);
     try {
-      await authClient.signOut();
+      // `signOut` reports transport and API failures two ways: by throwing and
+      // by resolving with `error`. Both must be treated as a failure, otherwise
+      // a rejected sign-out looks successful and the user stays signed in.
+      const { error } = await authClient.signOut();
+      if (error) throw error;
       queryClient.clear();
       router.push("/");
       router.refresh();

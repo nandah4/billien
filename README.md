@@ -8,7 +8,7 @@ Billien is a multi-user English vocabulary app. Anyone can search an English wor
 2. Add the Neon `DATABASE_URL`, the branch's `NEON_AUTH_BASE_URL`, a random `NEON_AUTH_COOKIE_SECRET` (at least 32 characters), and the `INFERHUB_API_KEY` used for AI translation fallback.
 3. Apply the database schema. For a fresh database run [`neon/schema.sql`](./neon/schema.sql); for an existing one apply [`neon/migrations/001_dictionary_v2.sql`](./neon/migrations/001_dictionary_v2.sql), then run the backfill below, then apply [`neon/migrations/002_drop_legacy_dictionary.sql`](./neon/migrations/002_drop_legacy_dictionary.sql) and [`neon/migrations/003_ai_translations.sql`](./neon/migrations/003_ai_translations.sql).
 4. In Neon Console → **Auth**, enable the Google provider and disable the Email/Password provider. If Neon asks for Google OAuth credentials, create the OAuth client in Google Cloud Console and copy the redirect URI shown by Neon exactly into that client.
-5. Add `http://localhost:3000` and the production origin to Neon Auth's trusted domains. Add `http://localhost:3001` too when port 3000 is occupied locally.
+5. Add `http://localhost:3000` and the production origin to Neon Auth's trusted domains. Add `http://localhost:3001` too when port 3000 is occupied locally. Preview deployments do not need to be listed: the auth proxy in [`app/api/auth/[...path]/route.ts`](./app/api/auth/%5B...path%5D/route.ts) verifies that a mutation is same-origin and forwards it under the auth service's own origin, which Neon Auth always trusts.
 6. Install and start the app:
 
 ```bash
