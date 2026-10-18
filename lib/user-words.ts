@@ -248,7 +248,12 @@ export async function recordReview(
   return savedWord(updated[0] as StoredWordRow);
 }
 
-async function bumpActivity(
+/**
+ * Adds to today's activity counters. `learnedIncrement` counts words added,
+ * `reviewIncrement` counts reviewed words. Exported so the recall engine can
+ * record an attempt without duplicating the upsert.
+ */
+export async function bumpActivity(
   userId: string,
   learnedIncrement: number,
   reviewIncrement: number,
