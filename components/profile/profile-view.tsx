@@ -37,7 +37,7 @@ const rowClass =
 /** One white surface holding one or more labelled groups. */
 function GroupCard({ children }: { children: React.ReactNode }) {
   return (
-    <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface">
+    <div className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface py-2">
       {children}
     </div>
   );
@@ -188,7 +188,7 @@ export function ProfileView({
                 corners and the card's top corners are square, so the two read
                 as a single block rather than two stacked panels. */}
             <div className="relative">
-              <div className="overflow-hidden rounded-b-xl border border-line bg-surface shadow-sm lg:rounded-xl">
+              <div className="overflow-hidden sm:rounded-b-xl sm:border border-line sm:bg-surface sm:shadow-sm lg:rounded-xl">
                 <div className="relative h-36 w-full sm:h-44">
                   <Image
                     src={bannerImage}
@@ -200,7 +200,7 @@ export function ProfileView({
                     className="object-cover object-center"
                   />
                   <div
-                    className="absolute inset-0 bg-black/55"
+                    className="absolute inset-0 bg-black/10"
                     aria-hidden="true"
                   />
                 </div>
