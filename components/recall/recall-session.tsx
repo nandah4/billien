@@ -3,98 +3,16 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Lightbulb, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { RecallPromptView } from "@/components/recall/recall-prompt";
 import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
-import type { RecallCard } from "@/lib/recall/types";
+import type { RecallCard, RecallSessionAnswer } from "@/lib/recall/types";
 
-export type SessionAnswer = {
-  userWordId: string;
-  position: number;
-  mode: RecallCard["mode"];
-  response: string;
-  durationMs: number;
-  usedHint: boolean;
-};
-
-function Prompt({
-  prompt,
-  onChoose,
-}: {
-  prompt: RecallCard["prompt"];
-  onChoose: (label: string) => void;
-}) {
-  if (prompt.kind === "translation") {
-    return (
-      <div>
-        <div className="flex flex-wrap gap-1.5">
-          {prompt.words.map((word) => (
-            <span
-              key={word}
-              className="rounded-full border border-accent-line bg-surface px-2.5 py-1 text-[14px] font-medium text-ink"
-            >
-              {word}
-            </span>
-          ))}
-        </div>
-        {prompt.definition ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            {prompt.definition}
-          </p>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (prompt.kind === "definition") {
-    return (
-      <p className="text-[15px] leading-relaxed text-ink">
-        {prompt.definition}
-      </p>
-    );
-  }
-
-  if (prompt.kind === "cloze") {
-    return (
-      <div>
-        <p className="text-[15px] leading-relaxed text-ink">
-          {prompt.sentence}
-        </p>
-        {prompt.definition ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-muted">
-            {prompt.definition}
-          </p>
-        ) : null}
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <p className="text-[22px] leading-tight font-semibold text-ink">
-        {prompt.word}
-      </p>
-      {prompt.phonetic ? (
-        <p className="mt-0.5 text-[13px] text-muted">{prompt.phonetic}</p>
-      ) : null}
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {prompt.options.map((option) => (
-          <button
-            key={option.id}
-            className={`${outlineButton} justify-start`}
-            type="button"
-            onClick={() => onChoose(option.label)}
-          >
-            {option.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
-}
+export type SessionAnswer = RecallSessionAnswer;
 
 /**
- * One card: prompt and answer field only. Nothing is graded here — the whole
- * session is submitted once the last card is answered, so no feedback appears
- * before the review screen.
+ * One card: prompt, answer field, and a Next button. Nothing is graded here —
+ * the whole session is submitted once the last card is answered, so no outcome
+ * appears before the review screen.
  */
 export function RecallSession({
   card,
@@ -104,6 +22,7 @@ export function RecallSession({
   onAnswer,
   onNext,
   onExit,
+  onDiscard,
 }: {
   card: RecallCard;
   index: number;
@@ -112,6 +31,7 @@ export function RecallSession({
   onAnswer: (answer: SessionAnswer) => void;
   onNext: () => void;
   onExit: () => void;
+  onDiscard: () => void;
 }) {
   const [answer, setAnswer] = useState(initialAnswer ?? "");
   const [hintVisible, setHintVisible] = useState(false);
@@ -121,6 +41,8 @@ export function RecallSession({
 
   const isLast = index + 1 >= total;
 
+  // Escape asks before leaving; the answer is not lost because the view keeps a
+  // draft.
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
@@ -183,7 +105,7 @@ export function RecallSession({
         </p>
 
         <div className="mt-1.5">
-          <Prompt prompt={card.prompt} onChoose={setAnswer} />
+          <RecallPromptView prompt={card.prompt} onChoose={setAnswer} />
         </div>
 
         {card.prompt.kind === "choice" ? null : (
@@ -251,7 +173,7 @@ export function RecallSession({
           Your answers so far are kept as a draft, so you can pick this session
           up again.
         </p>
-        <div className="mt-5 flex gap-2">
+        <div className="mt-5 flex flex-wrap gap-2">
           <button
             className={`${outlineButton} flex-1`}
             type="button"
@@ -267,6 +189,13 @@ export function RecallSession({
             Leave
           </button>
         </div>
+        <button
+          className="mt-3 w-full rounded-md py-1 text-[11px] font-semibold text-hard transition hover:bg-hard-soft/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          type="button"
+          onClick={onDiscard}
+        >
+          Discard this session
+        </button>
       </Modal>
     </>
   );
