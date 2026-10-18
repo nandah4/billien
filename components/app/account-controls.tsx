@@ -100,19 +100,12 @@ export function AccountControls({
           </DropdownMenuTrigger>
 
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel className="p-0">
-              <span className="flex items-center gap-2 px-2 py-2">
-                <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-faint">
-                  <UserRound size={16} aria-hidden="true" />
-                </span>
-                <span className="min-w-0 normal-case">
-                  <span className="block truncate text-[12px] font-semibold text-ink">
-                    {sessionLabel}
-                  </span>
-                  <span className="block text-[11px] font-normal text-muted">
-                    Signed in
-                  </span>
-                </span>
+            <DropdownMenuLabel className="py-2.5 normal-case tracking-normal">
+              <span className="block truncate text-[12px] font-semibold text-ink">
+                Hi, <span className="capitalize">{sessionLabel}</span> 👋🏻
+              </span>
+              <span className="mt-0.5 block truncate text-[12px] font-normal text-muted">
+                Ready for today&apos;s lesson?
               </span>
             </DropdownMenuLabel>
 
