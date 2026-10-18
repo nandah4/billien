@@ -16,7 +16,7 @@ Dokumen ini menggantikan `plan-active-recall.md`, `plan-dictionary-v2.md`, dan
 | 3    | Sesi sebagai satu baris fakta + API batch  | Selesai (`abc4f60`)                               |
 | 4    | Layout dua kolom, rail nomor, review akhir | Selesai (`e771226`)                               |
 | 5    | Perbaikan logika streak                    | Selesai (`f11fc64`)                               |
-| 6    | Analytics harian dan bulanan               | Selesai                                           |
+| 6    | Analytics harian dan bulanan               | Selesai (`0a71d7c`)                               |
 
 Task 3 dan 4 **menggantikan** tiga keputusan di Task 2: gate 20 kata, feedback
 per kartu, dan satu baris `recall_attempts` per jawaban. Alasannya ada di §2.
