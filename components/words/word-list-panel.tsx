@@ -3,7 +3,7 @@
 import type { FormEvent } from "react";
 import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
-import { LetterFilter, SortControl } from "@/components/words/library-filters";
+import { LibraryToolbar } from "@/components/words/library-filters";
 import { WordRow } from "@/components/words/word-row";
 import emptyImage from "@/public/assets/empty.png";
 import helloImage from "@/public/assets/hello.webp";
@@ -146,15 +146,14 @@ export function WordListPanel({
         </form>
 
         {view === "remembered" ? (
-          <div className="mt-3 flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-            <SortControl sort={sort} onChange={onChangeSort} />
-            <LetterFilter
-              letters={letters}
-              value={letter}
-              onChange={onChangeLetter}
-              total={libraryCount}
-            />
-          </div>
+          <LibraryToolbar
+            sort={sort}
+            onSort={onChangeSort}
+            letters={letters}
+            value={letter}
+            onLetter={onChangeLetter}
+            total={libraryCount}
+          />
         ) : null}
       </div>
 

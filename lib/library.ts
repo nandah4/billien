@@ -23,6 +23,9 @@ export const SORT_OPTIONS: { id: SortId; label: string }[] = [
 /** Bucket used for words that do not start with a latin letter. */
 export const OTHER_LETTER = "#";
 
+/** Every letter the filter offers, in order. */
+export const ALPHABET = "abcdefghijklmnopqrstuvwxyz".split("");
+
 /**
  * The letter a word files under. Accents and case are folded first, so `Étude`
  * and `étude` land in the same place; anything else collects under `#`.

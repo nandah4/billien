@@ -4,7 +4,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   BookOpenText,
   Check,
-  CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Languages,
   LogIn,
@@ -195,6 +195,7 @@ export function WordDetail({
   onReview,
   onSignIn,
   onRetry,
+  navigation,
   onClose,
   showHeader = true,
 }: {
@@ -209,6 +210,13 @@ export function WordDetail({
   onReview?: () => void;
   onSignIn?: () => void;
   onRetry?: () => void;
+  /** Moves between words in the list this detail was opened from. */
+  navigation?: {
+    index: number;
+    total: number;
+    onPrevious: () => void;
+    onNext: () => void;
+  };
   onClose?: () => void;
   /** The mobile sheet renders its own fixed header, so the body hides this one. */
   showHeader?: boolean;
@@ -473,30 +481,21 @@ export function WordDetail({
         </section>
       ) : null}
 
-      <section className="mt-5 rounded-lg border border-line bg-subtle p-4">
+      <section className="mt-5 rounded-lg border border-line bg-subtle p-3">
         {savedWord ? (
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <CheckCircle2
-                size={16}
-                className="shrink-0 text-easy"
-                aria-hidden="true"
-              />
-              <div className="min-w-0">
-                <p className="mt-0.5 font-medium text-sm text-muted">
-                  {savedWord.review_count === 0
-                    ? "No reviews yet"
-                    : `${savedWord.review_count} total ${
-                        savedWord.review_count === 1 ? "review" : "reviews"
-                      }`}
-                </p>
-              </div>
-            </div>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="min-w-0 text-[12px] font-medium text-muted">
+              {savedWord.review_count === 0
+                ? "No reviews yet"
+                : `${savedWord.review_count} total ${
+                    savedWord.review_count === 1 ? "review" : "reviews"
+                  }`}
+            </p>
 
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               {onReview ? (
                 <button
-                  className={`${compactPrimary} cursor-pointer hover:scale-105`}
+                  className={`${compactPrimary} cursor-pointer`}
                   type="button"
                   disabled={isReviewing}
                   title="Record a successful recall"
@@ -505,6 +504,29 @@ export function WordDetail({
                   <Check size={14} aria-hidden="true" />
                   {isReviewing ? "Saving…" : "Remembered"}
                 </button>
+              ) : null}
+
+              {navigation ? (
+                <>
+                  <button
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-line bg-surface text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    type="button"
+                    disabled={navigation.index <= 0}
+                    aria-label="Previous word"
+                    onClick={navigation.onPrevious}
+                  >
+                    <ChevronLeft size={16} aria-hidden="true" />
+                  </button>
+                  <button
+                    className="inline-flex size-8 items-center justify-center rounded-lg border border-line bg-surface text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+                    type="button"
+                    disabled={navigation.index >= navigation.total - 1}
+                    aria-label="Next word"
+                    onClick={navigation.onNext}
+                  >
+                    <ChevronRight size={16} aria-hidden="true" />
+                  </button>
+                </>
               ) : null}
             </div>
           </div>

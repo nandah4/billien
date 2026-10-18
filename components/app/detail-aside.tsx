@@ -21,6 +21,13 @@ type DetailProps = {
     onReview?: () => void;
     onSignIn?: () => void;
     onRetry?: () => void;
+    /** Position inside the list the detail was opened from. */
+    navigation?: {
+      index: number;
+      total: number;
+      onPrevious: () => void;
+      onNext: () => void;
+    };
   };
   onClose: () => void;
 };
@@ -43,6 +50,7 @@ function DetailBody({
       onReview={detail.onReview}
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}
+      navigation={detail.navigation}
       onClose={onClose}
       showHeader={showHeader}
     />
