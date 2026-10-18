@@ -1,5 +1,6 @@
 import "server-only";
 
+import { env } from "@/lib/env";
 import {
   AiUnavailableError,
   requestCompletion,
@@ -8,18 +9,6 @@ import {
 
 export { AiUnavailableError } from "@/lib/ai-transport";
 export type { ChatMessage } from "@/lib/ai-transport";
-
-const DEFAULT_BASE_URL = "https://api.inferhub.dev";
-const DEFAULT_MODEL = "deepseek-v4.1-flash";
-
-/**
- * A translation is a short generation, but five seconds was not enough for a
- * cold provider: it timed out often enough that saved words arrived without a
- * translation. Fifteen seconds leaves room for the model to answer, and the
- * transport retries once, so the call still fails fast when the endpoint is
- * genuinely down.
- */
-const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
  * Minimal circuit breaker: after five consecutive failures the provider is
@@ -34,36 +23,25 @@ const FAILURE_THRESHOLD = 5;
 const COOLDOWN_MS = 60_000;
 
 function config() {
-  const apiKey = process.env.INFERHUB_API_KEY;
+  const apiKey = env.ai.apiKey();
   if (!apiKey) {
     throw new AiUnavailableError("INFERHUB_API_KEY is not configured.");
   }
 
-  const configured = Number.parseInt(
-    process.env.INFERHUB_TIMEOUT_MS ?? String(DEFAULT_TIMEOUT_MS),
-    10,
-  );
-
   return {
     apiKey,
-    baseUrl: (process.env.INFERHUB_BASE_URL || DEFAULT_BASE_URL).replace(
-      /\/$/,
-      "",
-    ),
-    model: process.env.INFERHUB_MODEL || DEFAULT_MODEL,
-    timeoutMs:
-      Number.isFinite(configured) && configured > 0
-        ? configured
-        : DEFAULT_TIMEOUT_MS,
+    baseUrl: env.ai.baseUrl(),
+    model: env.ai.model(),
+    timeoutMs: env.ai.timeoutMs(),
   };
 }
 
 export function isAiConfigured() {
-  return Boolean(process.env.INFERHUB_API_KEY);
+  return Boolean(env.ai.apiKey());
 }
 
 export function aiModel() {
-  return process.env.INFERHUB_MODEL || DEFAULT_MODEL;
+  return env.ai.model();
 }
 
 function recordSuccess() {

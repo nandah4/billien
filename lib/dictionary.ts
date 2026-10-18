@@ -1,8 +1,7 @@
 import "server-only";
+import { env } from "@/lib/env";
 import type { RawDictionary } from "@/lib/normalize";
 
-const BASE_URL = "https://freedictionaryapi.com/api/v1/entries/en";
-const TIMEOUT_MS = 8_000;
 const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
 
 export class DictionaryError extends Error {
@@ -26,14 +25,19 @@ export async function lookupWord(rawWord: string): Promise<RawDictionary> {
     throw new DictionaryError("Please enter a valid English word.", 400);
   }
 
+  // Resolve configuration before the try: a missing variable must surface as a
+  // configuration error, not as a provider timeout.
+  const baseUrl = env.dictionary.baseUrl();
+  const timeoutMs = env.dictionary.timeoutMs();
+
   let response: Response;
   try {
     response = await fetch(
-      `${BASE_URL}/${encodeURIComponent(word)}?translations=true`,
+      `${baseUrl}/${encodeURIComponent(word)}?translations=true`,
       {
         headers: { Accept: "application/json" },
         next: { revalidate: 60 * 60 * 24 * 7 },
-        signal: AbortSignal.timeout(TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       },
     );
   } catch {

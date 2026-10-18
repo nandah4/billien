@@ -5,7 +5,17 @@ Billien is a multi-user English vocabulary app. Anyone can search an English wor
 ## Run locally
 
 1. Copy `.env.example` to `.env.local`.
-2. Add the Neon `DATABASE_URL`, the branch's `NEON_AUTH_BASE_URL`, a random `NEON_AUTH_COOKIE_SECRET` (at least 32 characters), and the `INFERHUB_API_KEY` used for AI translation fallback.
+2. Fill in the values. Every variable is server-only, so none may use the `NEXT_PUBLIC_` prefix:
+   - `DATABASE_URL` — the Neon connection string.
+   - `NEON_AUTH_BASE_URL` — the branch's auth URL.
+   - `NEON_AUTH_COOKIE_SECRET` — a random secret, at least 32 characters.
+   - `DICTIONARY_BASE_URL` — the dictionary entries endpoint. The word and `?translations=true` are appended to it.
+   - `INFERHUB_API_KEY` — enables the AI translation fallback.
+   - `INFERHUB_BASE_URL` and `INFERHUB_MODEL` — the provider endpoint and model. Required when a key is present.
+   - Optional: `DICTIONARY_TIMEOUT_MS` (default 8000) and `INFERHUB_TIMEOUT_MS` (default 15000).
+
+   Endpoints and models live in the environment rather than in code, so a provider change is a configuration change and the repository does not name the infrastructure it talks to. `lib/env.ts` is the only module that reads `process.env`; each variable is listed there statically, validated lazily on first use, and a missing or malformed value fails with a message naming it.
+
 3. Apply the database schema. For a fresh database run [`neon/schema.sql`](./neon/schema.sql); for an existing one apply [`neon/migrations/001_dictionary_v2.sql`](./neon/migrations/001_dictionary_v2.sql), then run the backfill below, then apply [`neon/migrations/002_drop_legacy_dictionary.sql`](./neon/migrations/002_drop_legacy_dictionary.sql), [`neon/migrations/003_ai_translations.sql`](./neon/migrations/003_ai_translations.sql), and [`neon/migrations/004_active_recall.sql`](./neon/migrations/004_active_recall.sql).
 4. In Neon Console → **Auth**, enable the Google provider and disable the Email/Password provider. If Neon asks for Google OAuth credentials, create the OAuth client in Google Cloud Console and copy the redirect URI shown by Neon exactly into that client.
 5. Add `http://localhost:3000` and the production origin to Neon Auth's trusted domains. Add `http://localhost:3001` too when port 3000 is occupied locally. Preview deployments do not need to be listed: the auth proxy in [`app/api/auth/[...path]/route.ts`](./app/api/auth/%5B...path%5D/route.ts) verifies that a mutation is same-origin and forwards it under the auth service's own origin, which Neon Auth always trusts.
