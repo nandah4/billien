@@ -174,49 +174,45 @@ export function ProfileView({
   }
 
   return (
-    <main className="min-h-dvh bg-canvas pb-10">
-      {/* Banner is full-bleed: no page padding, no border, no radius. */}
-      <div className="relative">
-        {/* Photo banner. The scrim keeps the white controls readable over the
-            bright parts of the image. */}
-        <div className="relative h-32 w-full overflow-hidden bg-ink">
-          <Image
-            src={bannerImage}
-            alt=""
-            aria-hidden="true"
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover object-center"
-          />
-          <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
-        </div>
+    <main className="min-h-dvh bg-canvas pt-[calc(env(safe-area-inset-top)_+_1rem)] pb-10">
+      <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
+        <div className="relative">
+          {/* Photo banner, held to the content column so it reads as a card
+              rather than a page-wide strip. The scrim keeps the white controls
+              readable over the bright parts of the image. */}
+          <div className="relative h-32 w-full overflow-hidden rounded-xl bg-ink shadow-sm sm:h-40">
+            <Image
+              src={bannerImage}
+              alt=""
+              aria-hidden="true"
+              fill
+              priority
+              sizes="(min-width: 640px) 528px, calc(100vw - 2rem)"
+              className="object-cover object-center"
+            />
+            <div className="absolute inset-0 bg-black/55" aria-hidden="true" />
 
-        {/* Floating back control, aligned with the content column below. */}
-        <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)_+_8px)]">
-          <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
+            {/* The back control sits on the scrim, clear of the rounded edge. */}
             <Link
-              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-white transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              className="absolute top-1.5 left-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-white transition hover:bg-white/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
               href="/"
             >
               <ChevronLeft size={22} aria-hidden="true" />
               <span className="text-[15px] font-medium">Back</span>
             </Link>
           </div>
+
+          {/* Avatar is centred horizontally on the banner's bottom edge. */}
+          <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
+            <span
+              className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
+              aria-hidden="true"
+            >
+              {initial}
+            </span>
+          </div>
         </div>
 
-        {/* Avatar is centred horizontally on the banner's bottom edge. */}
-        <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
-          <span
-            className="inline-flex size-18 items-center justify-center rounded-full border border-line bg-surface text-[26px] font-semibold text-accent shadow-sm"
-            aria-hidden="true"
-          >
-            {initial}
-          </span>
-        </div>
-      </div>
-
-      <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
         <div className="mt-14 text-center">
           <h1 className="text-[20px] leading-tight font-semibold text-ink wrap-anywhere">
             {user.name || "Your account"}
@@ -327,7 +323,7 @@ export function ProfileView({
             </span>
           </button>
         </SectionCard>
-      </div>
+        </div>
 
       <LanguagePickerModal
         open={pickerOpen}
