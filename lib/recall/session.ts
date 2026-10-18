@@ -4,15 +4,16 @@ import type { RecallPos, RecallScope, RecallWord } from "./types.ts";
 
 /**
  * A session needs at least this many eligible words. Below it the Recall tab
- * shows a gate instead of a session, because ten cards drawn from fewer words
- * would repeat the same library every time.
+ * shows a gate instead of a session, because a handful of cards would repeat
+ * the same library every time.
  */
-export const MIN_SESSION_SIZE = 10;
+export const MIN_SESSION_SIZE = 5;
 
 /** Sizes the start panel offers, in steps of five. */
 const SIZE_STEP = 5;
 
-export const DEFAULT_SESSION_SIZE = MIN_SESSION_SIZE;
+/** Cards a session asks for when the user has not picked a size. */
+export const DEFAULT_SESSION_SIZE = 10;
 
 /**
  * Clamps a requested session size. Below the minimum it returns the eligible
@@ -27,8 +28,8 @@ export function clampLimit(requested: number, eligible: number): number {
 }
 
 /**
- * Sizes the UI may offer: ten, then every five, ending with the exact eligible
- * count. `[10, 15, 20, 25, 30, 31]` for 31 words.
+ * Sizes the UI may offer: five, then every five, ending with the exact eligible
+ * count. `[5, 10, 15, 20, 25, 31]` for 31 words.
  */
 export function sizeOptions(eligible: number): number[] {
   if (eligible < MIN_SESSION_SIZE) return [];

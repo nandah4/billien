@@ -118,7 +118,7 @@ export type RecallSession = {
   totalDue: number;
   minSessionSize: number;
   defaultSessionSize: number;
-  /** Sizes the start panel offers: 10, 15, 20, …, eligibleCount. */
+  /** Sizes the start panel offers: 5, 10, 15, …, eligibleCount. */
   sizeOptions: number[];
   cards: RecallCard[];
 };

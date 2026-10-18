@@ -58,7 +58,7 @@ export function RecallView() {
   const { signedIn, isSessionPending, openAuth } = useAppShell();
 
   const [scope, setScope] = useState<RecallScope>("due");
-  const [size, setSize] = useState(10);
+  const [size, setSize] = useState<number | null>(null);
   const [draft, setDraft] = useState<RecallDraft | null>(() => readDraft());
   const [result, setResult] = useState<RecallSessionResult | null>(null);
   const [lastCards, setLastCards] = useState<RecallCard[]>([]);
@@ -69,7 +69,9 @@ export function RecallView() {
   const [repairing, setRepairing] = useState(false);
   const [repairMessage, setRepairMessage] = useState<string | null>(null);
 
-  const session = useQuery(recallSessionQueryOptions(signedIn, scope, size));
+  const session = useQuery(
+    recallSessionQueryOptions(signedIn, scope, size ?? undefined),
+  );
 
   const data = session.data;
   const card = draft ? (draft.cards[draft.index] ?? null) : null;
@@ -439,9 +441,15 @@ export function RecallView() {
     );
   }
 
-  const effectiveSize = data.sizeOptions.includes(size)
-    ? size
-    : (data.sizeOptions[0] ?? size);
+  // Until the user picks a size the server's default applies, clamped to the
+  // largest size the library can actually fill.
+  const effectiveSize =
+    size !== null && data.sizeOptions.includes(size)
+      ? size
+      : Math.min(
+          data.defaultSessionSize,
+          data.sizeOptions.at(-1) ?? data.defaultSessionSize,
+        );
 
   return (
     <RecallStart

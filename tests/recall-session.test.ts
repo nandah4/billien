@@ -62,15 +62,15 @@ function makeWord(
 const NOW = new Date("2026-01-10T00:00:00.000Z");
 const rng = () => 0.5;
 
-test("the minimum session size is ten cards", () => {
-  assert.equal(MIN_SESSION_SIZE, 10);
+test("the minimum session size is five cards and the default is ten", () => {
+  assert.equal(MIN_SESSION_SIZE, 5);
   assert.equal(DEFAULT_SESSION_SIZE, 10);
 });
 
-test("clampLimit never goes below ten when ten words exist", () => {
-  assert.equal(clampLimit(5, 12), 10);
-  assert.equal(clampLimit(9, 12), 10);
-  assert.equal(clampLimit(10, 12), 10);
+test("clampLimit never goes below five when five words exist", () => {
+  assert.equal(clampLimit(1, 12), 5);
+  assert.equal(clampLimit(4, 12), 5);
+  assert.equal(clampLimit(5, 12), 5);
 });
 
 test("clampLimit never exceeds the eligible count", () => {
@@ -79,7 +79,7 @@ test("clampLimit never exceeds the eligible count", () => {
 });
 
 test("clampLimit returns the eligible count when that is a gate", () => {
-  assert.equal(clampLimit(10, 8), 8);
+  assert.equal(clampLimit(10, 4), 4);
   assert.equal(clampLimit(99, 0), 0);
 });
 
@@ -88,14 +88,14 @@ test("clampLimit falls back to the default for a broken number", () => {
 });
 
 test("sizeOptions steps by five and ends at the eligible count", () => {
-  assert.deepEqual(sizeOptions(31), [10, 15, 20, 25, 30, 31]);
-  assert.deepEqual(sizeOptions(12), [10, 12]);
-  assert.deepEqual(sizeOptions(10), [10]);
-  assert.deepEqual(sizeOptions(15), [10, 15]);
+  assert.deepEqual(sizeOptions(31), [5, 10, 15, 20, 25, 30, 31]);
+  assert.deepEqual(sizeOptions(12), [5, 10, 12]);
+  assert.deepEqual(sizeOptions(10), [5, 10]);
+  assert.deepEqual(sizeOptions(15), [5, 10, 15]);
 });
 
 test("sizeOptions is empty below the minimum, so the UI can gate", () => {
-  assert.deepEqual(sizeOptions(9), []);
+  assert.deepEqual(sizeOptions(4), []);
   assert.deepEqual(sizeOptions(0), []);
 });
 

@@ -244,17 +244,17 @@ Query: `limit` (clamp `[10, eligibleCount]`), `scope=due|all|weak`, `mode`,
     "librarySize": 34,
     "eligibleCount": 31,
     "totalDue": 12,
-    "minSessionSize": 10,
+    "minSessionSize": 5,
     "defaultSessionSize": 10,
-    "sizeOptions": [10, 15, 20, 25, 30, 31],
+    "sizeOptions": [5, 10, 15, 20, 25, 30, 31],
     "cards": [ { "id": "…", "mode": "translation", "prompt": { … }, "hint": { … } } ]
   }
 }
 ```
 
-- `sizeOptions` dihitung di server supaya UI tidak menebak: kelipatan 5 dari 10,
+- `sizeOptions` dihitung di server supaya UI tidak menebak: kelipatan 5 dari 5,
   ditutup dengan `eligibleCount`.
-- `cards` kosong + `eligibleCount < 10` berarti gate.
+- `cards` kosong + `eligibleCount < 5` berarti gate.
 - Kartu tetap tidak membawa `word`/`forms` untuk mode mengetik.
 
 ### 5.2 `POST /api/recall/sessions` (baru)
@@ -371,7 +371,7 @@ Tanpa UI. Semua logika murni bisa diuji dengan `node --test`.
 | 3.1       | Migrasi `005_recall_sessions.sql` + `neon/schema.sql`                                                                        | Dua tabel + index ada; dijalankan dua kali tanpa error; `recall_attempts` hilang; prasyarat 0 baris dicek |
 | 3.2       | `lib/recall/types.ts`: `RecallSessionResult`, `RecallSessionItem`, `RecallOutcome` tiga nilai; hapus tipe attempt lama       | `tsc` bersih; `attemptId`/`canOverride` lama tidak tersisa                                                |
 | 3.3       | `lib/recall/summary.ts`: `summarize(outcomes)` → hitungan + akurasi; `sizeOptions(eligible)`                                 | Test: jumlah selalu = total; akurasi 0 saat kosong; opsi 10…eligible                                      |
-| 3.4       | `lib/recall/session.ts`: `MIN_SESSION_SIZE = 10`, `clampLimit(value, eligible)`, hapus `MIN_LIBRARY_SIZE`/`MAX_SESSION_SIZE` | Test: 9→10 saat eligible 12; 99→12; eligible 8 → gate                                                     |
+| 3.4       | `lib/recall/session.ts`: `MIN_SESSION_SIZE = 5`, `DEFAULT_SESSION_SIZE = 10`, `clampLimit(value, eligible)`, hapus `MIN_LIBRARY_SIZE`/`MAX_SESSION_SIZE` | Test: 1→5 saat eligible 12; 99→12; eligible 4 → gate                                                     |
 | 3.5       | `lib/recall/repository.ts`: `insertSession()` satu transaksi (sesi + item + jadwal), `getSession()`, `listSessionItems()`    | Rekonsiliasi 0 baris; dua kali submit dengan `clientSessionId` sama tidak menambah baris                  |
 | 3.6       | `POST /api/recall/sessions`                                                                                                  | Guest 401; kata orang lain 404; `position` duplikat 400; item kosong 400; idempoten                       |
 | 3.7       | Override per item + hitungan sesi                                                                                            | Override sekali 200; kedua 409; constraint tetap valid; jadwal berubah                                    |
@@ -395,7 +395,7 @@ dengan `curl`.
 | 4.5       | `recall-session.tsx`: tombol `Next` (tanpa `Check`, tanpa `Show answer`), hint tetap                              | Tidak ada outcome yang tampil sebelum submit; Enter = Next                                          |
 | 4.6       | `recall-review.tsx`: semua jawaban benar tampil, per item: prompt, jawaban user, jawaban benar, outcome, override | Override hanya pada `wrong`; angka ringkasan = jumlah item                                          |
 | 4.7       | `recall-summary.tsx` dilebur ke review (akurasi, benar/hampir/salah, rata-rata waktu)                             | Tidak ada dua komponen yang menghitung hal sama                                                     |
-| 4.8       | State: guest, gate (<10 eligible), caught-up, loading, error, keluar sesi                                         | Enam state bisa dibedakan; dialog keluar menyatakan progres disimpan sebagai draft                  |
+| 4.8       | State: guest, gate (<5 eligible), caught-up, loading, error, keluar sesi                                         | Enam state bisa dibedakan; dialog keluar menyatakan progres disimpan sebagai draft                  |
 | 4.9       | Draft `sessionStorage`: simpan kartu + jawaban + posisi tiap perubahan, pulihkan saat `/recall` dibuka            | Reload di tengah sesi melanjutkan di kartu yang sama; draft hilang setelah submit atau lewat 24 jam |
 | 4.10      | `/profile`: `dueToday` + `accuracy7d` dari stats baru; README + dokumen ini                                       | Angka mengikuti `["recall-stats"]` setelah sesi                                                     |
 
