@@ -23,3 +23,17 @@ export function viewFromPathname(pathname: string | null): View | null {
   if (pathname === "/") return "discovery";
   return null;
 }
+
+/**
+ * Routes that supply their own top header instead of the app bar. They are
+ * secondary pages reached from a menu, so a back control plus a title reads
+ * better than a bar whose brand block repeats the chrome above it.
+ */
+const HEADER_OWNED_ROUTES = ["/analytics"];
+
+export function ownsHeader(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return HEADER_OWNED_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}

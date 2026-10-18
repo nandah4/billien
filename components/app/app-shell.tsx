@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app/app-header";
@@ -19,6 +19,7 @@ import {
 } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_LANGUAGE } from "@/lib/language";
+import { ownsHeader } from "@/lib/navigation";
 import type { UserPreferences } from "@/lib/types";
 
 /**
@@ -28,6 +29,7 @@ import type { UserPreferences } from "@/lib/types";
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const queryClient = useQueryClient();
   const { data: session, isPending: isSessionPending } =
     authClient.useSession();
@@ -37,6 +39,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const signedIn = Boolean(session?.user);
   const sessionLabel = signedIn ? session?.user?.name || "Learner" : "";
+
+  // A page that draws its own header takes the app bar's place, so the shell
+  // must not reserve room for a bar it does not render.
+  const bare = ownsHeader(pathname);
 
   const preferencesQuery = useQuery(preferencesQueryOptions(signedIn));
   const streakQuery = useQuery(streakQueryOptions(signedIn));
@@ -90,7 +96,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <AppShellContext.Provider value={context}>
-      <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pt-[4.5rem] pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6">
+      <div
+        className={`grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6 ${
+          bare ? "pt-0" : "pt-[4.5rem]"
+        }`}
+      >
         <div className="mx-auto flex w-full max-w-310 flex-col gap-4 lg:h-full lg:min-h-0">
           <AppHeader
             signedIn={signedIn}
@@ -100,6 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             actionLoading={signingOut}
             onSignOut={() => void signOut()}
             onSignIn={openAuth}
+            showMobileBar={!bare}
           />
 
           {children}
