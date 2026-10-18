@@ -26,7 +26,7 @@ export function RecallPeek({
   onBack: () => void;
 }) {
   return (
-    <div className={`${cardClass} mx-auto w-full max-w-2xl p-5 sm:p-6`}>
+    <div className={`${cardClass} w-full p-5 sm:p-6`}>
       <div className="flex items-center justify-between gap-3">
         <span className="text-[11px] font-semibold tracking-wider text-faint uppercase">
           Card {position + 1} / {total}

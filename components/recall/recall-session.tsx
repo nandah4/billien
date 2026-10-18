@@ -69,7 +69,7 @@ export function RecallSession({
   return (
     <>
       <form
-        className={`${cardClass} mx-auto w-full max-w-2xl p-5 sm:p-6`}
+        className={`${cardClass} w-full p-5 sm:p-6`}
         onSubmit={submit}
       >
         <div className="flex items-center justify-between gap-3">

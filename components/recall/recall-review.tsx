@@ -75,7 +75,7 @@ export function RecallReview({
       : 0;
 
   return (
-    <div className={`${cardClass} mx-auto w-full max-w-2xl p-5 sm:p-6`}>
+    <div className={`${cardClass} w-full p-5 sm:p-6`}>
       <p className="text-[11px] font-semibold tracking-wider text-faint uppercase">
         Session complete
       </p>

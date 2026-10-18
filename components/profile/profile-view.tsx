@@ -177,14 +177,18 @@ export function ProfileView({
       <div className="relative">
         <div className="profile-banner h-32" />
 
-        {/* Floating back control, clear of the status bar on notched devices. */}
-        <Link
-          className="absolute top-[calc(env(safe-area-inset-top)_+_8px)] left-2 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          href="/"
-        >
-          <ChevronLeft size={22} aria-hidden="true" />
-          <span className="text-[15px] font-medium">Back</span>
-        </Link>
+        {/* Floating back control, aligned with the content column below. */}
+        <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)_+_8px)]">
+          <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
+            <Link
+              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              href="/"
+            >
+              <ChevronLeft size={22} aria-hidden="true" />
+              <span className="text-[15px] font-medium">Back</span>
+            </Link>
+          </div>
+        </div>
 
         {/* Avatar is centred horizontally on the banner's bottom edge. */}
         <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
