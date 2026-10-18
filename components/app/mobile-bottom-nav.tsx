@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Bookmark, Compass, LogIn, UserRound } from "lucide-react";
-import type { View } from "@/lib/library";
+import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
 
-const VIEW_ITEMS: { id: View; label: string; icon: typeof Compass }[] = [
-  { id: "discovery", label: "Discovery", icon: Compass },
-  { id: "remembered", label: "Remembered", icon: Bookmark },
-];
+const ICONS: Record<View, typeof Compass> = {
+  discovery: Compass,
+  remembered: Bookmark,
+};
 
 const itemClass =
   "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
@@ -41,34 +42,35 @@ function ItemBody({
  * a dead end.
  */
 export function MobileBottomNav({
-  view,
-  onChangeView,
   signedIn,
   onSignIn,
 }: {
-  view: View;
-  onChangeView: (view: View) => void;
   signedIn: boolean;
   onSignIn: () => void;
 }) {
+  const view = viewFromPathname(usePathname());
+
   return (
     <nav
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
-      aria-label="Navigasi utama"
+      aria-label="Main navigation"
     >
       <div className="mx-auto flex w-full max-w-310 items-stretch">
-        {VIEW_ITEMS.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active = view === item.id;
           return (
-            <button
+            <Link
               key={item.id}
               className={itemClass}
-              type="button"
+              href={item.href}
               aria-current={active ? "page" : undefined}
-              onClick={() => onChangeView(item.id)}
             >
-              <ItemBody icon={item.icon} label={item.label} active={active} />
-            </button>
+              <ItemBody
+                icon={ICONS[item.id]}
+                label={item.label}
+                active={active}
+              />
+            </Link>
           );
         })}
 

@@ -3,12 +3,8 @@
 import type { FormEvent } from "react";
 import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
 import { WordRow } from "@/components/words/word-row";
-import {
-  SORT_OPTIONS,
-  type LibraryWord,
-  type SortId,
-  type View,
-} from "@/lib/library";
+import { SORT_OPTIONS, type LibraryWord, type SortId } from "@/lib/library";
+import type { View } from "@/lib/navigation";
 import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
 
 function ListSkeleton() {

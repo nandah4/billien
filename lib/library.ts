@@ -1,7 +1,6 @@
 import type { Entry, SavedWord } from "@/lib/types";
 
 export type SortId = "recent" | "az" | "reviews";
-export type View = "discovery" | "remembered";
 
 export type LibraryWord = {
   key: string;

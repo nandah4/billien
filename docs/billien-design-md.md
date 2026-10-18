@@ -91,8 +91,9 @@ Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk st
 ### Breakpoint & Perilaku Responsif
 
 - `lg` (`1024px`) adalah batas antara **desktop** dan **mobile**.
-- **Desktop** (`>= lg`): dua kartu header (judul + segmented menu, streak + menu akun) dan dua kolom (daftar + detail).
+- **Desktop** (`>= lg`): dua kartu header (judul + menu view, streak + menu akun) dan dua kolom (daftar + detail).
 - **Mobile** (`< lg`): _app shell_ dengan **app bar** tetap di atas dan **bottom navigation** tetap di bawah; konten satu kolom dan di-scroll normal.
+- **Routing**: Discovery dan Remembered adalah **dua halaman terpisah** (`/` dan `/remembered`), bukan satu halaman dengan toggle state. Perpindahan view memakai `<Link>`, dan status aktif diturunkan dari `usePathname()`. Chrome (header, bottom nav, dialog akun) dibagi lewat satu layout route group.
 - **Safe area**: bottom bar wajib memberi `env(safe-area-inset-bottom)` agar tidak tertutup home indicator iOS; konten diberi padding bawah `calc(5rem + env(safe-area-inset-bottom))` dan padding atas `4.5rem` (tinggi app bar + jarak).
 - **Touch target**: setiap kontrol interaktif minimal `40×40px` (idealnya `44×44px`), termasuk tombol ikon dan chip filter.
 - **Input**: ukuran font minimal `16px` di mobile agar iOS tidak melakukan auto-zoom saat fokus; desktop tetap `13px`.
@@ -169,7 +170,7 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 - **State aktif**: pill `bg #F5F3FF`, ikon `#7C3AED`, label `#7C3AED`, plus `aria-current="page"`.
 - **State non-aktif**: ikon `#94A3B8`, label `#64748B`.
 - **State fokus**: `outline` 2px `#7C3AED` di dalam batas item (offset negatif) agar tidak terpotong layar.
-- Item standar: `Discovery`, `Remembered`, lalu slot kontekstual:
+- Item standar: `Discovery` (`/`) dan `Remembered` (`/remembered`), berupa `<Link>` dengan `aria-current="page"` pada halaman aktif; lalu slot kontekstual:
   - **Signed in** → `Profile` (tautan ke `/profile`).
   - **Guest** → `Sign in` (membuka modal autentikasi).
 - Maksimal **5 item**. Jika menu bertambah, sisanya dipindahkan ke halaman `More`, bukan mengecilkan ikon.

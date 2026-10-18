@@ -1,15 +1,17 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Bookmark, Compass } from "lucide-react";
 import { AccountControls } from "@/components/app/account-controls";
 import { MobileAppBar } from "@/components/app/mobile-app-bar";
-import type { View } from "@/lib/library";
+import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
 import { cardClass } from "@/lib/ui";
 
-const VIEWS: { id: View; label: string; icon: typeof Compass }[] = [
-  { id: "discovery", label: "Discovery", icon: Compass },
-  { id: "remembered", label: "Remembered", icon: Bookmark },
-];
+const ICONS: Record<View, typeof Compass> = {
+  discovery: Compass,
+  remembered: Bookmark,
+};
 
 /**
  * Desktop chrome: two cards, brand plus the view switcher on the left and the
@@ -17,8 +19,6 @@ const VIEWS: { id: View; label: string; icon: typeof Compass }[] = [
  * navigation take over, so this is hidden entirely.
  */
 export function AppHeader({
-  view,
-  onChangeView,
   signedIn,
   isSessionPending,
   sessionLabel,
@@ -27,8 +27,6 @@ export function AppHeader({
   onSignOut,
   onSignIn,
 }: {
-  view: View;
-  onChangeView: (view: View) => void;
   signedIn: boolean;
   isSessionPending: boolean;
   sessionLabel: string;
@@ -37,6 +35,8 @@ export function AppHeader({
   onSignOut: () => void;
   onSignIn: () => void;
 }) {
+  const view = viewFromPathname(usePathname());
+
   return (
     <>
       <MobileAppBar
@@ -64,24 +64,23 @@ export function AppHeader({
             className="flex h-9 shrink-0 items-center gap-1 self-start rounded-lg border border-line bg-subtle p-1 sm:self-auto"
             aria-label="Word views"
           >
-            {VIEWS.map((item) => {
-              const Icon = item.icon;
+            {NAV_ITEMS.map((item) => {
+              const Icon = ICONS[item.id];
               const active = view === item.id;
               return (
-                <button
+                <Link
                   key={item.id}
                   className={`inline-flex h-7 items-center gap-1.5 rounded-md px-3 text-[12px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus ${
                     active
                       ? "bg-surface text-ink shadow-sm"
                       : "text-muted hover:text-ink"
                   }`}
-                  type="button"
+                  href={item.href}
                   aria-current={active ? "page" : undefined}
-                  onClick={() => onChangeView(item.id)}
                 >
                   <Icon size={14} aria-hidden="true" />
                   {item.label}
-                </button>
+                </Link>
               );
             })}
           </nav>
