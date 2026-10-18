@@ -37,3 +37,17 @@ export function ownsHeader(pathname: string | null): boolean {
     (route) => pathname === route || pathname.startsWith(`${route}/`),
   );
 }
+
+/**
+ * Routes whose first block runs edge to edge under the mobile app bar, like a
+ * profile cover photo. The shell drops the gap and the extra breathing room for
+ * these, so the block can start at the bar's edge without negative margins.
+ */
+const BLEED_TOP_ROUTES = ["/profile"];
+
+export function bleedsTop(pathname: string | null): boolean {
+  if (!pathname) return false;
+  return BLEED_TOP_ROUTES.some(
+    (route) => pathname === route || pathname.startsWith(`${route}/`),
+  );
+}

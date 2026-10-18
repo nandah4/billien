@@ -19,7 +19,7 @@ import {
 } from "@/lib/api";
 import { authClient } from "@/lib/auth-client";
 import { DEFAULT_LANGUAGE } from "@/lib/language";
-import { ownsHeader } from "@/lib/navigation";
+import { ownsHeader, bleedsTop } from "@/lib/navigation";
 import type { UserPreferences } from "@/lib/types";
 
 /**
@@ -43,6 +43,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   // A page that draws its own header takes the app bar's place, so the shell
   // must not reserve room for a bar it does not render.
   const bare = ownsHeader(pathname);
+  // A page whose first block is a cover photo starts flush under the app bar.
+  const bleed = bleedsTop(pathname);
 
   const preferencesQuery = useQuery(preferencesQueryOptions(signedIn));
   const streakQuery = useQuery(streakQueryOptions(signedIn));
@@ -98,10 +100,14 @@ export function AppShell({ children }: { children: ReactNode }) {
     <AppShellContext.Provider value={context}>
       <div
         className={`grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6 ${
-          bare ? "pt-0" : "pt-[4.5rem]"
+          bare ? "pt-0" : bleed ? "pt-14" : "pt-[4.5rem]"
         }`}
       >
-        <div className="mx-auto flex w-full max-w-310 flex-col gap-4 lg:h-full lg:min-h-0">
+        <div
+          className={`mx-auto flex w-full max-w-310 flex-col lg:h-full lg:min-h-0 ${
+            bleed ? "gap-0 lg:gap-4" : "gap-4"
+          }`}
+        >
           <AppHeader
             signedIn={signedIn}
             isSessionPending={isSessionPending}

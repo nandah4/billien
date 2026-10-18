@@ -100,8 +100,9 @@ export function DetailAside(props: DetailProps) {
         label="Detail Words"
         maxWidthClass="max-w-lg"
         panelClassName="flex max-h-full flex-col overflow-hidden p-0"
-        // Leave room for the fixed bottom navigation plus a visible gap.
-        overlayClassName="p-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))]"
+        // The dialog sits above the bottom navigation, so it can use the full
+        // height: only the safe-area inset is reserved, not a nav-sized gap.
+        overlayClassName="p-3 pb-[calc(0.75rem_+_env(safe-area-inset-bottom))]"
       >
         <SheetHeader onClose={props.onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
