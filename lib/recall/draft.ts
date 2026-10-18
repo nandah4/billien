@@ -1,8 +1,4 @@
-import type {
-  RecallCard,
-  RecallScope,
-  RecallSessionAnswer,
-} from "./types.ts";
+import type { RecallCard, RecallScope, RecallSessionAnswer } from "./types.ts";
 
 /**
  * A session in progress, kept in `sessionStorage` so an accidental reload or a
@@ -101,4 +97,29 @@ export function writeDraft(
 
 export function clearDraft(): void {
   storage()?.removeItem(STORAGE_KEY);
+}
+
+export type AnswerResult = { draft: RecallDraft; isLast: boolean };
+
+/**
+ * Records one answer and advances to the next card in a single step.
+ *
+ * These used to be two updates built from the same render snapshot, so the
+ * advance wrote the previous `answers` map back and every answer was gone by the
+ * time the session was submitted. Keeping both changes in one function makes
+ * that race impossible.
+ */
+export function applyAnswer(
+  draft: RecallDraft,
+  answer: RecallSessionAnswer,
+): AnswerResult {
+  const answers = { ...draft.answers, [answer.userWordId]: answer };
+  const isLast = draft.index + 1 >= draft.cards.length;
+
+  return {
+    draft: isLast
+      ? { ...draft, answers }
+      : { ...draft, answers, index: draft.index + 1 },
+    isLast,
+  };
 }

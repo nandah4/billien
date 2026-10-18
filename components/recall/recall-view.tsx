@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAppShell } from "@/components/app/app-shell-context";
@@ -26,6 +26,7 @@ import {
   type ApiEnvelope,
 } from "@/lib/api";
 import {
+  applyAnswer,
   clearDraft,
   readDraft,
   writeDraft,
@@ -69,6 +70,12 @@ export function RecallView() {
   const [repairing, setRepairing] = useState(false);
   const [repairMessage, setRepairMessage] = useState<string | null>(null);
 
+  // The draft state is for rendering; this ref is the source of truth for
+  // writes. Two events can fire before React re-renders, and reading the state
+  // in both would drop the first change.
+  const draftRef = useRef<RecallDraft | null>(draft);
+  const submittingRef = useRef(false);
+
   const session = useQuery(
     recallSessionQueryOptions(signedIn, scope, size ?? undefined),
   );
@@ -93,7 +100,13 @@ export function RecallView() {
       cards,
     };
     writeDraft(next);
-    setDraft({ ...next, version: 1, savedAt: new Date().toISOString() });
+    const created: RecallDraft = {
+      ...next,
+      version: 1,
+      savedAt: new Date().toISOString(),
+    };
+    draftRef.current = created;
+    setDraft(created);
     setResult(null);
     setPeekIndex(null);
     setSubmitError(null);
@@ -104,31 +117,30 @@ export function RecallView() {
     begin(data.cards, scope);
   }
 
-  function updateDraft(patch: Partial<RecallDraft>) {
-    if (!draft) return;
-    const next = { ...draft, ...patch };
+  /** Writes the draft and keeps the ref in step with it. */
+  function commitDraft(next: RecallDraft) {
+    draftRef.current = next;
     writeDraft(next);
     setDraft(next);
   }
 
-  function record(answer: SessionAnswer) {
-    if (!draft) return;
-    updateDraft({
-      answers: { ...draft.answers, [answer.userWordId]: answer },
-    });
-  }
+  /**
+   * Records the answer and moves on in one update. Splitting the two used to
+   * lose every answer: the advance was built from the same render snapshot and
+   * wrote the previous `answers` map back.
+   */
+  function answerAndAdvance(answer: SessionAnswer) {
+    const current = draftRef.current;
+    if (!current) return;
 
-  function next() {
-    if (!draft) return;
-    if (draft.index + 1 >= draft.cards.length) {
-      void submit(draft);
-      return;
-    }
-    updateDraft({ index: draft.index + 1 });
+    const next = applyAnswer(current, answer);
+    commitDraft(next.draft);
+    if (next.isLast) void submit(next.draft);
   }
 
   async function submit(current: RecallDraft) {
-    if (submitting) return;
+    if (submittingRef.current) return;
+    submittingRef.current = true;
     setSubmitting(true);
     setSubmitError(null);
 
@@ -163,6 +175,7 @@ export function RecallView() {
       setLastCards(current.cards);
       setResult(response.data);
       clearDraft();
+      draftRef.current = null;
       setDraft(null);
       setPeekIndex(null);
       invalidateAfterWrite();
@@ -171,6 +184,7 @@ export function RecallView() {
         messageFor(error, "Unable to submit this session. Try again."),
       );
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }
@@ -232,6 +246,7 @@ export function RecallView() {
 
   function discard() {
     clearDraft();
+    draftRef.current = null;
     setDraft(null);
     setPeekIndex(null);
     setResult(null);
@@ -297,8 +312,7 @@ export function RecallView() {
               index={draft.index}
               total={draft.cards.length}
               initialAnswer={draft.answers[card.id]?.response}
-              onAnswer={record}
-              onNext={next}
+              onNext={answerAndAdvance}
               onExit={leave}
               onDiscard={discard}
             />

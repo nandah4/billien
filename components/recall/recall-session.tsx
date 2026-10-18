@@ -19,7 +19,6 @@ export function RecallSession({
   index,
   total,
   initialAnswer,
-  onAnswer,
   onNext,
   onExit,
   onDiscard,
@@ -28,8 +27,8 @@ export function RecallSession({
   index: number;
   total: number;
   initialAnswer?: string;
-  onAnswer: (answer: SessionAnswer) => void;
-  onNext: () => void;
+  /** Records this answer and moves on; the view owns the draft. */
+  onNext: (answer: SessionAnswer) => void;
   onExit: () => void;
   onDiscard: () => void;
 }) {
@@ -55,7 +54,7 @@ export function RecallSession({
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    onAnswer({
+    onNext({
       userWordId: card.id,
       position: index,
       mode: card.mode,
@@ -63,15 +62,11 @@ export function RecallSession({
       durationMs: Date.now() - startedAt,
       usedHint: hintVisible,
     });
-    onNext();
   }
 
   return (
     <>
-      <form
-        className={`${cardClass} w-full p-5 sm:p-6`}
-        onSubmit={submit}
-      >
+      <form className={`${cardClass} w-full p-5 sm:p-6`} onSubmit={submit}>
         <div className="flex items-center justify-between gap-3">
           <span className="text-[11px] font-semibold tracking-wider text-faint uppercase">
             Recall · {index + 1} / {total}
