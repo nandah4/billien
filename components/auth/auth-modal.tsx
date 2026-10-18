@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type RefObject } from "react";
+import Image from "next/image";
 import { X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import helloImage from "@/public/assets/hello.webp";
 import { authClient } from "@/lib/auth-client";
 
 function GoogleMark() {
@@ -87,19 +89,29 @@ function AuthDialogBody({
         </button>
       </div>
 
-      <h2
-        id="auth-modal-title"
-        className="mt-4 text-[20px] leading-tight font-bold tracking-[-0.02em]"
-      >
-        Keep your words close.
-      </h2>
-      <p
-        id="auth-modal-description"
-        className="mt-2 text-[13px] leading-relaxed text-muted"
-      >
-        Sign in with Google to keep your memorised words, drill results, and
-        daily streak tied to one verified identity.
-      </p>
+      <div className="mt-1 flex flex-col items-center text-center">
+        <Image
+          src={helloImage}
+          alt=""
+          aria-hidden="true"
+          sizes="144px"
+          className="h-32 w-auto object-contain sm:h-36"
+        />
+
+        <h2
+          id="auth-modal-title"
+          className="mt-3 text-[20px] leading-tight font-bold tracking-[-0.02em] text-ink"
+        >
+          Welcome to Billien
+        </h2>
+        <p
+          id="auth-modal-description"
+          className="mt-2 max-w-xs text-[13px] leading-relaxed text-muted"
+        >
+          Sign in with Google to keep your memorised words, translations, and
+          daily streak tied to one verified identity.
+        </p>
+      </div>
 
       <div className="mt-5 grid gap-3">
         {error ? (

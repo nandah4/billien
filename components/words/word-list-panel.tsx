@@ -2,14 +2,22 @@
 
 import type { FormEvent } from "react";
 import { ChevronLeft, ChevronRight, LogIn, Search, X } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { WordRow } from "@/components/words/word-row";
-import {
-  SORT_OPTIONS,
-  type LibraryWord,
-  type SortId,
-  type View,
-} from "@/lib/library";
+import emptyImage from "@/public/assets/empty.png";
+import helloImage from "@/public/assets/hello.webp";
+import { SORT_OPTIONS, type LibraryWord, type SortId } from "@/lib/library";
+import type { View } from "@/lib/navigation";
 import { cardClass, outlineButton, primaryButton } from "@/lib/ui";
+
+/** Card wrapper shared by every non-list state, so they keep one silhouette. */
+function StateCard({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="rounded-xl border border-line bg-subtle px-6 py-8">
+      {children}
+    </div>
+  );
+}
 
 function ListSkeleton() {
   return (
@@ -30,7 +38,6 @@ export function WordListPanel({
   sort,
   items,
   pagination,
-  notice,
   errorMessage,
   isLoading,
   showSignInPrompt,
@@ -65,7 +72,6 @@ export function WordListPanel({
     onPrevious: () => void;
     onNext: () => void;
   };
-  notice: string | null;
   errorMessage: string | null;
   isLoading: boolean;
   showSignInPrompt: boolean;
@@ -164,77 +170,80 @@ export function WordListPanel({
             </button>
           </div>
         ) : null}
-        {notice ? (
-          <p
-            className="mb-3 rounded-lg border border-line bg-sunken px-3 py-2 text-[12px] text-ink-soft"
-            role="status"
-          >
-            {notice}
-          </p>
-        ) : null}
-
         {showSignInPrompt ? (
-          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
-            <p className="text-[13px] text-muted">
-              Sign in to keep a private list of the words you have memorised.
-            </p>
-            <button
-              className={`${primaryButton} mt-4`}
-              type="button"
-              onClick={onSignIn}
-            >
-              <LogIn size={15} aria-hidden="true" />
-              Sign in
-            </button>
-          </div>
+          <StateCard>
+            <EmptyState
+              image={helloImage}
+              title="Your words, kept safe"
+              description="Sign in to keep a private list of the words you have memorised."
+              action={
+                <button
+                  className={primaryButton}
+                  type="button"
+                  onClick={onSignIn}
+                >
+                  <LogIn size={15} aria-hidden="true" />
+                  Sign in
+                </button>
+              }
+            />
+          </StateCard>
         ) : isLoading && items.length === 0 ? (
           <ListSkeleton />
         ) : isDiscoveryIdle ? (
-          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Type an English word in the search field.
-            <br />
-            Results appear automatically, no need to press Enter.
-          </div>
+          <StateCard>
+            <EmptyState
+              image={emptyImage}
+              title="Start with a word"
+              description="Type at least two letters and the result appears here automatically."
+            />
+          </StateCard>
         ) : isDiscoveryTooShort ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
             Type an English word with at least 2 letters and no digits.
           </div>
         ) : filteredEmpty ? (
-          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center">
-            <p className="text-[13px] text-muted">
-              No words match this filter.
-            </p>
-            <button
-              className={`${outlineButton} mt-4`}
-              type="button"
-              onClick={onResetFilters}
-            >
-              Reset filters
-            </button>
-          </div>
-        ) : items.length === 0 ? (
-          <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            {view === "remembered" ? (
-              <>
-                No saved words yet.
-                <br />
-                Search a word in Discovery and mark it as memorised.
+          <StateCard>
+            <EmptyState
+              image={emptyImage}
+              title="No matching words"
+              description="Nothing matches this search. Try another spelling or clear the filters."
+              action={
                 <button
-                  className={`${primaryButton} mt-4`}
+                  className={outlineButton}
                   type="button"
-                  onClick={onGoToDiscovery}
+                  onClick={onResetFilters}
                 >
-                  Find words in Discovery
+                  Reset filters
                 </button>
-              </>
+              }
+            />
+          </StateCard>
+        ) : items.length === 0 ? (
+          <StateCard>
+            {view === "remembered" ? (
+              <EmptyState
+                image={emptyImage}
+                title="Nothing saved yet"
+                description="Search a word in Discovery and mark it as memorised to build your list."
+                action={
+                  <button
+                    className={primaryButton}
+                    type="button"
+                    onClick={onGoToDiscovery}
+                  >
+                    Find words in Discovery
+                  </button>
+                }
+              />
             ) : (
-              <>
-                We could not find that word.
-                <br />
-                Check the spelling or try another word.
-              </>
+              <EmptyState
+                image={emptyImage}
+                title="Word not found"
+                description="We could not find that word. Check the spelling or try another one."
+              />
             )}
-          </div>
+          </StateCard>
         ) : (
           <ul className="grid list-none gap-2 p-0">
             {items.map((item) => (

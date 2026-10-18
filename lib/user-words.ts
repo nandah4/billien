@@ -8,7 +8,11 @@ import type {
 } from "@/lib/types";
 import type { NormalizedDictionary } from "@/lib/normalize";
 import { sql } from "@/lib/neon";
-import { currentStreak } from "@/lib/streak";
+import {
+  currentStreak,
+  ACTIVITY_TIME_ZONE,
+  STREAK_WINDOW_DAYS,
+} from "@/lib/streak";
 
 type StoredWordRow = {
   id: string;
@@ -248,28 +252,58 @@ export async function recordReview(
   return savedWord(updated[0] as StoredWordRow);
 }
 
-async function bumpActivity(
+/**
+ * Adds to today's activity counters. `learnedIncrement` counts words added,
+ * `reviewIncrement` counts reviewed words. Exported so the recall engine can
+ * record an attempt without duplicating the upsert.
+ */
+export async function bumpActivity(
   userId: string,
   learnedIncrement: number,
   reviewIncrement: number,
 ) {
   await sql().query(
     `insert into public.user_streaks (user_id, activity_date, learned_count, review_count)
-     values ($1::uuid, (now() at time zone 'Asia/Jakarta')::date, $2, $3)
+     values ($1::uuid, (now() at time zone $4)::date, $2, $3)
      on conflict (user_id, activity_date) do update set
        learned_count = public.user_streaks.learned_count + excluded.learned_count,
        review_count = public.user_streaks.review_count + excluded.review_count,
        updated_at = now()`,
-    [userId, learnedIncrement, reviewIncrement],
+    [userId, learnedIncrement, reviewIncrement, ACTIVITY_TIME_ZONE],
   );
 }
 
-export async function listUserStreaks(userId: string) {
+/**
+ * Activity days for the header and profile. `activity_date` is cast to text:
+ * the driver would otherwise hand back a `Date`, which the streak calculation
+ * cannot compare with a `YYYY-MM-DD` key.
+ */
+export async function listUserStreaks(
+  userId: string,
+  days: number = STREAK_WINDOW_DAYS,
+) {
   return (await sql().query(
-    `select activity_date, learned_count, review_count
+    `select activity_date::text as activity_date, learned_count, review_count
      from public.user_streaks
      where user_id = $1::uuid
+       and activity_date >= (now() at time zone $3)::date - $2::int
      order by activity_date desc`,
-    [userId],
+    [userId, days, ACTIVITY_TIME_ZONE],
+  )) as StreakDay[];
+}
+
+/** Inclusive window, used by analytics and by any ranged view. */
+export async function listStreaksBetween(
+  userId: string,
+  from: string,
+  to: string,
+) {
+  return (await sql().query(
+    `select activity_date::text as activity_date, learned_count, review_count
+     from public.user_streaks
+     where user_id = $1::uuid
+       and activity_date between $2::date and $3::date
+     order by activity_date asc`,
+    [userId, from, to],
   )) as StreakDay[];
 }

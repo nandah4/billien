@@ -1,15 +1,14 @@
 import "server-only";
 
-const DEFAULT_BASE_URL = "https://api.inferhub.dev";
-const DEFAULT_MODEL = "deepseek-v4.1-flash";
-const DEFAULT_TIMEOUT_MS = 5_000;
+import { env } from "@/lib/env";
+import {
+  AiUnavailableError,
+  requestCompletion,
+  type ChatMessage,
+} from "@/lib/ai-transport";
 
-export class AiUnavailableError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AiUnavailableError";
-  }
-}
+export { AiUnavailableError } from "@/lib/ai-transport";
+export type { ChatMessage } from "@/lib/ai-transport";
 
 /**
  * Minimal circuit breaker: after five consecutive failures the provider is
@@ -24,30 +23,33 @@ const FAILURE_THRESHOLD = 5;
 const COOLDOWN_MS = 60_000;
 
 function config() {
-  const apiKey = process.env.INFERHUB_API_KEY;
+  const apiKey = env.ai.apiKey();
   if (!apiKey) {
     throw new AiUnavailableError("INFERHUB_API_KEY is not configured.");
   }
+
   return {
     apiKey,
-    baseUrl: (process.env.INFERHUB_BASE_URL || DEFAULT_BASE_URL).replace(
-      /\/$/,
-      "",
-    ),
-    model: process.env.INFERHUB_MODEL || DEFAULT_MODEL,
-    timeoutMs: Number.parseInt(
-      process.env.INFERHUB_TIMEOUT_MS ?? String(DEFAULT_TIMEOUT_MS),
-      10,
-    ),
+    baseUrl: env.ai.baseUrl(),
+    model: env.ai.model(),
+    timeoutMs: env.ai.timeoutMs(),
   };
 }
 
 export function isAiConfigured() {
-  return Boolean(process.env.INFERHUB_API_KEY);
+  return Boolean(env.ai.apiKey());
 }
 
+/**
+ * The model name as stored on a cache row. A missing value is not fatal here:
+ * it is only a label, and the real requirement is enforced when a call is made.
+ */
 export function aiModel() {
-  return process.env.INFERHUB_MODEL || DEFAULT_MODEL;
+  try {
+    return env.ai.model();
+  } catch {
+    return "unknown";
+  }
 }
 
 function recordSuccess() {
@@ -63,11 +65,10 @@ function recordFailure() {
   }
 }
 
-type ChatMessage = { role: "system" | "user"; content: string };
-
 /**
- * Single-turn chat completion against InferHub (OpenAI-compatible). Returns the
- * raw assistant text; callers own parsing and validation.
+ * Single-turn chat completion against InferHub ([OI]-compatible). Returns the
+ * raw assistant text; callers own parsing and validation. One call counts as one
+ * breaker failure at most, however many transport attempts it made.
  */
 export async function chatCompletion(
   messages: ChatMessage[],
@@ -77,53 +78,40 @@ export async function chatCompletion(
     throw new AiUnavailableError("Translation provider is cooling down.");
   }
 
-  const { apiKey, baseUrl, model, timeoutMs } = config();
-
-  let response: Response;
+  // A missing variable is a configuration mistake, not a provider fault. Report
+  // it the same way as an outage so the caller's fallback path logs one line
+  // instead of an unexpected-error stack.
+  let settings: ReturnType<typeof config>;
   try {
-    response = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: options.temperature ?? 0,
-        max_tokens: options.maxTokens ?? 120,
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-      cache: "no-store",
-    });
-  } catch {
-    recordFailure();
-    throw new AiUnavailableError("Translation provider timed out.");
-  }
-
-  if (!response.ok) {
-    recordFailure();
+    settings = config();
+  } catch (error) {
     throw new AiUnavailableError(
-      `Translation provider responded with ${response.status}.`,
+      error instanceof Error
+        ? error.message
+        : "Translation provider is misconfigured.",
+      { cause: error },
     );
   }
 
-  let payload: unknown;
+  const { apiKey, baseUrl, model, timeoutMs } = settings;
+
   try {
-    payload = await response.json();
-  } catch {
+    const content = await requestCompletion({
+      url: `${baseUrl}/v1/chat/completions`,
+      apiKey,
+      model,
+      messages,
+      temperature: options.temperature ?? 0,
+      maxTokens: options.maxTokens ?? 120,
+      timeoutMs,
+    });
+    recordSuccess();
+    return content;
+  } catch (error) {
     recordFailure();
-    throw new AiUnavailableError("Translation provider returned invalid JSON.");
+    if (error instanceof AiUnavailableError) throw error;
+    throw new AiUnavailableError("Translation provider failed.", {
+      cause: error,
+    });
   }
-
-  const content = (
-    payload as { choices?: { message?: { content?: unknown } }[] }
-  )?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) {
-    recordFailure();
-    throw new AiUnavailableError("Translation provider returned no content.");
-  }
-
-  recordSuccess();
-  return content;
 }

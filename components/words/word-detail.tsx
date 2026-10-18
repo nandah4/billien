@@ -3,12 +3,12 @@
 import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   BookOpenText,
+  Check,
   CheckCircle2,
   ChevronRight,
   Languages,
   LogIn,
   Plus,
-  Trash2,
   Volume2,
   X,
 } from "lucide-react";
@@ -23,22 +23,18 @@ import {
 } from "@/lib/library";
 import { languageLabel } from "@/lib/language";
 import type { DictionaryResult, Entry, SavedWord } from "@/lib/types";
-import { headerOutline, outlineButton, primaryButton } from "@/lib/ui";
+import {
+  compactOutline,
+  compactPrimary,
+  outlineButton,
+  primaryButton,
+} from "@/lib/ui";
 
 type DetailWord = SavedWord | DictionaryResult;
 
 /** Shared chip treatment. Design.md allows 6–8px, never a full pill. */
 const chipClass =
   "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
-
-function formatDate(value: string | null) {
-  if (!value) return "—";
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
 
 function subscribeToNothing() {
   return () => {};
@@ -52,7 +48,8 @@ function PanelHeader({
   onClose?: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-b border-line-soft pb-3">
+    // Negative margins cancel the card padding so the divider runs edge to edge.
+    <div className="-mx-4 -mt-4 mb-5 flex items-center justify-between gap-3 border-b border-line-soft px-4 pt-4 pb-3">
       <span className="flex items-center gap-2 text-[12px] font-semibold text-ink">
         <BookOpenText size={15} className="text-accent" aria-hidden="true" />
         Detail Words
@@ -193,9 +190,9 @@ export function WordDetail({
   isLoading = false,
   errorMessage = null,
   isSaving = false,
-  isUnsaving = false,
+  isReviewing = false,
   onSave,
-  onUnsave,
+  onReview,
   onSignIn,
   onRetry,
   onClose,
@@ -206,9 +203,10 @@ export function WordDetail({
   isLoading?: boolean;
   errorMessage?: string | null;
   isSaving?: boolean;
-  isUnsaving?: boolean;
+  isReviewing?: boolean;
   onSave?: () => void;
-  onUnsave?: () => void;
+  /** Records a successful recall, which increments the review counters. */
+  onReview?: () => void;
   onSignIn?: () => void;
   onRetry?: () => void;
   onClose?: () => void;
@@ -216,7 +214,6 @@ export function WordDetail({
   showHeader?: boolean;
 }) {
   const [speaking, setSpeaking] = useState(false);
-  const [confirmingUnsave, setConfirmingUnsave] = useState(false);
   const wordText = word?.word ?? "";
 
   const speechSupported = useSyncExternalStore(
@@ -232,15 +229,6 @@ export function WordDetail({
       window.speechSynthesis.cancel();
     };
   }, [speechSupported, wordText]);
-
-  useEffect(() => {
-    if (!confirmingUnsave) return;
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") setConfirmingUnsave(false);
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [confirmingUnsave]);
 
   function speak() {
     if (!speechSupported || !wordText) return;
@@ -306,18 +294,9 @@ export function WordDetail({
 
   return (
     <article>
-      {showHeader ? (
-        <PanelHeader onClose={onClose}>
-          {savedWord ? (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
-              <CheckCircle2 size={12} aria-hidden="true" />
-              Already memorised
-            </span>
-          ) : null}
-        </PanelHeader>
-      ) : null}
+      {showHeader ? <PanelHeader onClose={onClose}></PanelHeader> : null}
 
-      <div className="mt-4 flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="text-[26px] leading-[1.15] font-bold tracking-[-0.02em] text-ink wrap-anywhere">
             {word.word}
@@ -338,14 +317,14 @@ export function WordDetail({
         </div>
         {speechSupported ? (
           <button
-            className={`${headerOutline} shrink-0`}
+            className={`${compactOutline} shrink-0`}
             type="button"
             aria-pressed={speaking}
             title={`Play pronunciation for ${word.word}`}
             onClick={speak}
           >
             <Volume2
-              size={15}
+              size={14}
               className={speaking ? "animate-pulse" : undefined}
               aria-hidden="true"
             />
@@ -354,96 +333,94 @@ export function WordDetail({
         ) : null}
       </div>
 
-      <section className="mt-4 rounded-lg border border-line bg-subtle">
-        <div className="flex items-center justify-between gap-3 border-b border-line-soft px-4 py-2.5">
-          <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-            Meaning ({languageLabel(preferredLanguage)})
-          </h3>
-          <div className="flex shrink-0 items-center gap-2">
-            {hasAiTranslation ? (
-              <span
-                className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
-                title="Machine translated, not from the dictionary"
-              >
-                AI
-              </span>
-            ) : null}
-            <Languages size={14} className="text-faint" aria-hidden="true" />
-          </div>
-        </div>
-
-        <div className="px-4 py-3">
-          {groups.length > 0 ? (
-            <div className="grid gap-3">
-              {groups.map((group) => (
-                <div key={group.partOfSpeech || "unknown"}>
-                  <p className="text-[10px] font-semibold tracking-wider text-faint uppercase">
-                    {group.partOfSpeech || "Other"}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5">
-                    {group.words.map((translation) => (
-                      <span
-                        className="inline-flex items-center rounded-md border border-line bg-surface px-2 py-1 text-[13px] leading-none font-medium text-ink"
-                        key={translation}
-                      >
-                        {translation}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-[13px] text-muted">
-              No translation available for this language yet.
-            </p>
-          )}
-
-          {groups.length === 0 && englishDefinitions.length === 0 ? (
-            fallbackDefinition ? (
-              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-                {fallbackDefinition}
-              </p>
-            ) : null
+      <div className="mt-5 flex items-center justify-between gap-3">
+        <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
+          Meaning ({languageLabel(preferredLanguage)})
+        </h3>
+        <div className="flex shrink-0 items-center gap-2">
+          {hasAiTranslation ? (
+            <span
+              className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
+              title="Machine translated, not from the dictionary"
+            >
+              AI
+            </span>
           ) : null}
+          <Languages size={14} className="text-faint" aria-hidden="true" />
         </div>
+      </div>
 
-        {englishDefinitions.length > 0 ? (
-          <details className="group border-t border-line-soft px-4 py-2.5">
-            <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-              <ChevronRight
-                size={13}
-                className="transition-transform group-open:rotate-90"
-                aria-hidden="true"
-              />
-              English definitions
-            </summary>
-            <ol className="mt-2 grid list-none gap-2 p-0">
-              {englishDefinitions.map((item, index) => (
-                <li
-                  className="text-[12px] leading-relaxed text-ink-soft"
-                  key={`${item.partOfSpeech}-${index}`}
-                >
-                  {item.partOfSpeech ? (
-                    <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
-                      {item.partOfSpeech}
+      <div className="py-4">
+        {groups.length > 0 ? (
+          <div className="grid gap-4">
+            {groups.map((group) => (
+              <div key={group.partOfSpeech || "unknown"}>
+                <p className="text-[11px] font-semibold text-faint capitalize">
+                  {group.partOfSpeech || "Other"}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {group.words.map((translation) => (
+                    <span
+                      className="inline-flex items-center rounded border border-line bg-surface px-2 py-1 text-[13px] leading-none text-ink"
+                      key={translation}
+                    >
+                      {translation}
                     </span>
-                  ) : null}
-                  {item.definition}
-                </li>
-              ))}
-            </ol>
-          </details>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-[13px] text-muted">
+            No translation available for this language yet.
+          </p>
+        )}
+
+        {groups.length === 0 && englishDefinitions.length === 0 ? (
+          fallbackDefinition ? (
+            <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+              {fallbackDefinition}
+            </p>
+          ) : null
         ) : null}
-      </section>
+      </div>
+
+      {englishDefinitions.length > 0 ? (
+        <details className="group py-3">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
+            <ChevronRight
+              size={13}
+              className="transition-transform group-open:rotate-90"
+              aria-hidden="true"
+            />
+            English definitions
+          </summary>
+          <ol className="mt-2 grid list-none gap-2 p-0">
+            {englishDefinitions.map((item, index) => (
+              <li
+                className="text-[12px] leading-relaxed text-ink-soft"
+                key={`${item.partOfSpeech}-${index}`}
+              >
+                {item.partOfSpeech ? (
+                  <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
+                    {item.partOfSpeech}
+                  </span>
+                ) : null}
+                {item.definition}
+              </li>
+            ))}
+          </ol>
+        </details>
+      ) : null}
 
       {forms.length > 0 ? (
-        <section className="mt-4">
+        <section className="mt-5">
           <SectionHeading>Word Forms</SectionHeading>
-          <div className="mt-2 flex flex-wrap gap-1.5">
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
             {forms.map((form) => (
               <span
-                className={`${chipClass} border-line bg-surface text-ink-soft`}
+                className={`${chipClass} rounded! border-line bg-surface text-ink-soft`}
                 key={form}
               >
                 {form}
@@ -453,7 +430,7 @@ export function WordDetail({
         </section>
       ) : null}
 
-      <section className="mt-4">
+      <section className="mt-5">
         <SectionHeading
           aside={
             examples.length > 0 ? (
@@ -467,7 +444,7 @@ export function WordDetail({
           Example Sentences
         </SectionHeading>
         {examples.length > 0 ? (
-          <ol className="mt-2 grid list-none gap-2 p-0">
+          <ol className="mt-2.5 grid list-none gap-2.5 p-0">
             {examples.map((example, index) => (
               <li
                 className="flex gap-2.5 rounded-lg border border-line bg-surface p-3"
@@ -490,27 +467,45 @@ export function WordDetail({
       </section>
 
       {synonyms.length > 0 || antonyms.length > 0 ? (
-        <section className="mt-4 grid gap-2">
+        <section className="mt-5 grid gap-2.5">
           <TagRow label="Synonyms" tags={synonyms} tone="synonym" />
           <TagRow label="Antonyms" tags={antonyms} tone="antonym" />
         </section>
       ) : null}
 
-      <section className="mt-4 rounded-lg border border-line bg-subtle p-4">
+      <section className="mt-5 rounded-lg border border-line bg-subtle p-4">
         {savedWord ? (
-          <div className="flex items-start gap-2.5">
-            <CheckCircle2
-              size={16}
-              className="mt-0.5 shrink-0 text-easy"
-              aria-hidden="true"
-            />
-            <div>
-              <p className="text-[13px] font-semibold text-ink">
-                Already memorised
-              </p>
-              <p className="mt-0.5 text-[12px] text-muted">
-                Saved to your Remembered list.
-              </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <CheckCircle2
+                size={16}
+                className="shrink-0 text-easy"
+                aria-hidden="true"
+              />
+              <div className="min-w-0">
+                <p className="mt-0.5 font-medium text-sm text-muted">
+                  {savedWord.review_count === 0
+                    ? "No reviews yet"
+                    : `${savedWord.review_count} total ${
+                        savedWord.review_count === 1 ? "review" : "reviews"
+                      }`}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {onReview ? (
+                <button
+                  className={`${compactPrimary} cursor-pointer hover:scale-105`}
+                  type="button"
+                  disabled={isReviewing}
+                  title="Record a successful recall"
+                  onClick={onReview}
+                >
+                  <Check size={14} aria-hidden="true" />
+                  {isReviewing ? "Saving…" : "Remembered"}
+                </button>
+              ) : null}
             </div>
           </div>
         ) : onSave ? (
@@ -532,73 +527,6 @@ export function WordDetail({
             <LogIn size={16} aria-hidden="true" />
             Sign in to save
           </button>
-        ) : null}
-
-        {savedWord ? (
-          <dl className="mt-3.5 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-line-soft pt-3.5 text-[12px]">
-            <div>
-              <dt className="text-muted">Saved</dt>
-              <dd className="mt-0.5 font-semibold text-ink">
-                {formatDate(savedWord.added_at)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Last reviewed</dt>
-              <dd className="mt-0.5 font-semibold text-ink">
-                {formatDate(savedWord.last_reviewed_at)}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Total review</dt>
-              <dd className="mt-0.5 font-semibold text-ink">
-                {savedWord.review_count}
-              </dd>
-            </div>
-            <div>
-              <dt className="text-muted">Remembered / forgotten</dt>
-              <dd className="mt-0.5 font-semibold text-ink">
-                {savedWord.remembered_count} / {savedWord.forgotten_count}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-
-        {savedWord && onUnsave ? (
-          confirmingUnsave ? (
-            <div className="mt-3.5 flex flex-wrap items-center gap-2 rounded-md border border-hard-soft bg-hard-soft/40 p-2.5">
-              <span className="mr-auto text-[12px] font-medium text-hard">
-                Remove this word from Remembered?
-              </span>
-              <button
-                className="inline-flex h-8 items-center justify-center rounded-md border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                type="button"
-                onClick={() => setConfirmingUnsave(false)}
-              >
-                Cancel
-              </button>
-              <button
-                className="inline-flex h-8 items-center justify-center rounded-md bg-hard px-2.5 text-[12px] font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-                type="button"
-                disabled={isUnsaving}
-                onClick={() => {
-                  setConfirmingUnsave(false);
-                  onUnsave();
-                }}
-              >
-                {isUnsaving ? "Removing…" : "Yes, remove"}
-              </button>
-            </div>
-          ) : (
-            <button
-              className={`${outlineButton} mt-3.5`}
-              type="button"
-              disabled={isUnsaving}
-              onClick={() => setConfirmingUnsave(true)}
-            >
-              <Trash2 size={15} aria-hidden="true" />
-              Remove from Remembered
-            </button>
-          )
         ) : null}
       </section>
 

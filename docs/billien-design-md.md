@@ -91,8 +91,9 @@ Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk st
 ### Breakpoint & Perilaku Responsif
 
 - `lg` (`1024px`) adalah batas antara **desktop** dan **mobile**.
-- **Desktop** (`>= lg`): dua kartu header (judul + segmented menu, streak + menu akun) dan dua kolom (daftar + detail).
+- **Desktop** (`>= lg`): dua kartu header (judul + menu view, streak + menu akun) dan dua kolom (daftar + detail).
 - **Mobile** (`< lg`): _app shell_ dengan **app bar** tetap di atas dan **bottom navigation** tetap di bawah; konten satu kolom dan di-scroll normal.
+- **Routing**: Discovery dan Remembered adalah **dua halaman terpisah** (`/` dan `/remembered`), bukan satu halaman dengan toggle state. Perpindahan view memakai `<Link>`, dan status aktif diturunkan dari `usePathname()`. Chrome (header, bottom nav, dialog akun) dibagi lewat satu layout route group.
 - **Safe area**: bottom bar wajib memberi `env(safe-area-inset-bottom)` agar tidak tertutup home indicator iOS; konten diberi padding bawah `calc(5rem + env(safe-area-inset-bottom))` dan padding atas `4.5rem` (tinggi app bar + jarak).
 - **Touch target**: setiap kontrol interaktif minimal `40×40px` (idealnya `44×44px`), termasuk tombol ikon dan chip filter.
 - **Input**: ukuran font minimal `16px` di mobile agar iOS tidak melakukan auto-zoom saat fokus; desktop tetap `13px`.
@@ -158,6 +159,15 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 
 * Menu akun (dropdown `w-56` berisi identitas, `Profile`, dan `Sign out`) hanya ada di header desktop.
 
+#### E.1.1 Komponen shadcn/ui
+
+Dua komponen dari shadcn/ui dipakai langsung, bukan ditulis ulang:
+
+- **Dropdown Menu** (`components/ui/dropdown-menu.tsx`, Radix) untuk menu akun. Memberi focus management, Escape, klik-di-luar, dan navigasi keyboard tanpa kode manual. Kelas bawaan shadcn (`bg-popover`, `text-popover-foreground`, `bg-accent`) dipetakan ke token proyek: `bg-surface`, `text-ink`, `border-line`, `hover:bg-hover`. Item destruktif memakai prop `tone="danger"` (`text-hard`, `focus:bg-hard-soft/50`).
+- **Sonner** (`components/ui/sonner.tsx`) dipasang sekali di root layout. Posisi `top-center` agar tidak menutupi bottom navigation.
+
+Karena proyek tidak memakai plugin animasi Tailwind, animasi `animate-in` bawaan shadcn diganti keyframe `.menu-surface` di `globals.css` (140ms, `prefers-reduced-motion` dihormati).
+
 - **Tidak ada segmented menu di app bar**; perpindahan view milik bottom navigation.
 
 #### E.2 Bottom Navigation (bawah, tinggi `56px` + safe area)
@@ -169,7 +179,7 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 - **State aktif**: pill `bg #F5F3FF`, ikon `#7C3AED`, label `#7C3AED`, plus `aria-current="page"`.
 - **State non-aktif**: ikon `#94A3B8`, label `#64748B`.
 - **State fokus**: `outline` 2px `#7C3AED` di dalam batas item (offset negatif) agar tidak terpotong layar.
-- Item standar: `Discovery`, `Remembered`, lalu slot kontekstual:
+- Item standar: `Discovery` (`/`) dan `Remembered` (`/remembered`), berupa `<Link>` dengan `aria-current="page"` pada halaman aktif; lalu slot kontekstual:
   - **Signed in** → `Profile` (tautan ke `/profile`).
   - **Guest** → `Sign in` (membuka modal autentikasi).
 - Maksimal **5 item**. Jika menu bertambah, sisanya dipindahkan ke halaman `More`, bukan mengecilkan ikon.
@@ -202,14 +212,45 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 - **Validasi**: minimal `2` karakter dan hanya `[a-z'-]`; input lain tidak dikirim ke API.
 - **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik.
 - **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan.
-- **State yang wajib ada**:
+
+* **State yang wajib ada**:
   1. _Idle_ — belum ada ketikan: petunjuk singkat, tanpa skeleton.
   2. _Terlalu pendek / karakter tidak valid_ — petunjuk validasi, tanpa request.
   3. _Loading_ — skeleton baris selama debounce + fetch.
   4. _Tidak ditemukan_ — pesan netral + saran periksa ejaan.
   5. _Gagal jaringan_ — `role="alert"` + tombol **Try again**.
 
+#### E.4.1 Feedback: toast vs alert inline
+
+Notifikasi dibagi dua, supaya tidak ada pesan basi yang menempel di daftar:
+
+| Jenis                          | Contoh                                                                                                          | Tampilan                                                                                                                        |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Event sementara**            | kata tersimpan, kata dihapus, review tercatat, preferensi bahasa tersimpan, sign out, gagal menyimpan/menghapus | **Sonner toast** (`toast.success` / `toast.error`)                                                                              |
+| **State persisten**            | gagal memuat daftar Remembered, gagal lookup kata                                                               | **Alert inline** `role="alert"` + tombol **Try again**, karena harus bertahan selama kondisi masih berlaku dan menyediakan aksi |
+| **Error di dalam form/dialog** | gagal PATCH preferensi, gagal OAuth                                                                             | **Inline di dalam dialog**, dekat kontrolnya                                                                                    |
+
+Aturan toast: satu pesan per aksi, kalimat lampau dan spesifik (`"eat" was added to your memorised list.`), tanpa emoji, dan tidak dipakai untuk progres loading (indikator loading ada di tombol).
+
 Tidak ada chip filter (All / Verbs / Adjectives / Nouns). Filter POS dihapus agar daftar tetap fokus pada pencarian; pengurutan hanya tersedia di Remembered.
+
+#### E.5 Ilustrasi State Kosong & Dialog
+
+Tiga ilustrasi 3D tersedia di `public/assets` dan dipakai lewat `components/ui/empty-state.tsx` (atau `next/image` langsung di dalam dialog). Semuanya ber-alpha, jadi boleh diletakkan langsung di atas `bg-surface` maupun `bg-subtle` tanpa kotak pembungkus.
+
+| Aset               | Dipakai di                                                             | Tinggi render               |
+| ------------------ | ---------------------------------------------------------------------- | --------------------------- |
+| `empty.png`        | Discovery idle, kata tidak ditemukan, filter kosong, Remembered kosong | `h-28` (112px)              |
+| `hello.webp`       | Modal sign-in, prompt sign-in di Remembered                            | `h-32` / `h-36` (128–144px) |
+| `preferences.webp` | Modal onboarding bahasa, modal pemilih bahasa di profile               | `h-20` – `h-28` (80–112px)  |
+
+Aturan:
+
+- Ilustrasi bersifat **dekoratif**: `alt=""` + `aria-hidden="true"`, makna dibawa oleh judul dan deskripsi.
+- Komposisi state kosong: ilustrasi → judul 14px/`600` `#09090B` → deskripsi 12px `#64748B` maksimal `max-w-xs` → aksi opsional, semuanya rata tengah.
+- Komposisi dialog: ilustrasi di tengah, lalu judul dan deskripsi juga rata tengah, sedangkan daftar pilihan dan tombol tetap rata kiri/penuh.
+- Selalu gunakan `next/image` dengan `sizes` sesuai tinggi render agar tidak mengunduh berkas 2048px.
+- State validasi singkat (mis. input < 2 huruf) **tidak** memakai ilustrasi agar tidak berkedip setiap ketikan.
 
 ### F. Detail Words Panel
 
@@ -219,16 +260,16 @@ Panel **tidak** memuat kartu ajakan drill; fitur drill dihapus dari detail kata.
 
 #### F.1 Urutan Blok
 
-1. **Panel header** — label `Detail Words` 12px/`600` + badge `Already memorised` (opsional) + tombol tutup `X` (`aria-label="Close detail"`), dipisah garis `1px` `#F1F5F9`.
-2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` rata kanan atas.
-3. **Meaning** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
+1. **Panel header** — label `Detail Words` 12px/`600` + tombol tutup `X` (`aria-label="Close detail"`). Garis bawah `1px` `#F1F5F9` **harus menyentuh tepi kiri dan kanan kartu**: header memakai margin negatif sebesar padding kartu (`-mx-4 px-4`) agar border tidak terlihat menjorok ke dalam.
+2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` varian compact (`h-8`, 12px) rata kanan atas.
+3. **Meaning** — judul seksi + isi, tanpa kartu pembungkus (flat).
 4. **Word Forms** — chip datar, hanya dirender bila ada.
 5. **Example Sentences** — kartu bernomor, maksimal 3.
 6. **Synonyms / Antonyms** — baris chip, hanya dirender bila ada.
-7. **Status hafalan** — kartu ringkasan + riwayat review + aksi hapus.
+7. **Status hafalan** — satu kartu ringkas: status, jumlah review, dan aksi hapus.
 8. **Source** — tautan lisensi, dipisah garis atas.
 
-Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`.
+Jarak antar blok `20px` (`mt-5`) dan jarak di dalam blok `16px` (`py-4`, `gap-4`) agar tidak terasa padat.
 
 #### F.2 Blok Meaning
 
@@ -244,7 +285,10 @@ Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`
 - **Word Forms**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
 - **Example Sentences**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
 - **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
-- **Status hafalan**: kartu `bg #FAFAFA`, ikon `CheckCircle2` `#16A34A`, riwayat sebagai `dl` dua kolom 12px, konfirmasi hapus inline (bukan `window.confirm`).
+- **Status hafalan**: kartu ringkas `bg #FAFAFA` berisi ikon `CheckCircle2` `#16A34A`, jumlah review (`N total reviews` / `No reviews yet`), dan satu tombol **`Remembered`** (compact primary, ikon `Check`, `hover:scale-105`) di sisi kanan.
+  - Tombol ini memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`, sehingga `review_count` dan `remembered_count` bertambah serta streak harian ikut naik. Ini satu-satunya cara manual menambah review karena UI drill sudah dihapus. Saat request berjalan label menjadi `Saving…` dan tombol disabled.
+  - **Tidak ada tombol hapus di panel detail.** Un-save hanya tersedia dari baris di daftar Remembered (ikon `Trash2` saat hover) agar kartu tetap ringkas dan aksi destruktif tidak berada di dua tempat.
+  - Judul `Already memorised` tidak ditampilkan; status sudah disampaikan oleh ikon centang dan konteks kartu.
 - **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
 
 ### G. Profile Page

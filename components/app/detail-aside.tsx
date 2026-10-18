@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { BookOpenText, CheckCircle2, X } from "lucide-react";
+import { BookOpenText, X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import { WordDetail } from "@/components/words/word-detail";
 import { useIsDesktop } from "@/hooks/use-media-query";
@@ -16,18 +16,14 @@ type DetailProps = {
     isLoading: boolean;
     errorMessage: string | null;
     isSaving: boolean;
-    isUnsaving: boolean;
+    isReviewing: boolean;
     onSave?: () => void;
-    onUnsave?: () => void;
+    onReview?: () => void;
     onSignIn?: () => void;
     onRetry?: () => void;
   };
   onClose: () => void;
 };
-
-function isSaved(word: DetailProps["detail"]["word"]): boolean {
-  return Boolean(word && "id" in word);
-}
 
 function DetailBody({
   detail,
@@ -42,9 +38,9 @@ function DetailBody({
       isLoading={detail.isLoading}
       errorMessage={detail.errorMessage}
       isSaving={detail.isSaving}
-      isUnsaving={detail.isUnsaving}
+      isReviewing={detail.isReviewing}
       onSave={detail.onSave}
-      onUnsave={detail.onUnsave}
+      onReview={detail.onReview}
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}
       onClose={onClose}
@@ -57,13 +53,7 @@ function DetailBody({
  * Mobile sheet header. It lives outside the scroll container so the close
  * control stays reachable no matter how far the word detail is scrolled.
  */
-function SheetHeader({
-  saved,
-  onClose,
-}: {
-  saved: boolean;
-  onClose: () => void;
-}) {
+function SheetHeader({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line-soft px-4 py-3">
       <span className="flex items-center gap-2 text-[12px] font-semibold text-ink">
@@ -71,12 +61,6 @@ function SheetHeader({
         Detail Words
       </span>
       <div className="flex shrink-0 items-center gap-2">
-        {saved ? (
-          <span className="inline-flex items-center gap-1.5 rounded-md bg-easy-soft px-2 py-0.5 text-[11px] font-semibold text-easy">
-            <CheckCircle2 size={12} aria-hidden="true" />
-            Already memorised
-          </span>
-        ) : null}
         <button
           className="-mr-1 inline-flex size-9 items-center justify-center rounded-lg text-muted transition hover:bg-hover hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           type="button"
@@ -111,10 +95,7 @@ export function DetailAside(props: DetailProps) {
         // Leave room for the fixed bottom navigation plus a visible gap.
         overlayClassName="p-4 pb-[calc(5rem_+_env(safe-area-inset-bottom))]"
       >
-        <SheetHeader
-          saved={isSaved(props.detail.word)}
-          onClose={props.onClose}
-        />
+        <SheetHeader onClose={props.onClose} />
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
           <DetailBody {...props} showHeader={false} />
         </div>

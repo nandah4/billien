@@ -2,20 +2,18 @@
 
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { rememberedWordsQueryOptions, streakQueryOptions } from "@/lib/api";
+import { rememberedWordsQueryOptions } from "@/lib/api";
 import { flattenTranslations, type LibraryWord } from "@/lib/library";
 
 /**
- * Loads the signed-in user's words and shapes them into the row model the
- * Remembered list renders. Discovery has no seeded list: it only shows the
- * word the user searched for, which the container builds from the dictionary
- * query.
+ * Loads the signed-in user's saved words and shapes them into the row model the
+ * Remembered list renders. Discovery does not need this list for its result,
+ * but it does use `savedByKey` to mark a searched word as already memorised.
  */
 export function useWordLibrary(signedIn: boolean, language: string) {
   const rememberedWordsQuery = useQuery(
     rememberedWordsQueryOptions(signedIn, language),
   );
-  const streakQuery = useQuery(streakQueryOptions(signedIn));
 
   const savedWords = useMemo(
     () => rememberedWordsQuery.data ?? [],
@@ -42,7 +40,6 @@ export function useWordLibrary(signedIn: boolean, language: string) {
   return {
     savedWords,
     savedByKey,
-    streak: streakQuery.data ?? 0,
     rememberedItems,
     isLoading: rememberedWordsQuery.isLoading,
     isError: rememberedWordsQuery.isError,

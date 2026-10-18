@@ -13,6 +13,13 @@ import { listUserWords, saveWordForUser } from "@/lib/user-words";
 
 const MAX_BACKGROUND_TRANSLATIONS = 8;
 
+/**
+ * Translation runs in `after()`, so the function has to stay alive for it. The
+ * provider timeout plus one retry is about 30 seconds; this leaves headroom
+ * without making a normal request wait.
+ */
+export const maxDuration = 60;
+
 function errorResponse(error: unknown) {
   console.error(error);
   return NextResponse.json(

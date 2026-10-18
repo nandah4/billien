@@ -1,7 +1,9 @@
 "use client";
 
 import { Check } from "lucide-react";
+import Image from "next/image";
 import { Modal } from "@/components/ui/modal";
+import preferencesImage from "@/public/assets/preferences.webp";
 import { LANGUAGES } from "@/lib/language";
 
 /**
@@ -35,18 +37,28 @@ export function LanguagePickerModal({
       canDismiss={() => !busy}
       maxWidthClass="max-w-md"
     >
-      <h2
-        id="language-picker-title"
-        className="text-[18px] leading-tight font-semibold text-ink"
-      >
-        Translation language
-      </h2>
-      <p
-        id="language-picker-description"
-        className="mt-1.5 text-[13px] leading-relaxed text-muted"
-      >
-        Word details will show the meaning in this language.
-      </p>
+      <div className="flex flex-col items-center text-center">
+        <Image
+          src={preferencesImage}
+          alt=""
+          aria-hidden="true"
+          sizes="80px"
+          className="h-20 w-auto object-contain"
+        />
+
+        <h2
+          id="language-picker-title"
+          className="mt-3 text-[18px] leading-tight font-semibold text-ink"
+        >
+          Translation language
+        </h2>
+        <p
+          id="language-picker-description"
+          className="mt-1.5 max-w-xs text-[13px] leading-relaxed text-muted"
+        >
+          Word details will show the meaning in this language.
+        </p>
+      </div>
 
       <div
         className="mt-4 divide-y divide-line-soft overflow-hidden rounded-xl border border-line"

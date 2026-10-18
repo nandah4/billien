@@ -3,20 +3,29 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BookMarked,
+  Brain,
+  ChartColumn,
   ChevronLeft,
   ChevronRight,
   Flame,
   Languages,
   LogOut,
   Mail,
-  BookMarked,
+  Target,
   UserRound,
 } from "lucide-react";
 import { LanguagePickerModal } from "@/components/preferences/language-picker-modal";
+import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { messageFor, request, type ApiEnvelope } from "@/lib/api";
+import {
+  messageFor,
+  recallStatsQueryOptions,
+  request,
+  type ApiEnvelope,
+} from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
 
@@ -96,9 +105,8 @@ export function ProfileView({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [savingLanguage, setSavingLanguage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const recallStats = useQuery(recallStatsQueryOptions(true));
 
   const activeLanguage =
     LANGUAGES.find((item) => item.code === language) ?? LANGUAGES[0];
@@ -115,7 +123,6 @@ export function ProfileView({
     const previous = language;
     setLanguage(code);
     setSavingLanguage(code);
-    setStatus(null);
     setPickerError(null);
     try {
       const response = await request<ApiEnvelope<UserPreferences>>(
@@ -135,7 +142,7 @@ export function ProfileView({
       );
       // The Remembered list is projected per language, so refetch it.
       await queryClient.invalidateQueries({ queryKey: ["remembered-words"] });
-      setStatus("Translation language updated.");
+      toast.success("Translation language updated.");
       setPickerOpen(false);
     } catch (requestError) {
       setLanguage(previous);
@@ -149,14 +156,17 @@ export function ProfileView({
 
   async function signOut() {
     setSigningOut(true);
-    setError(null);
     try {
-      await authClient.signOut();
+      // `signOut` reports transport and API failures two ways: by throwing and
+      // by resolving with `error`. Both must be treated as a failure, otherwise
+      // a rejected sign-out looks successful and the user stays signed in.
+      const { error } = await authClient.signOut();
+      if (error) throw error;
       queryClient.clear();
       router.push("/");
       router.refresh();
     } catch {
-      setError("Unable to sign out. Please try again.");
+      toast.error("Unable to sign out. Please try again.");
       setSigningOut(false);
     }
   }
@@ -167,14 +177,18 @@ export function ProfileView({
       <div className="relative">
         <div className="profile-banner h-32" />
 
-        {/* Floating back control, clear of the status bar on notched devices. */}
-        <Link
-          className="absolute top-[calc(env(safe-area-inset-top)_+_8px)] left-2 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          href="/"
-        >
-          <ChevronLeft size={22} aria-hidden="true" />
-          <span className="text-[15px] font-medium">Back</span>
-        </Link>
+        {/* Floating back control, aligned with the content column below. */}
+        <div className="absolute inset-x-0 top-[calc(env(safe-area-inset-top)_+_8px)]">
+          <div className="mx-auto w-full max-w-xl px-4 sm:px-6">
+            <Link
+              className="-ml-1 inline-flex h-10 items-center gap-0.5 rounded-lg pr-2 pl-1 text-accent transition hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+              href="/"
+            >
+              <ChevronLeft size={22} aria-hidden="true" />
+              <span className="text-[15px] font-medium">Back</span>
+            </Link>
+          </div>
+        </div>
 
         {/* Avatar is centred horizontally on the banner's bottom edge. */}
         <div className="absolute inset-x-0 bottom-0 flex translate-y-1/2 justify-center">
@@ -196,20 +210,6 @@ export function ProfileView({
             {user.email}
           </p>
         </div>
-
-        {error ? (
-          <p
-            className="mt-4 rounded-lg border border-hard-soft bg-hard-soft/50 px-3 py-2 text-[12px] text-hard"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
-        {status ? (
-          <p className="mt-4 text-center text-[12px] text-easy" role="status">
-            {status}
-          </p>
-        ) : null}
 
         <SectionCard title="Account">
           <ValueRow icon={UserRound} label="Name" value={user.name || "—"} />
@@ -256,6 +256,47 @@ export function ProfileView({
               summary.currentStreak === 1 ? "day" : "days"
             }`}
           />
+        </SectionCard>
+
+        <SectionCard title="Recall">
+          <ValueRow
+            icon={Brain}
+            label="Due today"
+            value={recallStats.data ? String(recallStats.data.dueToday) : "—"}
+          />
+          <ValueRow
+            icon={Target}
+            label="Accuracy (7 days)"
+            value={
+              recallStats.data
+                ? `${Math.round(recallStats.data.accuracy7d * 100)}%`
+                : "—"
+            }
+          />
+          <Link
+            className={`${rowClass} justify-center font-semibold text-accent hover:bg-accent-soft`}
+            href="/recall"
+          >
+            <Brain size={16} aria-hidden="true" />
+            <span className="text-[14px]">Start practising</span>
+          </Link>
+        </SectionCard>
+
+        <SectionCard title="Insights">
+          <Link className={`${rowClass} hover:bg-hover`} href="/analytics">
+            <RowIcon icon={ChartColumn} />
+            <span className="min-w-0 flex-1">
+              <span className="block text-[14px] text-ink">Analytics</span>
+              <span className="mt-0.5 block text-[12px] text-muted">
+                Daily and monthly activity
+              </span>
+            </span>
+            <ChevronRight
+              size={17}
+              className="shrink-0 text-faint"
+              aria-hidden="true"
+            />
+          </Link>
         </SectionCard>
 
         <SectionCard>

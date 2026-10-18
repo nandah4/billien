@@ -68,7 +68,15 @@ export type UserPreferences = {
 };
 
 export type StreakDay = {
+  /** `YYYY-MM-DD`, as text. The driver would turn a `date` into a `Date`. */
   activity_date: string;
+  learned_count: number;
+  review_count: number;
+};
+
+/** What a row can look like before normalisation, e.g. straight from a driver. */
+export type StreakDayInput = {
+  activity_date: string | Date;
   learned_count: number;
   review_count: number;
 };
