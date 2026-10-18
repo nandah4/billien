@@ -71,6 +71,8 @@ async function repairWord(
   const cached = await ensureTranslation(
     { word: word.word, entries },
     language,
+    // The user asked for this repair, so a previous cooldown must not block it.
+    { force: true },
   );
   if (cached) {
     entries = mergeAiTranslation(entries, cached, language);

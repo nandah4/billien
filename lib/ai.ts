@@ -1,15 +1,25 @@
 import "server-only";
 
+import {
+  AiUnavailableError,
+  requestCompletion,
+  type ChatMessage,
+} from "@/lib/ai-transport";
+
+export { AiUnavailableError } from "@/lib/ai-transport";
+export type { ChatMessage } from "@/lib/ai-transport";
+
 const DEFAULT_BASE_URL = "https://api.inferhub.dev";
 const DEFAULT_MODEL = "deepseek-v4.1-flash";
-const DEFAULT_TIMEOUT_MS = 5_000;
 
-export class AiUnavailableError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = "AiUnavailableError";
-  }
-}
+/**
+ * A translation is a short generation, but five seconds was not enough for a
+ * cold provider: it timed out often enough that saved words arrived without a
+ * translation. Fifteen seconds leaves room for the model to answer, and the
+ * transport retries once, so the call still fails fast when the endpoint is
+ * genuinely down.
+ */
+const DEFAULT_TIMEOUT_MS = 15_000;
 
 /**
  * Minimal circuit breaker: after five consecutive failures the provider is
@@ -28,6 +38,12 @@ function config() {
   if (!apiKey) {
     throw new AiUnavailableError("INFERHUB_API_KEY is not configured.");
   }
+
+  const configured = Number.parseInt(
+    process.env.INFERHUB_TIMEOUT_MS ?? String(DEFAULT_TIMEOUT_MS),
+    10,
+  );
+
   return {
     apiKey,
     baseUrl: (process.env.INFERHUB_BASE_URL || DEFAULT_BASE_URL).replace(
@@ -35,10 +51,10 @@ function config() {
       "",
     ),
     model: process.env.INFERHUB_MODEL || DEFAULT_MODEL,
-    timeoutMs: Number.parseInt(
-      process.env.INFERHUB_TIMEOUT_MS ?? String(DEFAULT_TIMEOUT_MS),
-      10,
-    ),
+    timeoutMs:
+      Number.isFinite(configured) && configured > 0
+        ? configured
+        : DEFAULT_TIMEOUT_MS,
   };
 }
 
@@ -63,11 +79,10 @@ function recordFailure() {
   }
 }
 
-type ChatMessage = { role: "system" | "user"; content: string };
-
 /**
- * Single-turn chat completion against InferHub (OpenAI-compatible). Returns the
- * raw assistant text; callers own parsing and validation.
+ * Single-turn chat completion against InferHub ([OI]-compatible). Returns the
+ * raw assistant text; callers own parsing and validation. One call counts as one
+ * breaker failure at most, however many transport attempts it made.
  */
 export async function chatCompletion(
   messages: ChatMessage[],
@@ -79,51 +94,23 @@ export async function chatCompletion(
 
   const { apiKey, baseUrl, model, timeoutMs } = config();
 
-  let response: Response;
   try {
-    response = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: options.temperature ?? 0,
-        max_tokens: options.maxTokens ?? 120,
-      }),
-      signal: AbortSignal.timeout(timeoutMs),
-      cache: "no-store",
+    const content = await requestCompletion({
+      url: `${baseUrl}/v1/chat/completions`,
+      apiKey,
+      model,
+      messages,
+      temperature: options.temperature ?? 0,
+      maxTokens: options.maxTokens ?? 120,
+      timeoutMs,
     });
-  } catch {
+    recordSuccess();
+    return content;
+  } catch (error) {
     recordFailure();
-    throw new AiUnavailableError("Translation provider timed out.");
+    if (error instanceof AiUnavailableError) throw error;
+    throw new AiUnavailableError("Translation provider failed.", {
+      cause: error,
+    });
   }
-
-  if (!response.ok) {
-    recordFailure();
-    throw new AiUnavailableError(
-      `Translation provider responded with ${response.status}.`,
-    );
-  }
-
-  let payload: unknown;
-  try {
-    payload = await response.json();
-  } catch {
-    recordFailure();
-    throw new AiUnavailableError("Translation provider returned invalid JSON.");
-  }
-
-  const content = (
-    payload as { choices?: { message?: { content?: unknown } }[] }
-  )?.choices?.[0]?.message?.content;
-  if (typeof content !== "string" || !content.trim()) {
-    recordFailure();
-    throw new AiUnavailableError("Translation provider returned no content.");
-  }
-
-  recordSuccess();
-  return content;
 }

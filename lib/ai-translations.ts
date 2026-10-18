@@ -1,5 +1,10 @@
 import "server-only";
-import { aiModel, chatCompletion, isAiConfigured } from "@/lib/ai";
+import {
+  AiUnavailableError,
+  aiModel,
+  chatCompletion,
+  isAiConfigured,
+} from "@/lib/ai";
 import { languageName } from "@/lib/language";
 import { sql } from "@/lib/neon";
 import {
@@ -15,8 +20,20 @@ import {
 import type { Entry } from "@/lib/types";
 
 const MAX_ATTEMPTS = 3;
+/**
+ * The configured model reasons before it answers, and those tokens come out of
+ * `max_tokens`. At 120 the reply was cut mid-JSON, which looked like an invalid
+ * translation rather than a budget problem. A real answer needs about 130.
+ */
+const MAX_TOKENS = 512;
 /** A `pending` row older than this is treated as abandoned and may be retried. */
 const STALE_PENDING_INTERVAL = "90 seconds";
+/**
+ * After this long, a failed row may be claimed again even when it used every
+ * attempt. Without it, a provider outage would permanently mark a good word as
+ * untranslatable.
+ */
+const RETRY_COOLDOWN_INTERVAL = "1 hour";
 
 export { hasDictionaryTranslation, mergeAiTranslation } from "@/lib/translate";
 export type { CachedAiTranslation } from "@/lib/translate";
@@ -42,7 +59,7 @@ async function generate({
       definition: sense.definition,
       languageLabel: languageName(language),
     }),
-    { temperature: 0, maxTokens: 120 },
+    { temperature: 0, maxTokens: MAX_TOKENS },
   );
 
   return readTranslationReply(raw, { word, senseIndex });
@@ -95,25 +112,42 @@ export async function readCachedTranslations(
 
 /**
  * Atomic claim. Returns true only for the request that owns this generation, so
- * two concurrent readers cannot both call the provider.
+ * two concurrent readers cannot both call the provider. A row that exhausted
+ * its attempts is claimable again once the cooldown has passed, and its counter
+ * starts over. `force` skips both guards, for an explicit user action.
  */
-async function claim(word: string, language: string) {
+async function claim(word: string, language: string, force = false) {
   const rows = await sql().query(
     `insert into public.ai_translations (normalized_word, language, status, attempts, model)
      values ($1, $2, 'pending', 1, $3)
      on conflict (normalized_word, language) do update
        set status = 'pending',
-           attempts = public.ai_translations.attempts + 1,
+           attempts = case
+             when $5::boolean
+               then 1
+             when public.ai_translations.updated_at
+                  < now() - interval '${RETRY_COOLDOWN_INTERVAL}'
+               then 1
+             else public.ai_translations.attempts + 1
+           end,
            model = excluded.model,
            updated_at = now()
        where public.ai_translations.status <> 'done'
-         and public.ai_translations.attempts < $4
          and (
-           public.ai_translations.status <> 'pending'
-           or public.ai_translations.updated_at < now() - interval '${STALE_PENDING_INTERVAL}'
+           $5::boolean
+           or (
+             public.ai_translations.attempts < $4
+             and (
+               public.ai_translations.status <> 'pending'
+               or public.ai_translations.updated_at
+                  < now() - interval '${STALE_PENDING_INTERVAL}'
+             )
+           )
+           or public.ai_translations.updated_at
+              < now() - interval '${RETRY_COOLDOWN_INTERVAL}'
          )
      returning normalized_word`,
-    [word, language, aiModel(), MAX_ATTEMPTS],
+    [word, language, aiModel(), MAX_ATTEMPTS, force],
   );
   return rows.length > 0;
 }
@@ -162,6 +196,7 @@ async function markFailed(word: string, language: string) {
 export async function ensureTranslation(
   { word, entries }: { word: string; entries: Entry[] },
   language: string,
+  { force = false }: { force?: boolean } = {},
 ): Promise<CachedAiTranslation | null> {
   if (!isAiConfigured()) return null;
   if (language === "en") return null;
@@ -174,10 +209,15 @@ export async function ensureTranslation(
     const cached = await readCachedTranslation(normalized, language);
     if (cached) return cached;
 
-    if (!(await claim(normalized, language))) return null;
+    if (!(await claim(normalized, language, force))) return null;
 
     const result = await generate({ word: normalized, entries, language });
     if (!result) {
+      // The provider answered but the reply was unusable: truncated, not JSON,
+      // or below the confidence floor. Worth a line, unlike a plain outage.
+      console.warn(
+        `AI translation unusable for "${normalized}" (${language}).`,
+      );
       await markFailed(normalized, language);
       return null;
     }
@@ -185,7 +225,18 @@ export async function ensureTranslation(
     await store(normalized, language, result);
     return { words: result.words, senseIndex: result.senseIndex };
   } catch (error) {
-    console.error("AI translation failed.", error);
+    // A provider timeout is an expected fallback, not a bug: one line is
+    // enough, and the stack only helps when something unexpected broke.
+    if (error instanceof AiUnavailableError) {
+      console.warn(
+        `AI translation unavailable for "${normalized}" (${language}): ${error.message}`,
+      );
+    } else {
+      console.error(
+        `AI translation failed for "${normalized}" (${language}).`,
+        error,
+      );
+    }
     try {
       await markFailed(normalized, language);
     } catch {
