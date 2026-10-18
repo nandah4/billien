@@ -34,7 +34,7 @@ export async function repairRecallWords(
   userId: string,
   language: string,
 ): Promise<RepairResult> {
-  const words = await listRecallWords(userId);
+  const words = await listRecallWords(userId, language);
   const broken = words.filter((word) => !isEligible(word, language));
 
   let repaired = 0;

@@ -51,12 +51,11 @@ export async function GET(request: NextRequest) {
   const pos = pick(params.get("pos"), POS_VALUES, "all");
 
   try {
-    const [{ translationLanguage: language }, words, librarySize] =
-      await Promise.all([
-        getUserPreferences(userId),
-        listRecallWords(userId),
-        countUserWords(userId),
-      ]);
+    const [{ translationLanguage: language }, librarySize] = await Promise.all([
+      getUserPreferences(userId),
+      countUserWords(userId),
+    ]);
+    const words = await listRecallWords(userId, language);
 
     const eligible = eligibleWords(words, language);
     const eligibleCount = eligible.length;

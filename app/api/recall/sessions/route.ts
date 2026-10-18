@@ -149,7 +149,8 @@ export async function POST(request: NextRequest) {
     }
 
     const userWordIds = items.map((item) => item.userWordId as string);
-    const words = await getRecallWordsByIds(userId, userWordIds);
+    const { translationLanguage: language } = await getUserPreferences(userId);
+    const words = await getRecallWordsByIds(userId, userWordIds, language);
     if (words.size !== new Set(userWordIds).size) {
       return NextResponse.json(
         { error: "Remembered word not found." },
@@ -157,7 +158,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { translationLanguage: language } = await getUserPreferences(userId);
     const now = new Date();
 
     const graded: SessionItemInput[] = [];

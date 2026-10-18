@@ -22,10 +22,8 @@ export async function GET() {
   }
 
   try {
-    const [{ translationLanguage: language }, words] = await Promise.all([
-      getUserPreferences(userId),
-      listRecallWords(userId),
-    ]);
+    const { translationLanguage: language } = await getUserPreferences(userId);
+    const words = await listRecallWords(userId, language);
 
     const now = new Date();
     const from = new Date(now.getTime() - WEEK_MS);

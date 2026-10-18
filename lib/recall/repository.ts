@@ -1,7 +1,9 @@
 import "server-only";
+import { readCachedTranslations } from "@/lib/ai-translations";
 import { sql } from "@/lib/neon";
 import { ACTIVITY_TIME_ZONE } from "@/lib/streak";
 import type { Entry } from "@/lib/types";
+import { applyCachedTranslations } from "./merge-translations.ts";
 import type {
   RecallMode,
   RecallOutcome,
@@ -59,7 +61,35 @@ const recallFields = `
   uw.review_count, uw.recall_streak, uw.recall_lapses, uw.recall_due_at
 `;
 
-export async function listRecallWords(userId: string): Promise<RecallWord[]> {
+/**
+ * Fills the preferred-language translation from the AI cache. The dictionary
+ * does not translate every word, so a word saved with a generated translation
+ * used to fall back to a definition-only card even though the answer was
+ * already stored.
+ */
+async function withCachedTranslations(
+  words: RecallWord[],
+  language: string | undefined,
+): Promise<RecallWord[]> {
+  if (!language || language === "en" || words.length === 0) return words;
+
+  const missing = words.filter(
+    (word) => (word.translations[language]?.length ?? 0) === 0,
+  );
+  if (missing.length === 0) return words;
+
+  const cached = await readCachedTranslations(
+    missing.map((word) => word.word.trim().toLowerCase()),
+    language,
+  );
+
+  return applyCachedTranslations(words, language, cached);
+}
+
+export async function listRecallWords(
+  userId: string,
+  language?: string,
+): Promise<RecallWord[]> {
   const rows = (await sql().query(
     `select ${recallFields}
      from public.user_words uw
@@ -69,12 +99,13 @@ export async function listRecallWords(userId: string): Promise<RecallWord[]> {
      limit ${MAX_SCAN}`,
     [userId],
   )) as RecallRow[];
-  return rows.map(toRecallWord);
+  return withCachedTranslations(rows.map(toRecallWord), language);
 }
 
 export async function getRecallWord(
   userId: string,
   userWordId: string,
+  language?: string,
 ): Promise<RecallWord | null> {
   const rows = (await sql().query(
     `select ${recallFields}
@@ -83,7 +114,8 @@ export async function getRecallWord(
      where uw.id = $2::uuid and uw.user_id = $1::uuid`,
     [userId, userWordId],
   )) as RecallRow[];
-  return rows[0] ? toRecallWord(rows[0]) : null;
+  const words = await withCachedTranslations(rows.map(toRecallWord), language);
+  return words[0] ?? null;
 }
 
 /**
@@ -93,6 +125,7 @@ export async function getRecallWord(
 export async function getRecallWordsByIds(
   userId: string,
   ids: string[],
+  language?: string,
 ): Promise<Map<string, RecallWord>> {
   if (ids.length === 0) return new Map();
   const rows = (await sql().query(
@@ -102,7 +135,8 @@ export async function getRecallWordsByIds(
      where uw.user_id = $1::uuid and uw.id = any($2::uuid[])`,
     [userId, ids],
   )) as RecallRow[];
-  return new Map(rows.map((row) => [row.id, toRecallWord(row)]));
+  const words = await withCachedTranslations(rows.map(toRecallWord), language);
+  return new Map(words.map((word) => [word.id, word]));
 }
 
 export async function countUserWords(userId: string): Promise<number> {
