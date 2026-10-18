@@ -40,8 +40,16 @@ export function isAiConfigured() {
   return Boolean(env.ai.apiKey());
 }
 
+/**
+ * The model name as stored on a cache row. A missing value is not fatal here:
+ * it is only a label, and the real requirement is enforced when a call is made.
+ */
 export function aiModel() {
-  return env.ai.model();
+  try {
+    return env.ai.model();
+  } catch {
+    return "unknown";
+  }
 }
 
 function recordSuccess() {
@@ -70,7 +78,22 @@ export async function chatCompletion(
     throw new AiUnavailableError("Translation provider is cooling down.");
   }
 
-  const { apiKey, baseUrl, model, timeoutMs } = config();
+  // A missing variable is a configuration mistake, not a provider fault. Report
+  // it the same way as an outage so the caller's fallback path logs one line
+  // instead of an unexpected-error stack.
+  let settings: ReturnType<typeof config>;
+  try {
+    settings = config();
+  } catch (error) {
+    throw new AiUnavailableError(
+      error instanceof Error
+        ? error.message
+        : "Translation provider is misconfigured.",
+      { cause: error },
+    );
+  }
+
+  const { apiKey, baseUrl, model, timeoutMs } = settings;
 
   try {
     const content = await requestCompletion({
