@@ -219,16 +219,16 @@ Panel **tidak** memuat kartu ajakan drill; fitur drill dihapus dari detail kata.
 
 #### F.1 Urutan Blok
 
-1. **Panel header** — label `Detail Words` 12px/`600` + badge `Already memorised` (opsional) + tombol tutup `X` (`aria-label="Close detail"`), dipisah garis `1px` `#F1F5F9`.
-2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` rata kanan atas.
-3. **Meaning** — kartu utama, satu-satunya blok dengan latar `#FAFAFA`.
+1. **Panel header** — label `Detail Words` 12px/`600` + tombol tutup `X` (`aria-label="Close detail"`). Garis bawah `1px` `#F1F5F9` **harus menyentuh tepi kiri dan kanan kartu**: header memakai margin negatif sebesar padding kartu (`-mx-4 px-4`) agar border tidak terlihat menjorok ke dalam.
+2. **Identitas kata** — kata 26px/`700` `wrap-anywhere`; baris kedua berisi fonetik 13px `italic` `#64748B` + chip POS; tombol `Listen` varian compact (`h-8`, 12px) rata kanan atas.
+3. **Meaning** — judul seksi + isi, tanpa kartu pembungkus (flat).
 4. **Word Forms** — chip datar, hanya dirender bila ada.
 5. **Example Sentences** — kartu bernomor, maksimal 3.
 6. **Synonyms / Antonyms** — baris chip, hanya dirender bila ada.
-7. **Status hafalan** — kartu ringkasan + riwayat review + aksi hapus.
+7. **Status hafalan** — satu kartu ringkas: status, jumlah review, dan aksi hapus.
 8. **Source** — tautan lisensi, dipisah garis atas.
 
-Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`.
+Jarak antar blok `20px` (`mt-5`) dan jarak di dalam blok `16px` (`py-4`, `gap-4`) agar tidak terasa padat.
 
 #### F.2 Blok Meaning
 
@@ -244,7 +244,10 @@ Jarak antar blok konsisten `16px` (`mt-4`); jarak di dalam kartu `12px`–`14px`
 - **Word Forms**: chip 11px/`500`, `rounded-md`, dipisah `gap-1.5`; tidak memakai pemisah `·`.
 - **Example Sentences**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
 - **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
-- **Status hafalan**: kartu `bg #FAFAFA`, ikon `CheckCircle2` `#16A34A`, riwayat sebagai `dl` dua kolom 12px, konfirmasi hapus inline (bukan `window.confirm`).
+- **Status hafalan**: kartu ringkas `bg #FAFAFA` berisi ikon `CheckCircle2` `#16A34A`, teks `Already memorised`, jumlah review (`N total reviews` / `No reviews yet`), lalu dua aksi di sisi kanan:
+  - **`Remembered`** — tombol compact primary (ikon `Check`), memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`. Ini satu-satunya cara manual menambah `review_count` sekarang karena UI drill sudah dihapus. Saat request berjalan tombol menjadi `Saving…` dan kedua tombol disabled.
+  - **`Remove`** — tombol compact outline (ikon `Trash2`), membuka konfirmasi inline di bawah baris (bukan `window.confirm`).
+    Detail tanggal, riwayat lengkap, dan hitungan ingat/lupa **tidak** ditampilkan agar tetap ringkas.
 - **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
 
 ### G. Profile Page

@@ -63,6 +63,7 @@ export function EnWordsApp() {
   const [notice, setNotice] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [unsavingKey, setUnsavingKey] = useState<string | null>(null);
+  const [reviewingKey, setReviewingKey] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
 
@@ -363,6 +364,44 @@ export function EnWordsApp() {
     }
   }
 
+  /**
+   * Records a successful recall. This is the only manual way to grow the review
+   * counters now that the drill UI is gone, so it updates both the detail cache
+   * and the list.
+   */
+  async function reviewWord(word: SavedWord) {
+    if (reviewingKey) return;
+    setReviewingKey(word.id);
+    setNotice(null);
+    try {
+      const response = await request<ApiEnvelope<SavedWord>>(
+        `/api/words/${word.id}/review`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ result: "remembered" }),
+        },
+      );
+      queryClient.setQueryData<ApiEnvelope<SavedWord>>(
+        ["remembered-word", word.id],
+        (current) =>
+          current
+            ? { ...current, data: response.data }
+            : { data: response.data },
+      );
+      setSelectedSavedWord(response.data);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["remembered-words"] }),
+        queryClient.invalidateQueries({ queryKey: ["streak"] }),
+      ]);
+      setNotice(`"${word.word}" marked as remembered.`);
+    } catch (error) {
+      setNotice(messageFor(error, "Unable to record the review."));
+    } finally {
+      setReviewingKey(null);
+    }
+  }
+
   return (
     <>
       <div className="grid-pattern flex min-h-dvh flex-col bg-canvas px-4 pt-[4.5rem] pb-[calc(5rem_+_env(safe-area-inset-bottom))] sm:px-6 lg:h-dvh lg:overflow-hidden lg:px-6 lg:pt-6 lg:pb-6">
@@ -449,12 +488,18 @@ export function EnWordsApp() {
                 isUnsaving: Boolean(
                   detailSavedWord && unsavingKey === detailSavedWord.id,
                 ),
+                isReviewing: Boolean(
+                  detailSavedWord && reviewingKey === detailSavedWord.id,
+                ),
                 onSave:
                   signedIn && detailWord && !detailSavedWord
                     ? () => void saveSelected()
                     : undefined,
                 onUnsave: detailSavedWord
                   ? () => void unsaveWord(detailSavedWord)
+                  : undefined,
+                onReview: detailSavedWord
+                  ? () => void reviewWord(detailSavedWord)
                   : undefined,
                 onSignIn: !signedIn ? openAuthModal : undefined,
                 onRetry: () => {

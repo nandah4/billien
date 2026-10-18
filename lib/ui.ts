@@ -17,3 +17,11 @@ const headerControl =
   "inline-flex h-9 items-center justify-center gap-2 rounded-lg px-3 text-[13px] font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-50";
 
 export const headerOutline = `${headerControl} border border-line bg-surface text-ink hover:bg-hover`;
+
+// Same treatment at a tighter size, for secondary actions inside a panel.
+export const compactOutline =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[12px] font-semibold text-ink transition hover:bg-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
+
+// Compact counterpart of `primaryButton`, for the main action in a small card.
+export const compactPrimary =
+  "inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-primary px-2.5 text-[12px] font-semibold text-surface transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus";
