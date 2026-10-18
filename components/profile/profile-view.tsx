@@ -18,11 +18,9 @@ import {
   UserRound,
 } from "lucide-react";
 import { LanguagePickerModal } from "@/components/preferences/language-picker-modal";
-import { TodayWordsChart } from "@/components/profile/today-words-chart";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
 import {
-  analyticsQueryOptions,
   messageFor,
   recallStatsQueryOptions,
   request,
@@ -57,7 +55,7 @@ function Group({
       <h2 className="px-4 pt-3 pb-1 text-[11px] font-semibold tracking-wider text-muted uppercase">
         {title}
       </h2>
-      <div className="divide-y divide-line-soft">{children}</div>
+      <div className="divide-none">{children}</div>
     </section>
   );
 }
@@ -115,7 +113,6 @@ export function ProfileView({
   const [signingOut, setSigningOut] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
   const recallStats = useQuery(recallStatsQueryOptions(true));
-  const analytics = useQuery(analyticsQueryOptions(true, { preset: "7d" }));
 
   const activeLanguage =
     LANGUAGES.find((item) => item.code === language) ?? LANGUAGES[0];
@@ -232,7 +229,7 @@ export function ProfileView({
 
             <div className="mt-4 grid gap-4 px-4 sm:px-6 lg:px-0">
               <GroupCard>
-                <div className="grid divide-y divide-line-soft sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                <div className="grid divide-none sm:grid-cols-2 ">
                   <Group title="Account">
                     <ValueRow
                       icon={UserRound}
@@ -277,7 +274,7 @@ export function ProfileView({
               </GroupCard>
 
               <GroupCard>
-                <div className="grid divide-y divide-line-soft sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                <div className="grid divide-none sm:grid-cols-2 ">
                   <Group title="Progress">
                     <ValueRow
                       icon={BookMarked}
@@ -312,13 +309,6 @@ export function ProfileView({
                           : "—"
                       }
                     />
-                    <Link
-                      className={`${rowClass} justify-center font-semibold text-accent hover:bg-accent-soft`}
-                      href="/recall"
-                    >
-                      <Brain size={16} aria-hidden="true" />
-                      <span className="text-[14px]">Start practising</span>
-                    </Link>
                   </Group>
                 </div>
               </GroupCard>
@@ -359,14 +349,14 @@ export function ProfileView({
           </div>
 
           {/* Right column: today's word count with the week behind it. */}
-          <aside className="mt-4 px-4 sm:px-6 lg:sticky lg:top-0 lg:mt-0 lg:px-0">
+          {/*<aside className="mt-4 px-4 sm:px-6 lg:sticky lg:top-0 lg:mt-0 lg:px-0">
             <div className="rounded-xl border border-line bg-surface p-4">
               <TodayWordsChart
                 series={analytics.data?.series ?? []}
                 isLoading={analytics.isLoading}
               />
             </div>
-          </aside>
+          </aside>*/}
         </div>
       </div>
 
