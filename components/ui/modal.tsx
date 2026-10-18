@@ -1,7 +1,18 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useRef,
+  useSyncExternalStore,
+  type ReactNode,
+  type RefObject,
+} from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+
+function subscribeToNothing() {
+  return () => {};
+}
 
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -40,6 +51,15 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const onCloseRef = useRef(onClose);
   const canDismissRef = useRef(canDismiss);
+
+  // Portalled to the body so no ancestor stacking context can trap it. The app
+  // shell uses `isolation: isolate` for its background texture, which would
+  // otherwise paint the fixed bottom navigation above a z-50 dialog.
+  const mounted = useSyncExternalStore(
+    subscribeToNothing,
+    () => true,
+    () => false,
+  );
 
   // Keep the latest handlers without re-running the open/close effect, so the
   // scroll lock and focus restoration are not reset on every parent render.
@@ -100,37 +120,40 @@ export function Modal({
     onCloseRef.current();
   }
 
-  return (
-    <AnimatePresence>
-      {open ? (
-        <motion.div
-          className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${overlayClassName}`}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.18, ease: "easeOut" }}
-          onClick={(event) => {
-            if (event.target === event.currentTarget) requestClose();
-          }}
-        >
-          <motion.div
-            ref={panelRef}
-            className={`w-full ${maxWidthClass} rounded-xl border border-line bg-surface ${panelClassName} shadow-xl outline-none`}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby={labelledBy}
-            aria-label={labelledBy ? undefined : label}
-            aria-describedby={describedBy}
-            tabIndex={-1}
-            initial={{ opacity: 0, y: 12, scale: 0.97 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.98 }}
-            transition={{ type: "spring", stiffness: 320, damping: 26 }}
-          >
-            {children}
-          </motion.div>
-        </motion.div>
-      ) : null}
-    </AnimatePresence>
-  );
+  return mounted
+    ? createPortal(
+        <AnimatePresence>
+          {open ? (
+            <motion.div
+              className={`fixed inset-0 z-50 flex items-center justify-center bg-black/50 ${overlayClassName}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              onClick={(event) => {
+                if (event.target === event.currentTarget) requestClose();
+              }}
+            >
+              <motion.div
+                ref={panelRef}
+                className={`w-full ${maxWidthClass} rounded-xl border border-line bg-surface ${panelClassName} shadow-xl outline-none`}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={labelledBy}
+                aria-label={labelledBy ? undefined : label}
+                aria-describedby={describedBy}
+                tabIndex={-1}
+                initial={{ opacity: 0, y: 12, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ type: "spring", stiffness: 320, damping: 26 }}
+              >
+                {children}
+              </motion.div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>,
+        document.body,
+      )
+    : null;
 }
