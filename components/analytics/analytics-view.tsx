@@ -77,7 +77,7 @@ export function AnalyticsView() {
 
   if (isSessionPending) {
     return (
-      <div className="mx-auto w-full max-w-3xl pt-3">
+      <div className="mx-auto w-full max-w-5xl pt-3">
         {back}
         <div className="mt-2">
           <Skeleton />
@@ -88,7 +88,7 @@ export function AnalyticsView() {
 
   if (!signedIn) {
     return (
-      <div className={`${cardClass} mx-auto mt-3 w-full max-w-3xl p-6`}>
+      <div className={`${cardClass} mx-auto mt-3 w-full max-w-5xl p-6`}>
         <EmptyState
           image={helloImage}
           title="Sign in to see your analytics"
@@ -118,7 +118,7 @@ export function AnalyticsView() {
   );
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
       {/* This page owns its header: on phones the back control and the title
           replace the app bar, so they stay pinned while the report scrolls. */}
       <header className="sticky top-0 z-30 -mx-4 flex flex-wrap items-center justify-between gap-2 border-b border-line bg-canvas/95 px-4 pt-[calc(env(safe-area-inset-top)_+_0.5rem)] pb-2.5 backdrop-blur-sm sm:-mx-6 sm:px-6 lg:static lg:mx-0 lg:border-b-0 lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-0 lg:backdrop-blur-none">

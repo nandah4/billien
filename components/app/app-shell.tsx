@@ -108,16 +108,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             bleed ? "gap-0 lg:gap-4" : "gap-4"
           }`}
         >
-          <AppHeader
-            signedIn={signedIn}
-            isSessionPending={isSessionPending}
-            sessionLabel={sessionLabel}
-            streak={streakQuery.data ?? 0}
-            actionLoading={signingOut}
-            onSignOut={() => void signOut()}
-            onSignIn={openAuth}
-            showMobileBar={!bare}
-          />
+          {bare ? null : (
+            <AppHeader
+              signedIn={signedIn}
+              isSessionPending={isSessionPending}
+              sessionLabel={sessionLabel}
+              streak={streakQuery.data ?? 0}
+              actionLoading={signingOut}
+              onSignOut={() => void signOut()}
+              onSignIn={openAuth}
+            />
+          )}
 
           {children}
         </div>

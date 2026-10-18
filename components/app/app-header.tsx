@@ -29,7 +29,6 @@ export function AppHeader({
   actionLoading,
   onSignOut,
   onSignIn,
-  showMobileBar = true,
 }: {
   signedIn: boolean;
   isSessionPending: boolean;
@@ -38,21 +37,17 @@ export function AppHeader({
   actionLoading: boolean;
   onSignOut: () => void;
   onSignIn: () => void;
-  /** A page that owns its header hides the bar; the desktop chrome stays. */
-  showMobileBar?: boolean;
 }) {
   const view = viewFromPathname(usePathname());
 
   return (
     <>
-      {showMobileBar ? (
-        <MobileAppBar
-          signedIn={signedIn}
-          isSessionPending={isSessionPending}
-          streak={streak}
-          onSignIn={onSignIn}
-        />
-      ) : null}
+      <MobileAppBar
+        signedIn={signedIn}
+        isSessionPending={isSessionPending}
+        streak={streak}
+        onSignIn={onSignIn}
+      />
 
       <div className="hidden shrink-0 flex-col gap-3 lg:flex lg:flex-row">
         <header
