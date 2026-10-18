@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bookmark, Compass, LogIn, UserRound } from "lucide-react";
+import { Bookmark, Brain, Compass, LogIn, UserRound } from "lucide-react";
 import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
 
 const ICONS: Record<View, typeof Compass> = {
   discovery: Compass,
   remembered: Bookmark,
+  recall: Brain,
 };
 
 const itemClass =
-  "flex flex-1 flex-col items-center justify-center gap-1 py-2 text-[10px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
+  "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 px-0.5 py-2 text-[10px] font-medium transition focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-focus";
 
 function ItemBody({
   icon: Icon,
@@ -31,7 +32,11 @@ function ItemBody({
       >
         <Icon size={18} aria-hidden="true" />
       </span>
-      <span className={active ? "text-accent" : "text-muted"}>{label}</span>
+      <span
+        className={`max-w-full truncate ${active ? "text-accent" : "text-muted"}`}
+      >
+        {label}
+      </span>
     </>
   );
 }

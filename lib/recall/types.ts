@@ -39,6 +39,8 @@ export type RecallCard = {
 };
 
 export type RecallAttemptResult = {
+  /** Needed by the client to offer the self-override. */
+  attemptId: string;
   outcome: RecallOutcome;
   expected: string;
   word: string;
@@ -73,4 +75,17 @@ export type RecallStats = {
   accuracy7d: number;
   attempts7d: number;
   weakest: { id: string; word: string; lapses: number; accuracy: number }[];
+};
+
+/** One ready-to-render session, as returned by `GET /api/recall/session`. */
+export type RecallSession = {
+  mode: RecallMode | "auto";
+  scope: RecallScope;
+  language: string;
+  /** Every word the user has saved, not just the eligible ones. */
+  librarySize: number;
+  minLibrarySize: number;
+  totalDue: number;
+  totalEligible: number;
+  cards: RecallCard[];
 };

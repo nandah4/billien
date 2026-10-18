@@ -1,9 +1,10 @@
-export type View = "discovery" | "remembered";
+export type View = "discovery" | "remembered" | "recall";
 
-/** The two word views, in navigation order. `/` is Discovery. */
+/** The word views, in navigation order. `/` is Discovery. */
 export const NAV_ITEMS: { id: View; label: string; href: string }[] = [
   { id: "discovery", label: "Discovery", href: "/" },
   { id: "remembered", label: "Remembered", href: "/remembered" },
+  { id: "recall", label: "Recall", href: "/recall" },
 ];
 
 /**
@@ -13,6 +14,9 @@ export const NAV_ITEMS: { id: View; label: string; href: string }[] = [
 export function viewFromPathname(pathname: string | null): View {
   if (pathname === "/remembered" || pathname?.startsWith("/remembered/")) {
     return "remembered";
+  }
+  if (pathname === "/recall" || pathname?.startsWith("/recall/")) {
+    return "recall";
   }
   return "discovery";
 }

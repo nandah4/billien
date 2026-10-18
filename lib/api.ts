@@ -1,4 +1,9 @@
 import type { DictionaryResult, SavedWord, UserPreferences } from "@/lib/types";
+import type {
+  RecallScope,
+  RecallSession,
+  RecallStats,
+} from "@/lib/recall/types";
 
 export type ApiEnvelope<T> = {
   data: T;
@@ -78,5 +83,40 @@ export function streakQueryOptions(enabled: boolean) {
     queryFn: ({ signal }: { signal: AbortSignal }) =>
       request<ApiEnvelope<unknown[]>>("/api/streak", { signal }),
     select: (response: ApiEnvelope<unknown[]>) => response.currentStreak ?? 0,
+  };
+}
+
+/**
+ * A session is built once and played to the end, so it is never refetched
+ * behind the user's back. `gcTime: 0` drops it when the tab unmounts, which is
+ * what makes returning to Recall start a fresh queue.
+ */
+export function recallSessionQueryOptions(
+  enabled: boolean,
+  scope: RecallScope = "due",
+) {
+  return {
+    queryKey: ["recall-session", scope],
+    enabled,
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<RecallSession>>(
+        `/api/recall/session?scope=${scope}`,
+        { signal },
+      ),
+    select: (response: ApiEnvelope<RecallSession>) => response.data,
+    staleTime: Number.POSITIVE_INFINITY,
+    gcTime: 0,
+    refetchOnWindowFocus: false,
+    retry: false,
+  };
+}
+
+export function recallStatsQueryOptions(enabled: boolean) {
+  return {
+    queryKey: ["recall-stats"],
+    enabled,
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<RecallStats>>("/api/recall/stats", { signal }),
+    select: (response: ApiEnvelope<RecallStats>) => response.data,
   };
 }

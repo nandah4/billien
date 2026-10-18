@@ -3,21 +3,28 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  BookMarked,
+  Brain,
   ChevronLeft,
   ChevronRight,
   Flame,
   Languages,
   LogOut,
   Mail,
-  BookMarked,
+  Target,
   UserRound,
 } from "lucide-react";
 import { LanguagePickerModal } from "@/components/preferences/language-picker-modal";
 import { toast } from "sonner";
 import { authClient } from "@/lib/auth-client";
-import { messageFor, request, type ApiEnvelope } from "@/lib/api";
+import {
+  messageFor,
+  recallStatsQueryOptions,
+  request,
+  type ApiEnvelope,
+} from "@/lib/api";
 import { LANGUAGES, normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
 
@@ -98,6 +105,7 @@ export function ProfileView({
   const [savingLanguage, setSavingLanguage] = useState<string | null>(null);
   const [signingOut, setSigningOut] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const recallStats = useQuery(recallStatsQueryOptions(true));
 
   const activeLanguage =
     LANGUAGES.find((item) => item.code === language) ?? LANGUAGES[0];
@@ -243,6 +251,30 @@ export function ProfileView({
               summary.currentStreak === 1 ? "day" : "days"
             }`}
           />
+        </SectionCard>
+
+        <SectionCard title="Recall">
+          <ValueRow
+            icon={Brain}
+            label="Due today"
+            value={recallStats.data ? String(recallStats.data.dueToday) : "—"}
+          />
+          <ValueRow
+            icon={Target}
+            label="Accuracy (7 days)"
+            value={
+              recallStats.data
+                ? `${Math.round(recallStats.data.accuracy7d * 100)}%`
+                : "—"
+            }
+          />
+          <Link
+            className={`${rowClass} justify-center font-semibold text-accent hover:bg-accent-soft`}
+            href="/recall"
+          >
+            <Brain size={16} aria-hidden="true" />
+            <span className="text-[14px]">Start practising</span>
+          </Link>
         </SectionCard>
 
         <SectionCard>

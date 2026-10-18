@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bookmark, Compass } from "lucide-react";
+import { Bookmark, Brain, Compass } from "lucide-react";
 import { AccountControls } from "@/components/app/account-controls";
 import { MobileAppBar } from "@/components/app/mobile-app-bar";
 import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
@@ -11,6 +11,7 @@ import { cardClass } from "@/lib/ui";
 const ICONS: Record<View, typeof Compass> = {
   discovery: Compass,
   remembered: Bookmark,
+  recall: Brain,
 };
 
 /**
