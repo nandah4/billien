@@ -90,11 +90,15 @@ Urutan panel setelah implementasi:
    nomor, POS, badge `AI` per sense, chip terjemahan, definisi Inggris, dan
    satu contoh. Tiga sense pertama tampil; sisanya di balik `Show N more`.
    Sense yang punya terjemahan selalu diurutkan lebih dulu.
-4. **English definitions** — gloss form-of tidak pernah masuk daftar ini.
-5. **Word Forms** — dikelompokkan per POS, chip membawa tag (`past`, `plural`),
+4. **Word Forms** — dikelompokkan per POS, chip membawa tag (`past`, `plural`),
    dan bisa diklik bila panel punya handler navigasi. Kata yang sedang dibuka
    tidak dicantumkan di daftarnya sendiri.
-6. Contoh, sinonim/antonim, footer review, dan source seperti sebelumnya.
+5. Sinonim/antonim, footer review, dan source seperti sebelumnya.
+
+Section **English definitions** dan **Example Sentences** sudah dihapus: keduanya
+sekarang duplikat dari blok Meanings, yang menampilkan definisi dan satu contoh
+per sense. Daftar makna juga menampilkan lebih banyak sense daripada daftar
+definisi lama (20 vs 8), jadi tidak ada cakupan yang hilang.
 
 ## Hasil validasi (provider langsung)
 

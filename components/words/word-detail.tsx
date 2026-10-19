@@ -14,17 +14,15 @@ import {
   X,
 } from "lucide-react";
 import {
-  collectExamples,
   collectFormGroups,
   collectTags,
   distinctPartsOfSpeech,
   isSavedWord,
-  primaryDefinition,
   senseMeanings,
 } from "@/lib/library";
 import { languageLabel } from "@/lib/language";
-import { formKindLabel, parseFormOf } from "@/lib/word-forms";
-import type { DictionaryResult, Entry, SavedWord } from "@/lib/types";
+import { formKindLabel } from "@/lib/word-forms";
+import type { DictionaryResult, SavedWord } from "@/lib/types";
 import {
   compactOutline,
   compactPrimary,
@@ -174,23 +172,6 @@ function TagRow({
   );
 }
 
-function definitions(entries: Entry[]) {
-  const out: { partOfSpeech: string; definition: string }[] = [];
-  for (const entry of entries) {
-    for (const sense of entry.senses) {
-      if (!sense.definition) continue;
-      // A form-of gloss states a relation, not a meaning.
-      if (parseFormOf(sense.definition)) continue;
-      out.push({
-        partOfSpeech: entry.partOfSpeech,
-        definition: sense.definition,
-      });
-      if (out.length >= 8) return out;
-    }
-  }
-  return out;
-}
-
 export function WordDetail({
   word,
   preferredLanguage,
@@ -312,7 +293,6 @@ export function WordDetail({
   const visibleMeanings = showAllMeanings
     ? meanings
     : meanings.slice(0, MEANINGS_VISIBLE);
-  const englishDefinitions = definitions(entries);
   const formGroups = collectFormGroups(entries);
   // A form never lists itself, so the chip row stays a navigation aid.
   const visibleFormGroups = formGroups
@@ -323,11 +303,9 @@ export function WordDetail({
       ),
     }))
     .filter((group) => group.forms.length > 0);
-  const examples = collectExamples(entries);
   const synonyms = collectTags(entries, "synonyms");
   const antonyms = collectTags(entries, "antonyms");
   const source = word.source;
-  const fallbackDefinition = primaryDefinition({ entries });
 
   return (
     <article>
@@ -453,7 +431,7 @@ export function WordDetail({
           <p className="text-[13px] text-muted">
             {formOf && !lemma
               ? `Meanings for “${formOf.lemma}” are unavailable right now.`
-              : "No translation available for this language yet."}
+              : "No meanings available for this word yet."}
           </p>
         )}
 
@@ -468,44 +446,7 @@ export function WordDetail({
               : `Show ${meanings.length - MEANINGS_VISIBLE} more`}
           </button>
         ) : null}
-
-        {meanings.length === 0 &&
-        englishDefinitions.length === 0 &&
-        fallbackDefinition &&
-        !(formOf && !lemma) ? (
-          <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-            {fallbackDefinition}
-          </p>
-        ) : null}
       </div>
-
-      {englishDefinitions.length > 0 ? (
-        <details className="group py-3">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            <ChevronRight
-              size={13}
-              className="transition-transform group-open:rotate-90"
-              aria-hidden="true"
-            />
-            English definitions
-          </summary>
-          <ol className="mt-2 grid list-none gap-2 p-0">
-            {englishDefinitions.map((item, index) => (
-              <li
-                className="text-[12px] leading-relaxed text-ink-soft"
-                key={`${item.partOfSpeech}-${index}`}
-              >
-                {item.partOfSpeech ? (
-                  <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
-                    {item.partOfSpeech}
-                  </span>
-                ) : null}
-                {item.definition}
-              </li>
-            ))}
-          </ol>
-        </details>
-      ) : null}
 
       {visibleFormGroups.length > 0 ? (
         <section className="mt-5">
@@ -556,42 +497,6 @@ export function WordDetail({
           </div>
         </section>
       ) : null}
-
-      <section className="mt-5">
-        <SectionHeading
-          aside={
-            examples.length > 0 ? (
-              <span className="text-[11px] font-medium text-accent">
-                {examples.length}{" "}
-                {examples.length === 1 ? "Example" : "Examples"}
-              </span>
-            ) : null
-          }
-        >
-          Example Sentences
-        </SectionHeading>
-        {examples.length > 0 ? (
-          <ol className="mt-2.5 grid list-none gap-2.5 p-0">
-            {examples.map((example, index) => (
-              <li
-                className="flex gap-2.5 rounded-lg border border-line bg-surface p-3"
-                key={`${example}-${index}`}
-              >
-                <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[11px] font-bold text-accent">
-                  {index + 1}
-                </span>
-                <p className="text-[13px] leading-relaxed text-ink-soft">
-                  &ldquo;{example}&rdquo;
-                </p>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="mt-2 text-[12px] text-muted">
-            No example sentences for this word.
-          </p>
-        )}
-      </section>
 
       {synonyms.length > 0 || antonyms.length > 0 ? (
         <section className="mt-5 grid gap-2.5">

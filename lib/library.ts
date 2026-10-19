@@ -160,42 +160,6 @@ export function collectTags(
   return out;
 }
 
-export function collectExamples(entries: Entry[], limit = 3) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const entry of entries) {
-    for (const sense of entry.senses ?? []) {
-      for (const value of sense.examples ?? []) {
-        const example = value?.trim();
-        if (!example) continue;
-        const key = example.toLowerCase();
-        if (seen.has(key)) continue;
-        seen.add(key);
-        out.push(example);
-        if (out.length >= limit) return out;
-      }
-    }
-  }
-  return out;
-}
-
-export function collectForms(entries: Entry[], limit = 12) {
-  const seen = new Set<string>();
-  const out: string[] = [];
-  for (const entry of entries) {
-    for (const form of entry.forms ?? []) {
-      const word = form.word?.trim();
-      if (!word) continue;
-      const key = word.toLowerCase();
-      if (seen.has(key)) continue;
-      seen.add(key);
-      out.push(word);
-      if (out.length >= limit) return out;
-    }
-  }
-  return out;
-}
-
 export type FormGroup = {
   partOfSpeech: string;
   forms: WordForm[];
