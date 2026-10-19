@@ -21,6 +21,8 @@ type DetailProps = {
     onReview?: () => void;
     onSignIn?: () => void;
     onRetry?: () => void;
+    /** Opens a form chip or the lemma inside the same panel. */
+    onOpenWord?: (word: string) => void;
     /** Position inside the list the detail was opened from. */
     navigation?: {
       index: number;
@@ -50,6 +52,7 @@ function DetailBody({
       onReview={detail.onReview}
       onSignIn={detail.onSignIn}
       onRetry={detail.onRetry}
+      onOpenWord={detail.onOpenWord}
       navigation={detail.navigation}
       onClose={onClose}
       showHeader={showHeader}

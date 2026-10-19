@@ -4,14 +4,17 @@ import {
   ALPHABET,
   OTHER_LETTER,
   availableLetters,
+  collectFormGroups,
   filterByLetter,
   letterOf,
   paginate,
   searchItems,
+  senseMeanings,
   sortItems,
   translationGroups,
   type LibraryWord,
 } from "../lib/library.ts";
+import type { Entry } from "../lib/types.ts";
 
 function word(
   name: string,
@@ -281,4 +284,135 @@ test("filterByLetter on an empty letter yields no items", () => {
 
   assert.deepEqual(filterByLetter(items, "b"), []);
   assert.equal(filterByLetter(items, "a").length, 2);
+});
+
+function sense(
+  definition: string,
+  translations: Record<string, string[]>,
+  extra = {},
+) {
+  return {
+    definition,
+    tags: [],
+    examples: [],
+    synonyms: [],
+    antonyms: [],
+    translations,
+    ...extra,
+  };
+}
+
+test("senseMeanings keeps two senses with the same part of speech apart", () => {
+  const entries: Entry[] = [
+    {
+      partOfSpeech: "noun",
+      pronunciations: [],
+      forms: [],
+      senses: [
+        sense("A hand-held device.", { id: ["kipas"] }),
+        sense("An admirer.", { id: ["penggemar"] }),
+      ],
+    },
+  ];
+
+  const meanings = senseMeanings(entries, "id");
+  assert.equal(meanings.length, 2);
+  assert.deepEqual(meanings[0].words, ["kipas"]);
+  assert.deepEqual(meanings[1].words, ["penggemar"]);
+});
+
+test("senseMeanings skips a form-of gloss and keeps the AI source per sense", () => {
+  const entries: Entry[] = [
+    {
+      partOfSpeech: "verb",
+      pronunciations: [],
+      forms: [],
+      senses: [
+        sense("simple past of run", { id: ["berlari"] }),
+        sense(
+          "To flow.",
+          { id: ["mengalir"] },
+          { translationSource: "ai" as const },
+        ),
+      ],
+    },
+  ];
+
+  const meanings = senseMeanings(entries, "id");
+  assert.equal(meanings.length, 1);
+  assert.equal(meanings[0].definition, "To flow.");
+  assert.equal(meanings[0].source, "ai");
+});
+
+test("senseMeanings shows translated senses first", () => {
+  const entries: Entry[] = [
+    {
+      partOfSpeech: "verb",
+      pronunciations: [],
+      forms: [],
+      senses: [
+        sense("An untranslated sense.", {}),
+        sense("A translated sense.", { id: ["lari"] }),
+      ],
+    },
+  ];
+
+  const meanings = senseMeanings(entries, "id");
+  assert.deepEqual(meanings[0].words, ["lari"]);
+  assert.equal(meanings[1].words.length, 0);
+});
+
+test("senseMeanings caps the list", () => {
+  const entries: Entry[] = [
+    {
+      partOfSpeech: "verb",
+      pronunciations: [],
+      forms: [],
+      senses: Array.from({ length: 30 }, (_, index) =>
+        sense(`Sense ${index}.`, {}),
+      ),
+    },
+  ];
+
+  assert.equal(senseMeanings(entries, "id").length, 20);
+});
+
+test("collectFormGroups groups by part of speech and keeps tags", () => {
+  const entries: Entry[] = [
+    {
+      partOfSpeech: "verb",
+      pronunciations: [],
+      forms: [
+        { word: "runs", tags: ["present", "singular", "third-person"] },
+        { word: "ran", tags: ["past"] },
+      ],
+      senses: [],
+    },
+    {
+      partOfSpeech: "noun",
+      pronunciations: [],
+      forms: [
+        { word: "runs", tags: ["plural"] },
+        { word: "run", tags: ["singular"] },
+      ],
+      senses: [],
+    },
+  ];
+
+  const groups = collectFormGroups(entries);
+  assert.equal(groups.length, 2);
+  assert.deepEqual(
+    groups[0].forms.map((form) => form.word),
+    ["runs", "ran"],
+  );
+  assert.deepEqual(groups[0].forms[0].tags, [
+    "present",
+    "singular",
+    "third-person",
+  ]);
+  // `runs` is deduplicated across entries.
+  assert.deepEqual(
+    groups[1].forms.map((form) => form.word),
+    ["run"],
+  );
 });

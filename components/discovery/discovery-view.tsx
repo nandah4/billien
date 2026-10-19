@@ -108,6 +108,16 @@ export function DiscoveryView() {
     setSelectedName(item.key);
   }
 
+  /**
+   * Follow a form chip or the lemma link. The lookup is debounced, so the panel
+   * closes for a moment and reopens on the new word once it resolves.
+   */
+  function openWord(next: string) {
+    const value = next.trim();
+    setQuery(value);
+    setSelectedName(value.toLowerCase());
+  }
+
   // A 404 is an expected outcome for an unknown word, so it becomes the list's
   // empty state; anything else is a real failure worth an alert.
   const lookupError =
@@ -213,6 +223,7 @@ export function DiscoveryView() {
             ? () => void actions.reviewWord(detailSavedWord)
             : undefined,
           onSignIn: signedIn ? undefined : openAuth,
+          onOpenWord: openWord,
           onRetry: () => {
             if (detailSavedWord) void savedDetailQuery.refetch();
             else void dictionaryQuery.refetch();

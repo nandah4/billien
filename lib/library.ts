@@ -1,4 +1,5 @@
-import type { Entry, SavedWord } from "@/lib/types";
+import type { Entry, SavedWord, WordForm } from "@/lib/types";
+import { parseFormOf } from "./word-forms.ts";
 
 export type SortId = "recent" | "az" | "reviews";
 
@@ -193,6 +194,103 @@ export function collectForms(entries: Entry[], limit = 12) {
     }
   }
   return out;
+}
+
+export type FormGroup = {
+  partOfSpeech: string;
+  forms: WordForm[];
+};
+
+/**
+ * Forms grouped by the part of speech that produces them, deduplicated across
+ * entries. The tags are kept so the UI can say *which* form a chip is.
+ */
+export function collectFormGroups(entries: Entry[], limit = 12): FormGroup[] {
+  const groups: FormGroup[] = [];
+  const positions = new Map<string, number>();
+  const seen = new Set<string>();
+  let total = 0;
+
+  for (const entry of entries) {
+    const partOfSpeech = entry.partOfSpeech?.trim() ?? "";
+    for (const form of entry.forms ?? []) {
+      const word = form.word?.trim();
+      if (!word) continue;
+
+      const key = word.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      const groupKey = partOfSpeech.toLowerCase();
+      let position = positions.get(groupKey);
+      if (position === undefined) {
+        position = groups.length;
+        positions.set(groupKey, position);
+        groups.push({ partOfSpeech, forms: [] });
+      }
+      groups[position].forms.push({ word, tags: form.tags ?? [] });
+
+      total += 1;
+      if (total >= limit) return groups;
+    }
+  }
+
+  return groups;
+}
+
+export type SenseMeaning = {
+  partOfSpeech: string;
+  definition: string;
+  words: string[];
+  example: string | null;
+  source?: "ai";
+};
+
+/**
+ * One row per sense, never merged by part of speech: two noun senses of `run`
+ * mean different things. A form-of gloss is a grammatical relation rather than
+ * a meaning, so it is skipped here; the lemma carries the real senses.
+ *
+ * Senses with a translation come first so the first three rows are useful.
+ */
+export function senseMeanings(
+  entries: Entry[],
+  language: string,
+  {
+    limitPerSense = 4,
+    limit = 20,
+  }: { limitPerSense?: number; limit?: number } = {},
+): SenseMeaning[] {
+  const out: SenseMeaning[] = [];
+  const seen = new Set<string>();
+
+  for (const entry of entries) {
+    for (const sense of entry.senses ?? []) {
+      const definition = sense.definition?.trim() ?? "";
+      if (definition && parseFormOf(definition)) continue;
+
+      const words = (sense.translations[language] ?? [])
+        .filter(Boolean)
+        .slice(0, limitPerSense);
+      if (words.length === 0 && !definition) continue;
+
+      const key = `${entry.partOfSpeech}|${definition}|${words.join(",")}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+
+      out.push({
+        partOfSpeech: entry.partOfSpeech,
+        definition,
+        words,
+        example: sense.examples?.[0]?.trim() || null,
+        source: sense.translationSource,
+      });
+    }
+  }
+
+  const translated = out.filter((meaning) => meaning.words.length > 0);
+  const rest = out.filter((meaning) => meaning.words.length === 0);
+  return [...translated, ...rest].slice(0, limit);
 }
 
 export type TranslationGroup = {

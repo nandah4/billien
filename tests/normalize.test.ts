@@ -108,6 +108,69 @@ test("projects a saved word map and keeps every language for all", () => {
   );
 });
 
+test("drops Wiktionary parser scaffolding from forms", () => {
+  const result = normalizeDictionary({
+    word: "run",
+    entries: [
+      {
+        partOfSpeech: "verb",
+        senses: [],
+        forms: [
+          { word: "runs", tags: ["present"] },
+          { word: "no-table-tags", tags: ["table-tags"] },
+          { word: "glossary", tags: ["inflection-template"] },
+          { word: "-", tags: [] },
+          { word: "ran", tags: ["past"] },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(result.forms, [
+    { word: "runs", tags: ["present"] },
+    { word: "ran", tags: ["past"] },
+  ]);
+});
+
+test("projects a lemma with the requested language", () => {
+  const lemma = {
+    word: "run",
+    entries: [
+      {
+        partOfSpeech: "verb",
+        pronunciations: [],
+        forms: [],
+        senses: [
+          {
+            definition: "To flow.",
+            tags: [],
+            examples: [],
+            synonyms: [],
+            antonyms: [],
+            translations: { id: ["mengalir"], es: ["correr"] },
+          },
+        ],
+      },
+    ],
+    source: null,
+  };
+
+  const result = projectDictionary(
+    {
+      word: "ran",
+      entries: [],
+      source: null,
+      formOf: { kind: "past", lemma: "run" },
+      lemma,
+    },
+    "id",
+  );
+
+  assert.deepEqual(result.lemma?.entries[0].senses[0].translations, {
+    id: ["mengalir"],
+  });
+});
+
 test("list projection keeps one sense and drops list-irrelevant fields", () => {
   const normalized = normalizeDictionary(fixture("hello") as never);
   const projected = projectSavedWordForList(
