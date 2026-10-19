@@ -61,6 +61,7 @@ export function WordListPanel({
   onResetFilters,
   onRetry,
   onGoToDiscovery,
+  afterList,
 }: {
   view: View;
   search: {
@@ -102,6 +103,8 @@ export function WordListPanel({
   onResetFilters: () => void;
   onRetry: () => void;
   onGoToDiscovery: () => void;
+  /** Extra content rendered under the result, inside the same scroll area. */
+  afterList?: React.ReactNode;
 }) {
   const filteredEmpty = !isLoading && items.length === 0 && hasAnyItems;
 
@@ -198,12 +201,12 @@ export function WordListPanel({
             <EmptyState
               image={emptyImage}
               title="Start with a word"
-              description="Type at least two letters and the result appears here automatically."
+              description="Type a word and the result appears here automatically."
             />
           </StateCard>
         ) : isDiscoveryTooShort ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Type an English word with at least 2 letters and no digits.
+            Type an English word using letters only.
           </div>
         ) : filteredEmpty ? (
           <StateCard>
@@ -259,11 +262,14 @@ export function WordListPanel({
                   onSelect={onSelect}
                   onSave={onSave}
                   onUnsave={onUnsave}
+                  showSavedBadge={view !== "remembered"}
                 />
               </li>
             ))}
           </ul>
         )}
+
+        {afterList}
       </div>
 
       {pagination.total > 0 ? (

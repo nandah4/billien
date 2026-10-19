@@ -10,6 +10,7 @@ import { useWordActions } from "@/hooks/use-word-actions";
 import { useWordLibrary } from "@/hooks/use-word-library";
 import { messageFor, savedWordDetailQueryOptions } from "@/lib/api";
 import {
+  DEFAULT_SORT,
   PAGE_SIZE,
   availableLetters,
   filterByLetter,
@@ -33,7 +34,7 @@ export function RememberedView() {
   const actions = useWordActions();
 
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<SortId>("recent");
+  const [sort, setSort] = useState<SortId>(DEFAULT_SORT);
   const [letter, setLetter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -92,7 +93,7 @@ export function RememberedView() {
 
   function resetFilters() {
     setQuery("");
-    setSort("recent");
+    setSort(DEFAULT_SORT);
     setLetter(null);
     setPage(1);
   }

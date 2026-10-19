@@ -19,6 +19,32 @@ export type WordForm = {
   tags: string[];
 };
 
+/** The grammatical relation between an inflected word and its lemma. */
+export type FormKind =
+  | "past"
+  | "past-participle"
+  | "present-participle"
+  | "plural"
+  | "third-person"
+  | "comparative"
+  | "superlative"
+  | "form";
+
+export type FormOf = {
+  kind: FormKind;
+  lemma: string;
+};
+
+/**
+ * The lemma of a form word, resolved at read time. It is never stored: the
+ * relation is derived from the entries, so no schema change is needed.
+ */
+export type LemmaResult = {
+  word: string;
+  entries: Entry[];
+  source: DictionarySource | null;
+};
+
 export type Sense = {
   definition: string;
   tags: string[];
@@ -42,6 +68,10 @@ export type DictionaryResult = {
   word: string;
   entries: Entry[];
   source: DictionarySource | null;
+  /** Set when the headword is an inflected form of another word. */
+  formOf?: FormOf | null;
+  /** Entries of `formOf.lemma`, so meanings come from the lemma. */
+  lemma?: LemmaResult | null;
 };
 
 /** A word in `vocabulary_words` joined with the current user's review state. */
@@ -55,6 +85,10 @@ export type SavedWord = {
   translations: Record<string, string[]>;
   forms: WordForm[];
   source: DictionarySource | null;
+  /** Derived on read; never persisted. */
+  formOf?: FormOf | null;
+  /** Derived on read; never persisted. */
+  lemma?: LemmaResult | null;
   added_at: string;
   last_reviewed_at: string | null;
   review_count: number;

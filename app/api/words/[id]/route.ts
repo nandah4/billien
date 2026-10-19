@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUserId } from "@/lib/auth";
 import { ensureTranslation, mergeAiTranslation } from "@/lib/ai-translations";
 import { lookupWord } from "@/lib/dictionary";
+import { resolveFormOf } from "@/lib/form-of";
 import { normalizeDictionary } from "@/lib/normalize";
 import { resolveLanguage } from "@/lib/preferences";
 import { deleteUserWord, fillWordEntries, getUserWord } from "@/lib/user-words";
@@ -46,19 +47,45 @@ export async function GET(
 
     // This response carries every language, so the AI fallback only fills the
     // user's preferred one; the rest stay available from the dictionary.
+    //
+    // A stored form word (`ran`) still carries its gloss, so the relation is
+    // derived on read. The lemma is fetched from the provider (cached for a
+    // week) and never persisted.
+    const form = await resolveFormOf({
+      word: word.normalized_word,
+      entries: word.entries,
+    });
+
     const language = await resolveLanguage(userId);
-    const cached = await ensureTranslation(
-      { word: word.normalized_word, entries: word.entries },
-      language,
-    );
-    if (cached) {
-      word = {
-        ...word,
-        entries: mergeAiTranslation(word.entries, cached, language),
-      };
+    let lemma = form?.lemma ?? null;
+    const target = lemma ?? (form ? null : word);
+    if (target) {
+      const cached = await ensureTranslation(
+        { word: target.normalized_word, entries: target.entries },
+        language,
+      );
+      if (lemma) {
+        lemma = {
+          ...lemma,
+          entries: mergeAiTranslation(lemma.entries, cached, language),
+        };
+      } else {
+        word = {
+          ...word,
+          entries: mergeAiTranslation(word.entries, cached, language),
+        };
+      }
     }
 
-    return NextResponse.json({ data: word });
+    return NextResponse.json({
+      data: {
+        ...word,
+        formOf: form?.formOf ?? null,
+        lemma: lemma
+          ? { word: lemma.word, entries: lemma.entries, source: lemma.source }
+          : null,
+      },
+    });
   } catch (error) {
     console.error(error);
     return NextResponse.json(

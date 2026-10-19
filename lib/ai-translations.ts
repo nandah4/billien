@@ -7,6 +7,7 @@ import {
 } from "@/lib/ai";
 import { languageName } from "@/lib/language";
 import { sql } from "@/lib/neon";
+import { detectFormOfGloss } from "@/lib/word-forms";
 import {
   PROMPT_VERSION,
   buildTranslationMessages,
@@ -200,6 +201,9 @@ export async function ensureTranslation(
 ): Promise<CachedAiTranslation | null> {
   if (!isAiConfigured()) return null;
   if (language === "en") return null;
+  // A form (`ran`) only has a gloss as its definition. Translating it would
+  // store "simple past of run" as a meaning; the lemma owns the senses.
+  if (detectFormOfGloss(entries, word)) return null;
   if (hasDictionaryTranslation(entries, language)) return null;
 
   const normalized = word.trim().toLowerCase();

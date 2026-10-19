@@ -9,10 +9,10 @@ import type {
 
 /**
  * Caps measured against the real provider payload: `hello` returns 96 KB /
- * 1,341 translation rows and `run` returns 69 senses. These limits keep a
- * normalized row small enough to serve from a list endpoint.
+ * 1,341 translation rows and `run` returns 69 senses. Twelve senses keep the
+ * translated senses of a polysemous verb reachable without doubling the row.
  */
-export const MAX_SENSES_PER_ENTRY = 8;
+export const MAX_SENSES_PER_ENTRY = 12;
 export const MAX_TRANSLATIONS_PER_LANGUAGE = 3;
 export const MAX_GLOBAL_TRANSLATIONS_PER_LANGUAGE = 8;
 export const MAX_EXAMPLES = 5;
@@ -21,6 +21,9 @@ export const MAX_PRONUNCIATIONS = 6;
 export const MAX_TAGS = 12;
 
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
+/** Wiktionary emits parser scaffolding as "forms"; it is not a word form. */
+const NOISE_FORM_TAGS = new Set(["table-tags", "inflection-template"]);
+const WORD_FORM = /^[a-z][a-z'’\-]*$/i;
 
 export type RawDictionary = {
   word?: unknown;
@@ -117,11 +120,13 @@ function normalizeForms(value: unknown, limit: number): WordForm[] {
     const record = asRecord(item);
     if (!record) continue;
     const word = asText(record.word);
-    if (!word) continue;
+    if (!word || !WORD_FORM.test(word)) continue;
+    const tags = asStringList(record.tags, 6);
+    if (tags.some((tag) => NOISE_FORM_TAGS.has(tag.toLowerCase()))) continue;
     const key = word.toLowerCase();
     if (seen.has(key)) continue;
     seen.add(key);
-    out.push({ word, tags: asStringList(record.tags, 6) });
+    out.push({ word, tags });
     if (out.length >= limit) break;
   }
   return out;
@@ -293,7 +298,16 @@ export function projectDictionary(
   language: string | "all",
 ): DictionaryResult {
   if (language === "all") return result;
-  return { ...result, entries: projectEntries(result.entries, language) };
+  return {
+    ...result,
+    entries: projectEntries(result.entries, language),
+    lemma: result.lemma
+      ? {
+          ...result.lemma,
+          entries: projectEntries(result.lemma.entries, language),
+        }
+      : result.lemma,
+  };
 }
 
 export function projectSavedWord<

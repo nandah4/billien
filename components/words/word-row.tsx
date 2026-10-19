@@ -17,6 +17,7 @@ export function WordRow({
   onSelect,
   onSave,
   onUnsave,
+  showSavedBadge = true,
 }: {
   item: LibraryWord;
   active: boolean;
@@ -25,6 +26,11 @@ export function WordRow({
   onSelect: (item: LibraryWord) => void;
   onSave: (word: string) => void;
   onUnsave?: (item: LibraryWord) => void;
+  /**
+   * The green check marks a saved word in Discovery. In Remembered every row is
+   * saved, so the badge is noise there and the caller turns it off.
+   */
+  showSavedBadge?: boolean;
 }) {
   const [confirming, setConfirming] = useState(false);
   const part = entryPartOfSpeech(item);
@@ -117,12 +123,14 @@ export function WordRow({
 
       {item.savedWord ? (
         <span className="flex shrink-0 items-center gap-1.5">
-          <span
-            className="inline-flex size-8 items-center justify-center rounded-lg bg-easy-soft text-easy"
-            title="Already memorised"
-          >
-            <Check size={16} aria-hidden="true" />
-          </span>
+          {showSavedBadge ? (
+            <span
+              className="inline-flex size-8 items-center justify-center rounded-lg bg-easy-soft text-easy"
+              title="Already memorised"
+            >
+              <Check size={16} aria-hidden="true" />
+            </span>
+          ) : null}
           {onUnsave ? (
             <button
               className="inline-flex size-8 items-center justify-center rounded-lg border border-line bg-surface text-muted opacity-100 transition hover:bg-hard-soft hover:text-hard focus-visible:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40 sm:opacity-0 sm:group-hover:opacity-100"

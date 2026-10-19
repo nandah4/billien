@@ -6,6 +6,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Info,
   Languages,
   LogIn,
   Plus,
@@ -13,16 +14,15 @@ import {
   X,
 } from "lucide-react";
 import {
-  collectExamples,
-  collectForms,
+  collectFormGroups,
   collectTags,
   distinctPartsOfSpeech,
   isSavedWord,
-  primaryDefinition,
-  translationGroups,
+  senseMeanings,
 } from "@/lib/library";
 import { languageLabel } from "@/lib/language";
-import type { DictionaryResult, Entry, SavedWord } from "@/lib/types";
+import { formKindLabel } from "@/lib/word-forms";
+import type { DictionaryResult, SavedWord } from "@/lib/types";
 import {
   compactOutline,
   compactPrimary,
@@ -35,6 +35,9 @@ type DetailWord = SavedWord | DictionaryResult;
 /** Shared chip treatment. Design.md allows 6–8px, never a full pill. */
 const chipClass =
   "inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-medium";
+
+/** Senses shown before "Show more"; a polysemous verb can carry dozens. */
+const MEANINGS_VISIBLE = 3;
 
 function subscribeToNothing() {
   return () => {};
@@ -169,21 +172,6 @@ function TagRow({
   );
 }
 
-function definitions(entries: Entry[]) {
-  const out: { partOfSpeech: string; definition: string }[] = [];
-  for (const entry of entries) {
-    for (const sense of entry.senses) {
-      if (!sense.definition) continue;
-      out.push({
-        partOfSpeech: entry.partOfSpeech,
-        definition: sense.definition,
-      });
-      if (out.length >= 8) return out;
-    }
-  }
-  return out;
-}
-
 export function WordDetail({
   word,
   preferredLanguage,
@@ -195,6 +183,7 @@ export function WordDetail({
   onReview,
   onSignIn,
   onRetry,
+  onOpenWord,
   navigation,
   onClose,
   showHeader = true,
@@ -210,6 +199,8 @@ export function WordDetail({
   onReview?: () => void;
   onSignIn?: () => void;
   onRetry?: () => void;
+  /** Opens another word (a form chip or the lemma) in this same panel. */
+  onOpenWord?: (word: string) => void;
   /** Moves between words in the list this detail was opened from. */
   navigation?: {
     index: number;
@@ -222,6 +213,7 @@ export function WordDetail({
   showHeader?: boolean;
 }) {
   const [speaking, setSpeaking] = useState(false);
+  const [showAllMeanings, setShowAllMeanings] = useState(false);
   const wordText = word?.word ?? "";
 
   const speechSupported = useSyncExternalStore(
@@ -284,21 +276,36 @@ export function WordDetail({
   }
 
   const savedWord = isSavedWord(word) ? word : null;
-  const entries = word.entries ?? [];
+  const ownEntries = word.entries ?? [];
+  const lemma = word.lemma ?? null;
+  const formOf = word.formOf ?? null;
+  const currentWord = word.word.trim().toLowerCase();
+  // A form (`ran`) has no senses of its own, only a gloss, so the lemma's
+  // entries carry the meanings, examples, and forms.
+  const entries = lemma?.entries?.length ? lemma.entries : ownEntries;
   const partsOfSpeech = distinctPartsOfSpeech(entries);
   const phonetic =
     savedWord?.phonetic ??
+    ownEntries.flatMap((entry) => entry.pronunciations)[0]?.text ??
     entries.flatMap((entry) => entry.pronunciations)[0]?.text ??
     null;
-  const groups = translationGroups(entries, preferredLanguage);
-  const englishDefinitions = definitions(entries);
-  const forms = collectForms(entries);
-  const examples = collectExamples(entries);
+  const meanings = senseMeanings(entries, preferredLanguage);
+  const visibleMeanings = showAllMeanings
+    ? meanings
+    : meanings.slice(0, MEANINGS_VISIBLE);
+  const formGroups = collectFormGroups(entries);
+  // A form never lists itself, so the chip row stays a navigation aid.
+  const visibleFormGroups = formGroups
+    .map((group) => ({
+      ...group,
+      forms: group.forms.filter(
+        (form) => form.word.toLowerCase() !== currentWord,
+      ),
+    }))
+    .filter((group) => group.forms.length > 0);
   const synonyms = collectTags(entries, "synonyms");
   const antonyms = collectTags(entries, "antonyms");
   const source = word.source;
-  const fallbackDefinition = primaryDefinition(word);
-  const hasAiTranslation = groups.some((group) => group.source === "ai");
 
   return (
     <article>
@@ -341,138 +348,155 @@ export function WordDetail({
         ) : null}
       </div>
 
+      {formOf ? (
+        <div className="mt-4 flex flex-wrap items-center gap-1.5 rounded-lg border border-accent-line bg-accent-soft px-3 py-2 text-[12px] text-ink-soft">
+          <Info size={13} className="shrink-0 text-accent" aria-hidden="true" />
+          <span>{formKindLabel(formOf.kind)} of</span>
+          {onOpenWord && lemma ? (
+            <button
+              className="font-semibold text-accent underline decoration-accent-line underline-offset-2 transition hover:decoration-accent"
+              type="button"
+              onClick={() => onOpenWord(lemma.word)}
+            >
+              {lemma.word}
+            </button>
+          ) : (
+            <span className="font-semibold text-accent">{formOf.lemma}</span>
+          )}
+        </div>
+      ) : null}
+
       <div className="mt-5 flex items-center justify-between gap-3">
         <h3 className="text-[11px] font-bold tracking-wider text-muted uppercase">
-          Meaning ({languageLabel(preferredLanguage)})
+          Meanings ({languageLabel(preferredLanguage)})
         </h3>
-        <div className="flex shrink-0 items-center gap-2">
-          {hasAiTranslation ? (
-            <span
-              className="rounded-md border border-line bg-surface px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-faint uppercase"
-              title="Machine translated, not from the dictionary"
-            >
-              AI
-            </span>
-          ) : null}
-          <Languages size={14} className="text-faint" aria-hidden="true" />
-        </div>
+        <Languages size={14} className="text-faint" aria-hidden="true" />
       </div>
 
       <div className="py-4">
-        {groups.length > 0 ? (
-          <div className="grid gap-4">
-            {groups.map((group) => (
-              <div key={group.partOfSpeech || "unknown"}>
-                <p className="text-[11px] font-semibold text-faint capitalize">
-                  {group.partOfSpeech || "Other"}
-                </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {group.words.map((translation) => (
-                    <span
-                      className="inline-flex items-center rounded border border-line bg-surface px-2 py-1 text-[13px] leading-none text-ink"
-                      key={translation}
-                    >
-                      {translation}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-[13px] text-muted">
-            No translation available for this language yet.
-          </p>
-        )}
-
-        {groups.length === 0 && englishDefinitions.length === 0 ? (
-          fallbackDefinition ? (
-            <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-              {fallbackDefinition}
-            </p>
-          ) : null
-        ) : null}
-      </div>
-
-      {englishDefinitions.length > 0 ? (
-        <details className="group py-3">
-          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-[12px] font-medium text-muted transition hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-            <ChevronRight
-              size={13}
-              className="transition-transform group-open:rotate-90"
-              aria-hidden="true"
-            />
-            English definitions
-          </summary>
-          <ol className="mt-2 grid list-none gap-2 p-0">
-            {englishDefinitions.map((item, index) => (
+        {meanings.length > 0 ? (
+          <ol className="grid list-none gap-3 p-0">
+            {visibleMeanings.map((meaning, index) => (
               <li
-                className="text-[12px] leading-relaxed text-ink-soft"
-                key={`${item.partOfSpeech}-${index}`}
+                className="border-l-2 border-accent-line pl-3"
+                key={`${meaning.partOfSpeech}-${index}`}
               >
-                {item.partOfSpeech ? (
-                  <span className="mr-1.5 text-[10px] font-semibold tracking-wider text-faint uppercase">
-                    {item.partOfSpeech}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[10px] font-bold text-accent">
+                    {index + 1}
                   </span>
+                  {meaning.partOfSpeech ? (
+                    <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">
+                      {meaning.partOfSpeech}
+                    </span>
+                  ) : null}
+                  {meaning.source === "ai" ? (
+                    <span
+                      className="rounded border border-line bg-surface px-1 py-px text-[9px] font-semibold tracking-wide text-faint uppercase"
+                      title="Machine translated, not from the dictionary"
+                    >
+                      AI
+                    </span>
+                  ) : null}
+                </div>
+
+                {meaning.words.length > 0 ? (
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {meaning.words.map((translation) => (
+                      <span
+                        className="inline-flex items-center rounded border border-line bg-surface px-2 py-1 text-[13px] leading-none text-ink"
+                        key={translation}
+                      >
+                        {translation}
+                      </span>
+                    ))}
+                  </div>
                 ) : null}
-                {item.definition}
+
+                {meaning.definition ? (
+                  <p className="mt-1.5 text-[12px] leading-relaxed text-ink-soft">
+                    {meaning.definition}
+                  </p>
+                ) : null}
+
+                {meaning.example ? (
+                  <p className="mt-1 text-[11px] leading-relaxed text-muted italic">
+                    &ldquo;{meaning.example}&rdquo;
+                  </p>
+                ) : null}
               </li>
             ))}
           </ol>
-        </details>
-      ) : null}
+        ) : (
+          <p className="text-[13px] text-muted">
+            {formOf && !lemma
+              ? `Meanings for “${formOf.lemma}” are unavailable right now.`
+              : "No meanings available for this word yet."}
+          </p>
+        )}
 
-      {forms.length > 0 ? (
+        {meanings.length > MEANINGS_VISIBLE ? (
+          <button
+            className={`${outlineButton} mt-3 w-full`}
+            type="button"
+            onClick={() => setShowAllMeanings((value) => !value)}
+          >
+            {showAllMeanings
+              ? "Show less"
+              : `Show ${meanings.length - MEANINGS_VISIBLE} more`}
+          </button>
+        ) : null}
+      </div>
+
+      {visibleFormGroups.length > 0 ? (
         <section className="mt-5">
           <SectionHeading>Word Forms</SectionHeading>
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {forms.map((form) => (
-              <span
-                className={`${chipClass} rounded! border-line bg-surface text-ink-soft`}
-                key={form}
+          <div className="mt-2.5 grid gap-2.5">
+            {visibleFormGroups.map((group) => (
+              <div
+                className="flex flex-wrap items-center gap-1.5"
+                key={group.partOfSpeech || "other"}
               >
-                {form}
-              </span>
+                {group.partOfSpeech ? (
+                  <span className="text-[10px] font-semibold tracking-wider text-faint uppercase">
+                    {group.partOfSpeech}
+                  </span>
+                ) : null}
+                {group.forms.map((form) => {
+                  const className = `${chipClass} rounded! border-line bg-surface text-ink-soft`;
+                  const tag = form.tags[0];
+                  const label = (
+                    <>
+                      {form.word}
+                      {tag ? (
+                        <span className="ml-1 text-[10px] font-normal text-faint">
+                          {tag}
+                        </span>
+                      ) : null}
+                    </>
+                  );
+
+                  return onOpenWord ? (
+                    <button
+                      className={`${className} transition hover:border-accent-line hover:text-accent`}
+                      key={form.word}
+                      type="button"
+                      title={`Open ${form.word}`}
+                      onClick={() => onOpenWord(form.word)}
+                    >
+                      {label}
+                    </button>
+                  ) : (
+                    <span className={className} key={form.word}>
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
             ))}
           </div>
         </section>
       ) : null}
-
-      <section className="mt-5">
-        <SectionHeading
-          aside={
-            examples.length > 0 ? (
-              <span className="text-[11px] font-medium text-accent">
-                {examples.length}{" "}
-                {examples.length === 1 ? "Example" : "Examples"}
-              </span>
-            ) : null
-          }
-        >
-          Example Sentences
-        </SectionHeading>
-        {examples.length > 0 ? (
-          <ol className="mt-2.5 grid list-none gap-2.5 p-0">
-            {examples.map((example, index) => (
-              <li
-                className="flex gap-2.5 rounded-lg border border-line bg-surface p-3"
-                key={`${example}-${index}`}
-              >
-                <span className="mt-px inline-flex size-5 shrink-0 items-center justify-center rounded-md bg-accent-soft text-[11px] font-bold text-accent">
-                  {index + 1}
-                </span>
-                <p className="text-[13px] leading-relaxed text-ink-soft">
-                  &ldquo;{example}&rdquo;
-                </p>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="mt-2 text-[12px] text-muted">
-            No example sentences for this word.
-          </p>
-        )}
-      </section>
 
       {synonyms.length > 0 || antonyms.length > 0 ? (
         <section className="mt-5 grid gap-2.5">

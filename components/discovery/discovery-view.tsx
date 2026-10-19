@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { DetailAside } from "@/components/app/detail-aside";
 import { useAppShell } from "@/components/app/app-shell-context";
+import { NewestRemembered } from "@/components/discovery/newest-remembered";
 import { WordListPanel } from "@/components/words/word-list-panel";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useWordActions } from "@/hooks/use-word-actions";
@@ -19,6 +20,8 @@ import type { DictionaryResult, SavedWord } from "@/lib/types";
 /** Typing pauses longer than this trigger a dictionary lookup. */
 const SEARCH_DEBOUNCE_MS = 450;
 const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
+/** How many recently saved words the Discovery page lists below the result. */
+const NEWEST_LIMIT = 5;
 
 /**
  * `/` — look up any English word. There is no seeded list: the debounced query
@@ -37,14 +40,14 @@ export function DiscoveryView() {
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const lookupWord = useMemo(() => {
     const word = debouncedQuery.trim().toLowerCase();
-    // Two characters is the shortest English word worth a request, and the
-    // pattern keeps punctuation from reaching the API.
-    return word.length >= 2 && WORD_PATTERN.test(word) ? word : null;
+    // One letter is a real English word ("a", "I"), so length 1 is a valid
+    // lookup; the pattern alone rejects digits and punctuation.
+    return word.length >= 1 && WORD_PATTERN.test(word) ? word : null;
   }, [debouncedQuery]);
 
   const queryTrimmed = query.trim();
   const queryValid =
-    queryTrimmed.length >= 2 && WORD_PATTERN.test(queryTrimmed.toLowerCase());
+    queryTrimmed.length >= 1 && WORD_PATTERN.test(queryTrimmed.toLowerCase());
 
   const dictionaryQuery = useQuery({
     ...dictionaryQueryOptions(lookupWord ?? "", preferredLanguage),
@@ -91,6 +94,29 @@ export function DiscoveryView() {
   const isListLoading =
     queryValid &&
     (lookupWord === null || (dictionaryQuery.isLoading && !savedWord));
+
+  // `rememberedItems` is ordered newest first by the API, so the head of the
+  // list is the section content.
+  const newestRemembered = useMemo(
+    () => library.rememberedItems.slice(0, NEWEST_LIMIT),
+    [library.rememberedItems],
+  );
+
+  /** Jump to a saved word: it becomes the search and its detail opens. */
+  function openRemembered(item: LibraryWord) {
+    setQuery(item.word);
+    setSelectedName(item.key);
+  }
+
+  /**
+   * Follow a form chip or the lemma link. The lookup is debounced, so the panel
+   * closes for a moment and reopens on the new word once it resolves.
+   */
+  function openWord(next: string) {
+    const value = next.trim();
+    setQuery(value);
+    setSelectedName(value.toLowerCase());
+  }
 
   // A 404 is an expected outcome for an unknown word, so it becomes the list's
   // empty state; anything else is a real failure worth an alert.
@@ -160,6 +186,14 @@ export function DiscoveryView() {
         onResetFilters={resetSearch}
         onRetry={() => void dictionaryQuery.refetch()}
         onGoToDiscovery={resetSearch}
+        afterList={
+          signedIn && newestRemembered.length > 0 ? (
+            <NewestRemembered
+              items={newestRemembered}
+              onSelect={openRemembered}
+            />
+          ) : undefined
+        }
       />
 
       <DetailAside
@@ -189,6 +223,7 @@ export function DiscoveryView() {
             ? () => void actions.reviewWord(detailSavedWord)
             : undefined,
           onSignIn: signedIn ? undefined : openAuth,
+          onOpenWord: openWord,
           onRetry: () => {
             if (detailSavedWord) void savedDetailQuery.refetch();
             else void dictionaryQuery.refetch();

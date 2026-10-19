@@ -6,8 +6,13 @@ import {
   readCachedTranslations,
 } from "@/lib/ai-translations";
 import { DictionaryError, lookupWord } from "@/lib/dictionary";
+import { resolveFormOf } from "@/lib/form-of";
 import { isSupportedLanguage } from "@/lib/language";
-import { normalizeDictionary, projectSavedWordForList } from "@/lib/normalize";
+import {
+  normalizeDictionary,
+  projectSavedWordForList,
+  type NormalizedDictionary,
+} from "@/lib/normalize";
 import { resolveLanguage } from "@/lib/preferences";
 import { listUserWords, saveWordForUser } from "@/lib/user-words";
 
@@ -115,25 +120,58 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const normalized = normalizeDictionary(await lookupWord(word));
-    if (normalized.entries.length === 0) {
+    // Saving a form (`ran`) stores the form's own entries so the relation
+    // survives a reload. A word the provider does not know is stored under the
+    // requested spelling with its lemma's entries: that is all there is.
+    const requestedWord = word.trim().toLowerCase();
+    let normalized: NormalizedDictionary | null = null;
+    let missing = false;
+    try {
+      normalized = normalizeDictionary(await lookupWord(word));
+    } catch (error) {
+      if (error instanceof DictionaryError && error.status === 404) {
+        missing = true;
+      } else {
+        throw error;
+      }
+    }
+    if (normalized && normalized.entries.length === 0) {
+      normalized = null;
+      missing = true;
+    }
+
+    const form = await resolveFormOf({
+      word: requestedWord,
+      entries: normalized?.entries ?? [],
+      missing,
+    });
+    const source = form?.lemma ?? normalized;
+    if (!source || source.entries.length === 0) {
       return NextResponse.json({ error: "Word not found." }, { status: 404 });
     }
 
-    const saved = await saveWordForUser(userId, normalized);
+    const stored: NormalizedDictionary = normalized ?? {
+      ...source,
+      word: requestedWord,
+      normalized_word: requestedWord,
+    };
+
+    const saved = await saveWordForUser(userId, stored);
 
     // Generate the preferred-language translation in the background so saving
-    // stays fast; the detail request would otherwise pay for it.
+    // stays fast; the detail request would otherwise pay for it. A form is
+    // skipped: its definitions are glosses, and the lemma carries the meaning.
     const language = await resolveLanguage(userId);
     if (
+      !form &&
       language !== "all" &&
-      !hasDictionaryTranslation(normalized.entries, language)
+      !hasDictionaryTranslation(stored.entries, language)
     ) {
       after(async () => {
         await ensureTranslation(
           {
-            word: normalized.normalized_word,
-            entries: normalized.entries,
+            word: stored.normalized_word,
+            entries: stored.entries,
           },
           language,
         );

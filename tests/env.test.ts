@@ -20,11 +20,11 @@ test("an absent or blank value is missing", () => {
 
 test("a required value names the variable when it is missing", () => {
   assert.throws(
-    () => requireString({}, "INFERHUB_MODEL"),
+    () => requireString({}, "AI_MODEL"),
     (error: unknown) => {
       assert.ok(error instanceof MissingEnvError);
-      assert.equal(error.variable, "INFERHUB_MODEL");
-      assert.match(error.message, /INFERHUB_MODEL/);
+      assert.equal(error.variable, "AI_MODEL");
+      assert.match(error.message, /AI_MODEL/);
       assert.match(error.message, /\.env\.example/);
       return true;
     },
