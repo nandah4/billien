@@ -1,4 +1,5 @@
 import type { DictionaryResult, SavedWord, UserPreferences } from "@/lib/types";
+import { LANGUAGES, type LanguageOption } from "@/lib/language";
 import type {
   AnalyticsData,
   AnalyticsPreset,
@@ -155,6 +156,23 @@ export function analyticsQueryOptions(enabled: boolean, query: AnalyticsQuery) {
         { signal },
       ),
     select: (response: ApiEnvelope<AnalyticsData>) => response.data,
+    retry: false,
+  };
+}
+
+/**
+ * Language catalogue for the pickers. The bundled list is shown immediately as
+ * placeholder data while `/api/languages` refreshes it from the free upstream,
+ * so the dialog never blocks on the network.
+ */
+export function languagesQueryOptions() {
+  return {
+    queryKey: ["languages"],
+    queryFn: ({ signal }: { signal: AbortSignal }) =>
+      request<ApiEnvelope<LanguageOption[]>>("/api/languages", { signal }),
+    select: (response: ApiEnvelope<LanguageOption[]>) => response.data,
+    placeholderData: { data: LANGUAGES } as ApiEnvelope<LanguageOption[]>,
+    staleTime: 60 * 60 * 1000,
     retry: false,
   };
 }

@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Check, Languages } from "lucide-react";
+import { Languages } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
+import { LanguageList } from "@/components/preferences/language-list";
 import preferencesImage from "@/public/assets/preferences.webp";
 import { messageFor, request, type ApiEnvelope } from "@/lib/api";
-import { LANGUAGES, normalizeLanguage } from "@/lib/language";
+import { normalizeLanguage } from "@/lib/language";
 import type { UserPreferences } from "@/lib/types";
 import { outlineButton, primaryButton } from "@/lib/ui";
 
@@ -93,53 +94,13 @@ export function LanguageModal({
         </p>
       </div>
 
-      <div
-        className="mt-5 grid gap-2"
-        role="radiogroup"
-        aria-label="Translation language"
-      >
-        {LANGUAGES.map((language) => {
-          const active = selected === language.code;
-          return (
-            <label
-              key={language.code}
-              className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus ${
-                active
-                  ? "border-accent bg-accent-soft"
-                  : "border-line bg-surface hover:bg-hover"
-              }`}
-            >
-              <input
-                className="mt-1 size-4 shrink-0 accent-accent"
-                type="radio"
-                name="translation-language"
-                value={language.code}
-                checked={active}
-                onChange={() => setSelected(language.code)}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-semibold text-ink">
-                    {language.nativeName}
-                  </span>
-                  <span className="rounded-full border border-line bg-surface px-2 py-0.5 text-[11px] text-muted">
-                    {language.sample}
-                  </span>
-                </span>
-                <span className="mt-0.5 block text-[12px] text-muted">
-                  {language.name}
-                </span>
-              </span>
-              {active ? (
-                <Check
-                  size={16}
-                  className="mt-0.5 shrink-0 text-accent"
-                  aria-hidden="true"
-                />
-              ) : null}
-            </label>
-          );
-        })}
+      <div className="mt-5">
+        <LanguageList
+          current={selected}
+          saving={null}
+          onSelect={setSelected}
+          variant="card"
+        />
       </div>
 
       {error ? (

@@ -25,7 +25,7 @@ const COOLDOWN_MS = 60_000;
 function config() {
   const apiKey = env.ai.apiKey();
   if (!apiKey) {
-    throw new AiUnavailableError("INFERHUB_API_KEY is not configured.");
+    throw new AiUnavailableError("AI_API_KEY is not configured.");
   }
 
   return {
@@ -66,7 +66,7 @@ function recordFailure() {
 }
 
 /**
- * Single-turn chat completion against InferHub ([OI]-compatible). Returns the
+ * Single-turn chat completion against the configured AI endpoint. Returns the
  * raw assistant text; callers own parsing and validation. One call counts as one
  * breaker failure at most, however many transport attempts it made.
  */

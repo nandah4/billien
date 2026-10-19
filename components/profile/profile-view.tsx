@@ -260,7 +260,7 @@ export function ProfileView({
                           {activeLanguage.nativeName}
                         </span>
                         <span className="mt-0.5 block text-[12px] text-muted">
-                          {activeLanguage.name} · {activeLanguage.sample}
+                          {activeLanguage.name}
                         </span>
                       </span>
                       <ChevronRight

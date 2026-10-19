@@ -1,10 +1,9 @@
 "use client";
 
-import { Check } from "lucide-react";
 import Image from "next/image";
 import { Modal } from "@/components/ui/modal";
+import { LanguageList } from "@/components/preferences/language-list";
 import preferencesImage from "@/public/assets/preferences.webp";
-import { LANGUAGES } from "@/lib/language";
 
 /**
  * Language chooser used from the profile page. Selecting a row applies it
@@ -60,48 +59,8 @@ export function LanguagePickerModal({
         </p>
       </div>
 
-      <div
-        className="mt-4 divide-y divide-line-soft overflow-hidden rounded-xl border border-line"
-        role="radiogroup"
-        aria-label="Translation language"
-      >
-        {LANGUAGES.map((item) => {
-          const active = current === item.code;
-          const pending = saving === item.code;
-          return (
-            <label
-              key={item.code}
-              className={`flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-hover focus-within:outline-2 focus-within:outline-offset-[-2px] focus-within:outline-focus ${
-                pending ? "opacity-60" : ""
-              } ${busy ? "cursor-not-allowed" : ""}`}
-            >
-              <input
-                className="sr-only"
-                type="radio"
-                name="picker-language"
-                value={item.code}
-                checked={active}
-                disabled={busy}
-                onChange={() => onSelect(item.code)}
-              />
-              <span className="min-w-0 flex-1">
-                <span className="block text-[14px] text-ink">
-                  {item.nativeName}
-                </span>
-                <span className="mt-0.5 block text-[12px] text-muted">
-                  {item.name} · {item.sample}
-                </span>
-              </span>
-              {active ? (
-                <Check
-                  size={17}
-                  className="shrink-0 text-accent"
-                  aria-hidden="true"
-                />
-              ) : null}
-            </label>
-          );
-        })}
+      <div className="mt-4">
+        <LanguageList current={current} saving={saving} onSelect={onSelect} />
       </div>
 
       {error ? (

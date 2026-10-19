@@ -20,6 +20,9 @@ export const SORT_OPTIONS: { id: SortId; label: string }[] = [
   { id: "reviews", label: "Most reviewed" },
 ];
 
+/** Alphabetical by default: a saved-word list is a reference, not a feed. */
+export const DEFAULT_SORT: SortId = "az";
+
 /** Bucket used for words that do not start with a latin letter. */
 export const OTHER_LETTER = "#";
 

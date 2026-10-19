@@ -20,10 +20,10 @@ const source: EnvSource = {
   DATABASE_URL: process.env.DATABASE_URL,
   NEON_AUTH_BASE_URL: process.env.NEON_AUTH_BASE_URL,
   NEON_AUTH_COOKIE_SECRET: process.env.NEON_AUTH_COOKIE_SECRET,
-  INFERHUB_API_KEY: process.env.INFERHUB_API_KEY,
-  INFERHUB_BASE_URL: process.env.INFERHUB_BASE_URL,
-  INFERHUB_MODEL: process.env.INFERHUB_MODEL,
-  INFERHUB_TIMEOUT_MS: process.env.INFERHUB_TIMEOUT_MS,
+  AI_API_KEY: process.env.AI_API_KEY,
+  AI_BASE_URL: process.env.AI_BASE_URL,
+  AI_MODEL: process.env.AI_MODEL,
+  AI_TIMEOUT_MS: process.env.AI_TIMEOUT_MS,
   DICTIONARY_BASE_URL: process.env.DICTIONARY_BASE_URL,
   DICTIONARY_TIMEOUT_MS: process.env.DICTIONARY_TIMEOUT_MS,
 };
@@ -50,12 +50,15 @@ export const env = {
    * no-op and the dictionary is the only source. When a key is present, the
    * endpoint and model are required, so a half-configured provider reports a
    * clear error instead of silently calling a default host.
+   *
+   * The names are deliberately generic: which provider sits behind the key is a
+   * deployment detail, not something the source tree should name.
    */
   ai: {
-    apiKey: () => readString(source, "INFERHUB_API_KEY"),
-    baseUrl: () => requireBaseUrl(source, "INFERHUB_BASE_URL"),
-    model: () => requireString(source, "INFERHUB_MODEL"),
-    timeoutMs: () => readInt(source, "INFERHUB_TIMEOUT_MS", 15_000),
+    apiKey: () => readString(source, "AI_API_KEY"),
+    baseUrl: () => requireBaseUrl(source, "AI_BASE_URL"),
+    model: () => requireString(source, "AI_MODEL"),
+    timeoutMs: () => readInt(source, "AI_TIMEOUT_MS", 15_000),
   },
 
   dictionary: {
