@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/assets/logo-mark.png" width="120" alt="Billien" />
+  <img src="public/assets/logo.png" width="120" alt="Billien" />
   <h1>Billien</h1>
   <p><strong>Learn English, one word at a time.</strong></p>
   <p>Look up a word, keep the ones worth keeping, and practise them until they stick.</p>
@@ -23,11 +23,11 @@ library, your translation language, and your streak yours — on any device.
 
 ## What you can do
 
-### Discovery — look up any English word
+### Discovery — look up any English word or phrase
 
-Type a word and see it translated into your language first, with English
-definitions folded away underneath. Each sense gets its own row, so a word with
-three meanings does not collapse into one blurred entry.
+Type a word or phrase and see it translated into your language first, with
+English definitions folded away underneath. Each sense gets its own row, so a
+word with three meanings does not collapse into one blurred entry.
 
 Search also understands grammar. Look up `ran`, `children`, or `better` and
 Billien resolves the inflected form back to `run`, `child`, and `good`, then

@@ -114,7 +114,7 @@ Semua token di atas didefinisikan sekali di `app/globals.css` (`@theme`) dan dip
 Berlaku pada `lg` ke atas (`components/app/app-header.tsx`). Di bawahnya digantikan app bar mobile (lihat E.1).
 
 - **Kartu kiri — brand + view switcher** (`flex-1`):
-  - Ikon logo (`logo-mark.png`) 28px, judul `Billien` 13px/`600`, tagline `Learn English, one word at a time` 11px `#64748B`.
+  - Ikon logo (`logo.png`) 28px, judul `Billien` 13px/`600`, tagline `Learn English, one word at a time` 11px `#64748B`.
   - **View switcher**: segmented control `rounded-lg` `bg-subtle` dengan tiga item — **Discovery**, **Remembered**, **Recall** — masing-masing ikon 14px + label 12px/`500`. Item aktif memakai `bg-surface` + `shadow-sm` + `text-ink`; item lain `text-muted`. Status aktif diturunkan dari pathname, bukan state lokal.
 
 - **Kartu kanan — akun**: tombol `Sign in` untuk guest, atau pill streak + dropdown menu akun untuk pengguna masuk. Menu berisi identitas, `Profile`, dan `Sign out`.
@@ -207,7 +207,7 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 - **Font**: `16px` di mobile (mencegah auto-zoom iOS), `13px` di desktop.
 - **Tombol clear**: ikon `X` 14px dalam bulatan `24px`, hanya muncul saat field berisi; `aria-label="Clear search"`.
 - **Debounce**: `450ms` setelah ketikan terakhir.
-- **Validasi**: minimal `1` karakter dan hanya `[a-z'-]`; satu huruf adalah kata sah (`a`, `I`), sedangkan angka dan tanda baca tidak pernah dikirim ke API.
+- **Validasi**: minimal `1` karakter dan hanya huruf, apostrof, tanda hubung, serta spasi tunggal antarkata; satu huruf adalah kata sah (`a`, `I`) dan frasa seperti `according to` juga sah, sedangkan angka dan tanda baca lain tidak pernah dikirim ke API.
 - **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik. Di bawah hasil, pengguna masuk melihat lima kata terakhir yang disimpan.
 - **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan; pencarian mencocokkan kata Inggris maupun terjemahan.
 
