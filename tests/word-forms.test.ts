@@ -50,6 +50,8 @@ test("parseFormOf reads the glosses the provider actually returns", () => {
     ["comparative degree of good and well", "comparative", "good"],
     ["comparative form of well: more well", "comparative", "well"],
     ["superlative of good", "superlative", "good"],
+    // A phrasal lemma stays whole so it can be looked up as one entry.
+    ["simple past of give up", "past", "give up"],
   ];
 
   for (const [definition, kind, lemma] of cases) {

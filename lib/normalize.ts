@@ -23,7 +23,11 @@ export const MAX_TAGS = 12;
 const LANGUAGE_CODE = /^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i;
 /** Wiktionary emits parser scaffolding as "forms"; it is not a word form. */
 const NOISE_FORM_TAGS = new Set(["table-tags", "inflection-template"]);
-const WORD_FORM = /^[a-z][a-z'’\-]*$/i;
+/**
+ * A form of a phrase is itself a phrase (`give up` → `gives up`, `gave up`), so
+ * spaces are allowed between words; anything else stays a single token.
+ */
+const WORD_FORM = /^[a-z][a-z'’\-]*(?: [a-z][a-z'’\-]*)*$/i;
 
 export type RawDictionary = {
   word?: unknown;

@@ -16,10 +16,10 @@ import {
 } from "@/lib/api";
 import type { LibraryWord } from "@/lib/library";
 import type { DictionaryResult, SavedWord } from "@/lib/types";
+import { isValidWordQuery, normalizeWordQuery } from "@/lib/word-query";
 
 /** Typing pauses longer than this trigger a dictionary lookup. */
 const SEARCH_DEBOUNCE_MS = 450;
-const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
 /** How many recently saved words the Discovery page lists below the result. */
 const NEWEST_LIMIT = 5;
 
@@ -39,15 +39,15 @@ export function DiscoveryView() {
 
   const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
   const lookupWord = useMemo(() => {
-    const word = debouncedQuery.trim().toLowerCase();
-    // One letter is a real English word ("a", "I"), so length 1 is a valid
-    // lookup; the pattern alone rejects digits and punctuation.
-    return word.length >= 1 && WORD_PATTERN.test(word) ? word : null;
+    // One letter is a real English word ("a", "I") and a phrase like
+    // "according to" is a real entry, so the shared pattern accepts both.
+    return isValidWordQuery(debouncedQuery)
+      ? normalizeWordQuery(debouncedQuery)
+      : null;
   }, [debouncedQuery]);
 
   const queryTrimmed = query.trim();
-  const queryValid =
-    queryTrimmed.length >= 1 && WORD_PATTERN.test(queryTrimmed.toLowerCase());
+  const queryValid = isValidWordQuery(query);
 
   const dictionaryQuery = useQuery({
     ...dictionaryQueryOptions(lookupWord ?? "", preferredLanguage),
@@ -113,9 +113,10 @@ export function DiscoveryView() {
    * closes for a moment and reopens on the new word once it resolves.
    */
   function openWord(next: string) {
-    const value = next.trim();
-    setQuery(value);
-    setSelectedName(value.toLowerCase());
+    setQuery(next.trim());
+    // Match the key the debounced lookup resolves, so irregular spacing still
+    // opens the panel once the request lands.
+    setSelectedName(normalizeWordQuery(next));
   }
 
   // A 404 is an expected outcome for an unknown word, so it becomes the list's

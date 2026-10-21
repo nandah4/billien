@@ -49,6 +49,23 @@ test("normalizes hello: dedupes translations and drops subsenses", () => {
   assert.equal(result.source?.license?.name, "CC BY-SA 4.0");
 });
 
+test("keeps a phrasal form instead of dropping it", () => {
+  const result = normalizeDictionary({
+    word: "give up",
+    entries: [
+      {
+        partOfSpeech: "verb",
+        forms: [{ word: "gives up", tags: ["present", "singular"] }],
+        senses: [{ definition: "To surrender.", translations: [] }],
+      },
+    ],
+  } as never);
+
+  assert.deepEqual(result.forms, [
+    { word: "gives up", tags: ["present", "singular"] },
+  ]);
+});
+
 test("caps an entry with many senses", () => {
   const senses = Array.from({ length: 69 }, (_, index) => ({
     definition: `Definition ${index}`,
