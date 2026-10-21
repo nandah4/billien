@@ -10,7 +10,7 @@ export class MissingEnvError extends Error {
 
   constructor(variable: string) {
     super(
-      `Missing ${variable}. Add it to .env.local (see .env.example) and to the deployment environment.`,
+      `Missing ${variable}. Add it to .env.local and to the deployment environment.`,
     );
     this.name = "MissingEnvError";
     this.variable = variable;

@@ -1,25 +1,127 @@
-# Billien
+<div align="center">
+  <img src="public/assets/logo-mark.png" width="120" alt="Billien" />
+  <h1>Billien</h1>
+  <p><strong>Learn English, one word at a time.</strong></p>
+  <p>Look up a word, keep the ones worth keeping, and practise them until they stick.</p>
+</div>
 
-Billien is a multi-user English vocabulary app. Anyone can search an English word as a guest; Google sign-in makes Remembered words, translation preferences, and the daily streak personal to a verified account.
+---
 
-## Run locally
+## What it is
 
-1. Copy `.env.example` to `.env.local`.
-2. Fill in the values. Every variable is server-only, so none may use the `NEXT_PUBLIC_` prefix:
-   - `DATABASE_URL` — the Neon connection string.
-   - `NEON_AUTH_BASE_URL` — the branch's auth URL.
-   - `NEON_AUTH_COOKIE_SECRET` — a random secret, at least 32 characters.
-   - `DICTIONARY_BASE_URL` — the dictionary entries endpoint. The word and `?translations=true` are appended to it.
-   - `AI_API_KEY` — enables the AI translation fallback.
-   - `AI_BASE_URL` and `AI_MODEL` — the endpoint and model. Required when a key is present.
-   - Optional: `DICTIONARY_TIMEOUT_MS` (default 8000) and `AI_TIMEOUT_MS` (default 15000).
+Billien is a small, focused English vocabulary app. It answers the question most
+dictionaries leave open: _what did I look up last week, and do I still remember
+it?_
 
-   Endpoints and models live in the environment rather than in code, so a provider change is a configuration change and the repository does not name the infrastructure it talks to. `lib/env.ts` is the only module that reads `process.env`; each variable is listed there statically, validated lazily on first use, and a missing or malformed value fails with a message naming it.
+Everything starts with a search. You look up a word, read what it means in your
+own language, and — if it is worth keeping — save it. Saved words become a
+personal library. That library becomes a daily practice session. The sessions
+become a record of what you have actually learned.
 
-3. Apply the database schema. For a fresh database run [`neon/schema.sql`](./neon/schema.sql); for an existing one apply [`neon/migrations/001_dictionary_v2.sql`](./neon/migrations/001_dictionary_v2.sql), then run the backfill below, then apply [`neon/migrations/002_drop_legacy_dictionary.sql`](./neon/migrations/002_drop_legacy_dictionary.sql), [`neon/migrations/003_ai_translations.sql`](./neon/migrations/003_ai_translations.sql), and [`neon/migrations/004_active_recall.sql`](./neon/migrations/004_active_recall.sql).
-4. In Neon Console → **Auth**, enable the Google provider and disable the Email/Password provider. If Neon asks for Google OAuth credentials, create the OAuth client in Google Cloud Console and copy the redirect URI shown by Neon exactly into that client.
-5. Add `http://localhost:3000` and the production origin to Neon Auth's trusted domains. Add `http://localhost:3001` too when port 3000 is occupied locally. Preview deployments do not need to be listed: the auth proxy in [`app/api/auth/[...path]/route.ts`](./app/api/auth/%5B...path%5D/route.ts) verifies that a mutation is same-origin and forwards it under the auth service's own origin, which Neon Auth always trusts.
-6. Install and start the app:
+Browsing works without an account. Signing in with Google is what makes the
+library, your translation language, and your streak yours — on any device.
+
+## What you can do
+
+### Discovery — look up any English word
+
+Type a word and see it translated into your language first, with English
+definitions folded away underneath. Each sense gets its own row, so a word with
+three meanings does not collapse into one blurred entry.
+
+Search also understands grammar. Look up `ran`, `children`, or `better` and
+Billien resolves the inflected form back to `run`, `child`, and `good`, then
+shows you the meaning from the word that actually carries it. Irregular forms
+are recognised, not guessed.
+
+Pronunciation plays through the browser, so nothing extra needs installing.
+Signed-in users also get a shortcut back into their library: the five words they
+saved most recently appear right under the result.
+
+### Remembered — the library you build
+
+Every saved word lands in one alphabetical list. You can search it by English or
+by your own translation — typing `halo` finds `hello` — and jump to any letter
+through a filter that dims the letters you have nothing under.
+
+The detail panel keeps the whole word in one place: translation, definitions,
+pronunciation, grammatical forms, synonyms, and how many times you have reviewed
+it. Arrows walk you through the list without going back, and un-saving happens
+right where the word sits.
+
+### Recall — practise remembering
+
+This is where a saved word becomes a known word. Billien shows you a prompt and
+you produce the English word yourself: from a translation, from a definition, or
+by filling a gap in a real example sentence. A multiple-choice mode exists when
+you want something lighter.
+
+Answers are graded generously — one typo still counts — and the schedule adapts.
+A word you know well drifts away for weeks. A word you miss comes back within
+minutes. Sessions are built from your library, at least five words, and you
+choose how many cards to take. Close the tab halfway through and you resume on
+the same card; finish and you get the full answer key, plus the option to
+disagree with a grade.
+
+### Analytics — see the work add up
+
+Totals, your current and best streak, words added and reviews per day, and a
+line for recall accuracy over time. Below the charts, the words worth another
+look are listed with their lapse counts. Pick a week, a month, a quarter, or a
+year — daily buckets for short ranges, monthly for long ones.
+
+### Profile — your settings
+
+Your translation language applies the moment you pick it and follows you across
+devices. Progress lives here too, alongside today's word count and a seven-day
+chart. On mobile this is also where you sign out.
+
+## Running it locally
+
+You need a Postgres database with [Neon Auth](https://neon.tech) enabled, a
+dictionary endpoint, and optionally an AI provider for translation fallback.
+
+Create `.env.local` in the project root and fill in these values. Every variable
+is server-only — none may use the `NEXT_PUBLIC_` prefix.
+
+| Variable                  | Required   | Purpose                                                           |
+| ------------------------- | ---------- | ----------------------------------------------------------------- |
+| `DATABASE_URL`            | yes        | Neon connection string                                            |
+| `NEON_AUTH_BASE_URL`      | yes        | The branch's auth URL                                             |
+| `NEON_AUTH_COOKIE_SECRET` | yes        | Random secret, at least 32 characters (`openssl rand -base64 48`) |
+| `DICTIONARY_BASE_URL`     | yes        | Entries endpoint; the word and `?translations=true` are appended  |
+| `AI_API_KEY`              | no         | Enables the AI translation fallback                               |
+| `AI_BASE_URL`             | with a key | Endpoint for the fallback provider                                |
+| `AI_MODEL`                | with a key | Model name for the fallback provider                              |
+| `DICTIONARY_TIMEOUT_MS`   | no         | Per-request timeout, default `8000`                               |
+| `AI_TIMEOUT_MS`           | no         | Per-attempt timeout, default `15000`                              |
+
+Endpoints and models live in the environment rather than in code, so switching
+providers is a configuration change. `lib/env.ts` is the only module that reads
+`process.env`; each variable is validated on first use, and a missing or
+malformed value fails with a message naming it.
+
+**1. Apply the database schema.** For a fresh database run
+[`neon/schema.sql`](./neon/schema.sql). For an existing one, apply
+[`001_dictionary_v2.sql`](./neon/migrations/001_dictionary_v2.sql), run the
+backfill below, then apply
+[`002_drop_legacy_dictionary.sql`](./neon/migrations/002_drop_legacy_dictionary.sql),
+[`003_ai_translations.sql`](./neon/migrations/003_ai_translations.sql),
+[`004_active_recall.sql`](./neon/migrations/004_active_recall.sql), and
+[`005_recall_sessions.sql`](./neon/migrations/005_recall_sessions.sql).
+
+**2. Configure auth.** In Neon Console → **Auth**, enable the Google provider and
+disable Email/Password. If Neon asks for OAuth credentials, create the client in
+Google Cloud Console and copy the redirect URI Neon shows exactly into it.
+
+Add `http://localhost:3000` and your production origin to Neon Auth's trusted
+domains. Add `http://localhost:3001` too when port 3000 is occupied. Preview
+deployments do not need listing: the auth proxy in
+[`app/api/auth/[...path]/route.ts`](./app/api/auth/%5B...path%5D/route.ts)
+verifies that a mutation is same-origin and forwards it under the auth service's
+own origin, which Neon Auth always trusts.
+
+**3. Install and start.**
 
 ```bash
 npm install
@@ -30,13 +132,15 @@ Open `http://localhost:3000`.
 
 ### Backfilling pre-v2 words
 
-Words saved before the dictionary migration have an empty `entries` array. Fill them once before dropping the legacy columns:
+Words saved before the dictionary migration have an empty `entries` array. Fill
+them once before dropping the legacy columns:
 
 ```bash
 node scripts/backfill-dictionary-v2.mjs
 ```
 
-The script is idempotent and only touches rows with `jsonb_array_length(entries) = 0`.
+The script is idempotent and only touches rows with
+`jsonb_array_length(entries) = 0`.
 
 ## Checks
 
@@ -47,24 +151,36 @@ npm run build
 npm test
 ```
 
-## Architecture
+## Under the hood
 
-- **Dictionary source.** `lib/dictionary.ts` calls `https://freedictionaryapi.com/api/v1/entries/en/{word}?translations=true` with an 8-second timeout and a 7-day fetch cache. `lib/normalize.ts` deduplicates and caps the payload (8 senses per entry, 3 translations per language per sense, 5 examples, 12 forms) and drops recursive `subsenses`.
-- **Storage.** `vocabulary_words` keeps the normalized `entries`, a global `translations` map, `forms`, and `source`. Every language is stored; list responses project to the signed-in user's preferred language and detail responses return all languages.
-- **Pages.** `/` is Discovery, `/remembered` is the saved-word view, `/recall` is the practice session, `/analytics` is the activity report, and `/profile` is account settings. All five share chrome through `app/(app)/layout.tsx` → `components/app/app-shell.tsx` (session, header, bottom navigation, account dialogs). Each page renders only its own view component, and the active tab is derived from the pathname; `/analytics` marks no tab as active. Analytics is reached from a row in the profile menu. `/analytics` draws its own header instead of the app bar, and `/profile` is listed as a bleed route: its cover photo runs edge to edge and starts flush under the mobile app bar. Both are declared in `lib/navigation.ts` (`ownsHeader`, `bleedsTop`) so the shell knows whether to render the bar and how much top room to reserve.
-- **Discovery.** A debounced lookup accepts a single letter, because `a` and `I` are real words; the pattern still rejects digits and punctuation. Signed-in users also see a "Newest remembered" section under the result, listing the five most recently saved words as a shortcut back into their library. It is absent for guests and when the library is empty.
-- **Profile layout.** The cover photo and the identity block share one card: the photo's bottom corners and the card's top corners are square, so they read as a single surface. Settings sit in white cards that each hold two labelled sections side by side (`Account` with `Translation language`, `Progress` with `Recall`), because one full-width row per section wasted the wide column. From `lg` the page is two columns: settings on the left, and a sticky panel on the right showing today's word count with a seven-day bar chart.
-- **Preferences.** `user_preferences` stores `translation_language` and `onboarded_at`. `GET/PATCH /api/preferences` is session-scoped; guests fall back to the `billien_lang` cookie and then to `id`. The onboarding modal appears once per account, and `/profile` lets the user change the language later.
-- **Languages.** `lib/language.ts` bundles around fifty ISO 639-1 codes with their English and native names; the dictionary keys its `translations` map by those codes, and the bundled list is what `isSupportedLanguage` accepts. `GET /api/languages` refreshes the picker from LibreTranslate's free, keyless catalogue, cached for a day and merged over the bundled list, so the dialog renders instantly and still works if the upstream is down. Both pickers filter by code, English name, or native name.
-- **AI translation fallback.** The dictionary does not translate every word (for example `eat` has none). `lib/ai.ts` calls the configured endpoint and `lib/ai-translations.ts` fills the gap, cached in `ai_translations` keyed by `(normalized_word, language)`. Dictionary data always wins; AI output only fills empty senses, is validated (max 3 lowercase words, confidence ≥ 0.6, headword echo rejected), and is labelled `AI` in the detail panel. The provider call lives in `lib/ai-transport.ts`: a 15-second timeout per attempt, one retry on a timeout, rate limit, or 5xx, and a 512-token budget because the model spends part of it reasoning before it answers — at 120 tokens the JSON was cut mid-object. A reply whose `finish_reason` is `length` is treated as a failure rather than a translation. A per-row atomic claim means each word/language pair costs at most one generation, with a 3-attempt cap, a 90-second stale-pending reclaim, a one-hour cooldown after which a failed row may be tried again, and a circuit breaker after five consecutive failures. The repair action in Recall passes `force`, so an explicit retry is never blocked by that cooldown. Set `AI_API_KEY` to enable it; without the key every call is a no-op and the English definition is shown instead. `AI_TIMEOUT_MS` overrides the timeout.
-- **Routes.** `GET /api/dictionary/[word]` (supports `?lang=` and `?lang=all`), `GET/POST /api/words`, `GET/DELETE /api/words/[id]`, `POST /api/words/[id]/review`, `GET /api/review` (supports `?ids=`), `GET /api/streak`, `GET /api/analytics` (supports `?preset=`, `?month=YYYY-MM`, and `?granularity=day|month`), `GET /api/languages`, and `GET/PATCH /api/preferences`.
-- **Recall.** `lib/recall/` is the active-recall engine: `grade.ts` normalises answers and grades them (exact, one-edit `almost`, or `wrong`), `schedule.ts` owns the spaced-repetition ladder, `cards.ts` chooses a prompt per word (translation → definition → cloze, with `choice` available on request), `session.ts` filters and orders the queue, `summary.ts` turns outcomes into counts and accuracy, and `repository.ts` holds the SQL. A session needs at least 5 eligible words and asks for ten cards by default; the user can pick any size the library can fill, up to the eligible count. Recall reads the preferred-language translation from the dictionary first and from the `ai_translations` cache second, so a word whose translation was generated on save gets a translation card instead of falling back to a definition. Answers are submitted once, at the end: `POST /api/recall/sessions` grades everything, writes the session fact row plus its items and the per-word schedule in one statement, and `PATCH /api/recall/sessions/[id]/items/[itemId]` handles the self-override. `GET /api/recall/session` builds the cards and `GET /api/recall/stats` reports the due count and seven-day accuracy. `/recall` is a two-column workspace: the card on the left, a numbered rail on the right whose rows unlock in order, and a review screen that shows every correct answer. The session in progress lives in `sessionStorage`, so a reload resumes on the same card. `POST /api/recall/repair` re-fetches entries for saved words that cannot produce a prompt. See [`docs/plan-recall.md`](./docs/plan-recall.md).
-- **Analytics.** `lib/analytics/` powers `/analytics`. `range.ts` resolves a preset (`7d`, `30d`, `90d`, `this-month`, `last-month`, `this-year`, `last-year`) or an explicit `month=YYYY-MM` into an inclusive window, caps it at 366 days, and picks daily buckets up to 92 days and monthly buckets beyond that; `fillSeries` expands sparse rows so every bucket appears. `repository.ts` reads words added and reviews from `user_streaks`, recall sessions, cards, and correctness from `recall_sessions`, and the weakest words from `recall_session_items`, always bucketing by the activity time zone and returning dates as text. `recallAccuracy` is `null` for a bucket with no session rather than a misleading zero. `GET /api/analytics` is session-scoped (guests get 401). The page shows totals, the current and best streak, a bar chart of words added and reviews, a line chart of recall accuracy, an accessible table fallback, and a list of words worth another look. Charts are built exclusively from the shadcn Chart component in `components/ui/chart.tsx` (Recharts v3) and read series colours from the `--color-chart-*` tokens, so no component carries a hex value.
-- **Detail panel.** Translation-first: the preferred language is the primary block, English definitions live in a collapsible `<details>`, and pronunciation uses the browser's `speechSynthesis` (the provider has no audio URLs).
-- **Remembered view.** Rows show the preferred translation, search matches English or translation, and the list opens sorted A–Z. Sort and the letter filter share one toolbar card; the alphabet does not fit in a row, so the letter filter opens a dialog with a six-column grid that dims letters with no words. The detail panel footer shows the review count, the remember action, and prev/next arrows that walk the filtered list. The green "already memorised" badge is hidden here, since every row is saved. Un-save is optimistic and lives only on the list row.
-- **Shared hooks.** `hooks/use-word-library.ts` (read), `hooks/use-word-actions.ts` (save, un-save, review, with cache invalidation), `hooks/use-debounced-value.ts` (search), and `hooks/use-media-query.ts` (desktop column vs mobile dialog).
-- **UI primitives.** `components/ui/` holds shadcn/ui components: `dropdown-menu` (Radix) for the account menu, `sonner` for toasts, and `chart` (Recharts) for analytics, all themed with the project tokens instead of shadcn's default palette. `modal.tsx` is the shared dialog shell (scroll lock, focus trap, Escape) and portals to `document.body`: the app shell isolates its stacking context for the background grid, so an inline `z-50` dialog would still paint under the fixed bottom navigation. `lib/utils.ts` provides the `cn` helper, and `components.json` keeps the shadcn CLI working for future additions.
-- **Feedback.** Transient results (saved, removed, reviewed, preferences, sign out) are sonner toasts; persistent failures (list load, dictionary lookup) stay as inline alerts with a retry action; dialog errors stay inside their dialog.
-- **Profile.** `/profile` follows an OS-settings layout: banner with avatar initial, then grouped white cards for account details, translation language (applies on tap), progress, and sign out. On mobile it is the only place to sign out.
+Next.js App Router with React Server Components, Tailwind CSS v4, TanStack Query
+for client data, and Recharts through a single shadcn-style chart wrapper.
+Postgres via Neon's serverless driver; auth via Neon Auth with Google OAuth.
 
-The browser talks only to Next.js API routes and the Neon Auth proxy. [`proxy.ts`](./proxy.ts) exchanges the OAuth callback verifier for the app's first-party session cookie. The OAuth `callbackURL` must be an absolute app URL: the auth service resolves a relative one against its own base URL, so `"/"` lands the browser on the auth host root, which answers 404. `components/auth/auth-modal.tsx` resolves it against `window.location.origin` before calling `signIn.social`. `DATABASE_URL` and `NEON_AUTH_COOKIE_SECRET` stay server-only and must never use the `NEXT_PUBLIC_` prefix. Data routes derive the user ID from the server-side session, so one account cannot access another account's saved words, reviews, preferences, or streak.
+The parts worth knowing:
+
+- **One dictionary cache, shared by everyone.** `vocabulary_words` stores the
+  normalized provider payload once per word; `user_words` is only the
+  user ↔ word relation. Normalization deduplicates and caps every list, and drops
+  recursive `subsenses`.
+- **Translation is layered.** The dictionary wins. When it has no translation for
+  your language, a cached AI translation fills only the empty senses, is
+  validated, and is labelled `AI` in the UI. Without a key, the English
+  definition is shown instead.
+- **Recall is deterministic.** Grading (`exact`, one-edit `almost`, `wrong`),
+  the spaced-repetition ladder, card selection, and session ordering are pure
+  modules with their own tests. A finished session is one fact row plus its
+  items, written in a single statement, so a session can never exist half-saved.
+- **Activity is bucketed in one time zone**, in both SQL and TypeScript, from a
+  single constant — so a streak cannot drift between the two.
+
+Route map: `/api/dictionary/[word]`, `/api/words`, `/api/words/[id]`,
+`/api/words/[id]/review`, `/api/recall/*`, `/api/analytics`, `/api/streak`,
+`/api/languages`, `/api/preferences`, and the auth proxy.
+
+Data routes derive the user ID from the server-side session, so one account
+cannot reach another account's words, reviews, preferences, or streak.
+
+## Docs
+
+- [`docs/billien-design-md.md`](./docs/billien-design-md.md) — colour tokens, typography, layout rules, and the component breakdown for every screen

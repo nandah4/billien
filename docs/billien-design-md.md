@@ -1,14 +1,21 @@
 # Spesifikasi Desain Antarmuka "Billien" (Design System & UI Blueprint)
 
-Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk standar pengembangan sistem desain dan implementasi frontend proyek **Billien**.
+Dokumen ini adalah acuan desain dan implementasi frontend proyek **Billien**: token warna, tipografi, aturan tata letak, dan rincian komponen untuk setiap layar.
 
 ---
 
 ## 1. Ringkasan Layar & Konteks
 
-- **Nama Layar**: Billien Dashboard & Vocab Tracking Management
-- **Tipe Antarmuka**: Web Desktop Dashboard (Single Page Application)
-- **Deskripsi Singkat**: Antarmuka dasbor manajemen pelacakan kosa kata/tugas "Billien" dengan gaya visual bersih, modern, dan terstruktur. Menggunakan tata letak dua kolom (sidebar navigasi + area kerja utama) dengan sistem pengelompokan tabel terukur (To Do, In Progress, Done).
+- **Nama Produk**: Billien — _Learn English, one word at a time._
+- **Tipe Antarmuka**: Aplikasi web responsif (Next.js App Router) dengan lima layar.
+- **Deskripsi Singkat**: Aplikasi kosakata bahasa Inggris. Pengunjung dapat mencari kata tanpa akun; setelah masuk dengan Google, kata tersimpan, bahasa terjemahan, streak harian, dan sesi latihan menjadi milik akun. Gaya visual bersih dan terstruktur: kanvas abu-abu terang, kartu putih bergaris tipis, dan satu aksen ungu.
+- **Lima Layar**:
+  - `/` — **Discovery**: cari kata, baca arti, simpan.
+  - `/remembered` — **Remembered**: pustaka kata tersimpan, filter huruf, dan panel detail.
+  - `/recall` — **Recall**: latihan mengingat aktif dengan kartu dan penjadwalan berulang.
+  - `/analytics` — **Analytics**: laporan aktivitas harian/bulanan dan akurasi recall.
+  - `/profile` — **Profile**: bahasa terjemahan, progres, dan sign out.
+- **Chrome**: layout route group `app/(app)` menyediakan sesi, header desktop, app bar mobile, bottom navigation, serta dialog akun dan onboarding. Setiap halaman hanya merender isinya sendiri.
 
 ---
 
@@ -16,34 +23,32 @@ Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk st
 
 ### Primary / Accent
 
-- **Primary Dark (Action / Buttons)**: `#0F172A` / `#18181B` (Digunakan untuk tombol utama seperti `+ Create New`, teks aktif, dan header utama).
-- **Workspace Accent (Active Brand)**: `#7C3AED` / `#9333EA` (Warna ungu aksen pada ikon proyek/workspace aktif).
+- **Primary Dark (Action / Buttons)**: `#18181B`, hover `#27272A` (tombol simpan, `Remembered`, dan aksi utama lain).
+- **Workspace Accent**: `#7C3AED`, hover `#6D28D9`, tint `#F5F3FF`, garis `#DDD6FE` (state aktif, tautan, ikon, dan fokus).
 
 ### Secondary / Neutral
 
-- **Main Background**: `#FFFFFF` (Area konten tabel utama).
-- **Sidebar Background**: `#FAFAFA` / `#F8FAFC` (Latar belakang sidebar kiri).
-- **Borders & Dividers**: `#E4E4E7` / `#F1F5F9` (Garis pembatas tabel dan komponen, 1px solid).
-- **Group Header Background**: `#F9FAFB` / `#F8FAFC` (Latar belakang baris pengelompokan seperti _To do_, _In Progress_).
+- **Canvas**: `#F4F5F7` (latar halaman).
+- **Surface**: `#FFFFFF` (kartu dan panel).
+- **Subtle / Sunken / Hover**: `#FAFAFA` / `#F8FAFC` / `#F4F4F5` (isi kartu sekunder, toolbar, dan state hover).
+- **Borders & Dividers**: `#E4E4E7` (`line`) dan `#F1F5F9` (`line-soft`), 1px solid.
 
 ### Text Colors
 
-- **Primary Text**: `#09090B` / `#111827` (Judul halaman, nama tugas/kata).
-- **Secondary Text**: `#64748B` / `#6B7280` (Deskripsi, breadcrumbs, tanggal, label sidebar).
-- **Muted Text**: `#94A3B8` / `#A1A1AA` (Placeholder, judul seksi sidebar, ikon pudar).
+- **Primary Text**: `#09090B` (judul, kata, dan teks utama).
+- **Soft Text**: `#3F3F46` (isi kalimat dan contoh).
+- **Secondary Text**: `#64748B` (deskripsi, label, dan metadata).
+- **Muted Text**: `#94A3B8` dan placeholder `#A1A1AA` (ikon pudar dan placeholder input).
 
-### Feedback / Priority State Colors (Soft Badges)
+### Feedback / State Colors (Soft Badges)
 
-- **High / Hard Priority**:
-  - Background: `#FEE2E2` (Soft Red)
-  - Text: `#DC2626` / `#EF4444`
-- **Medium Priority**:
-  - Background: `#FEF3C7` (Soft Yellow/Orange)
-  - Text: `#D97706`
-- **Easy / Low Priority**:
-  - Background: `#DCFCE7` (Soft Green)
-  - Text: `#16A34A`
-- **Type Indicator Dots**: `#3B82F6` (Testing/Blue), `#0EA5E9` (Implementation/Cyan), `#6366F1` (Documentation/Indigo).
+- **Hard / Wrong**: background `#FEE2E2`, teks `#DC2626`.
+- **Medium / Almost**: background `#FEF3C7`, teks `#D97706`.
+- **Easy / Correct**: background `#DCFCE7`, teks `#16A34A`.
+- **Streak**: background `#FFEDD5`, teks `#C2410C` — sengaja oranye-merah agar tidak terbaca sebagai error.
+- **Chart series**: `#7C3AED`, `#0EA5E9`, `#16A34A`, `#D97706`, `#DC2626`, diakses lewat `var(--color-chart-N)` sehingga tidak ada hex di komponen.
+
+Semua token di atas didefinisikan sekali di `app/globals.css` (`@theme`) dan dipakai lewat kelas Tailwind (`bg-canvas`, `text-muted`, `border-line`, dan seterusnya).
 
 ---
 
@@ -77,16 +82,18 @@ Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk st
 ## 4. Tata Letak & Spasi (Layout & Spacing)
 
 - **Grid & Container**:
-  - **Sidebar**: Lebar tetap `240px` - `260px`, opsi _fixed_ di sisi kiri.
-  - **Main Content Area**: `flex-1` (Mengisi sisa area layar dengan padding luar `24px`-`32px`).
+  - **Header desktop**: dua kartu sejajar — kartu brand + pemilih view di kiri (melebar), kartu akun di kanan (lebar tetap). Di bawah `lg` keduanya digantikan app bar mobile.
+  - **Area kerja**: `max-w-310` di tengah, `flex-1`. Discovery dan Remembered memakai _split_ dua kolom (daftar + detail); Recall memakai kartu soal + rail nomor.
+  - **Analytics**: menggambar header sendiri (`ownsHeader`) dan memakai kolom yang lebih lebar.
+  - **Profile**: _bleed_ di atas (`bleedsTop`) — cover menempel ke tepi app bar tanpa jarak.
 - **Sistem Spasi**: Berbasis kelipatan 4px / 8px (`4px`, `8px`, `12px`, `16px`, `20px`, `24px`, `32px`).
 - **Border Radius**:
   - **Buttons & Badges**: `rounded-md` (`6px`) hingga `rounded-lg` (`8px`).
-  - **Pill Badges (Priority)**: `rounded-full` (`9999px`).
-  - **Sidebar Items**: `rounded-lg` (`8px`).
+  - **Pill (streak, status)**: `rounded-full` (`9999px`).
+  - **Cards & Panels**: `rounded-xl` (`12px`) untuk kartu dan dialog.
 - **Shadow & Depth**:
-  - Menggunakan pendekatan _Flat Minimalist_ dengan batas garis tipis (`1px border`) tanpa _heavy box-shadow_.
-  - Shadow mikro pada avatar stack & tombol aksi utama (`shadow-sm`).
+  - Pendekatan _flat minimalist_: garis `1px` sebagai pemisah, tanpa _heavy box-shadow_.
+  - `shadow-sm` hanya untuk elemen yang memang mengambang (view switcher aktif, avatar, tombol aksi utama).
 
 ### Breakpoint & Perilaku Responsif
 
@@ -102,44 +109,35 @@ Dokumen ini dibuat berdasarkan ekstraksi visual antarmuka dasbor modern untuk st
 
 ## 5. Rincian Komponen (Component Breakdown)
 
-### A. Left Navigation Sidebar
+### A. Header Desktop (dua kartu)
 
-- **Brand Logo**: Ikon merek ("Taskque" / "Billien") + nama aplikasi di bagian paling atas.
-- **Navigation Sections**:
-  - **MAIN MENU**: Dashboard (state aktif dengan background abu-abu terang `#F1F5F9`), My Tasks, Project, Calendar.
-  - **WORKSPACES**: Daftar ruang kerja dengan indikator ikon berwarna & tombol aksi `+` untuk membuat workspace baru.
-  - **GENERAL**: Account Settings, Security, Help & Support.
+Berlaku pada `lg` ke atas (`components/app/app-header.tsx`). Di bawahnya digantikan app bar mobile (lihat E.1).
 
-### B. Top Header & Control Bar
+- **Kartu kiri — brand + view switcher** (`flex-1`):
+  - Ikon logo (`logo-mark.png`) 28px, judul `Billien` 13px/`600`, tagline `Learn English, one word at a time` 11px `#64748B`.
+  - **View switcher**: segmented control `rounded-lg` `bg-subtle` dengan tiga item — **Discovery**, **Remembered**, **Recall** — masing-masing ikon 14px + label 12px/`500`. Item aktif memakai `bg-surface` + `shadow-sm` + `text-ink`; item lain `text-muted`. Status aktif diturunkan dari pathname, bukan state lokal.
 
-- **Berlaku pada desktop** (`>= lg`). Di mobile digantikan oleh **App Bar** (lihat E.1).
-- **Breadcrumb Navigation**: Menampilkan jalur lokasi (`Workspaces / UIGO Studio / Resarc AI Research`).
-- **Utility Actions (Kanan Atas)**:
-  - Tombol Pencarian (Ikon Kaca Pembesar).
-  - Tombol Notifikasi (Ikon Lonceng dengan badge status).
-  - Profil Pengguna (Avatar).
-- **Page Header**:
-  - Judul Halaman Utama & Deskripsi/Sub-judul.
-  - Avatar Stack Anggota Tim (+Indikator jumlah anggota tersisa).
-  - Tombol Aksi Anggota `+` & Primary CTA Button (`+ Create New`).
+- **Kartu kanan — akun**: tombol `Sign in` untuk guest, atau pill streak + dropdown menu akun untuk pengguna masuk. Menu berisi identitas, `Profile`, dan `Sign out`.
 
-### C. Sub-Navigation / Tab Bar
+- **Analytics** tidak memakai header ini: halaman menggambar header sendiri dengan tombol kembali (`lib/navigation.ts` → `ownsHeader`).
 
-- **View Switcher Tabs**: Overview, Board, **List** (Aktif - dengan garis bawah hitam), Table, Timeline.
-- **Secondary Actions**: Tombol Share (Ikon Bagikan) dan Filter (Ikon Corong Filter).
+### B. Workspace Dua Kolom (Discovery & Remembered)
 
-### D. Grouped Table View (Main Content)
+- **Kolom kiri — daftar kata**: kartu putih berisi search field, toolbar (sort + filter huruf di Remembered), baris kata, dan paginasi.
+- **Kolom kanan — panel detail**: kartu terpisah yang muncul saat sebuah kata dipilih. Di `lg` lebarnya dianimasikan lewat `.detail-split` (`--detail-track`), dan kolom kiri melebar saat panel tertutup. Di bawah `lg` panel menjadi dialog.
+- **Baris kata**: kata 14px/`600`, fonetik kecil, dan definisi/terjemahan maksimal dua baris. Baris tersimpan menampilkan aksi hapus; baris Discovery menampilkan status hafalan.
+- **Tidak ada sidebar, breadcrumb, notifikasi, avatar tim, atau tabel bergrup.** Navigasi utama hanya header (desktop) dan bottom navigation (mobile).
 
-- **Group Accordion Header**:
-  - Panah _Collapse/Expand_, Nama Status (_To do_, _In Progress_, _Done_), dan Counter Badge (jumlah item).
-  - Aksi Kelompok (Ikon Urutkan, Filter, Tambah Baru `+`, dan Menu More `...`).
-- **Table Columns**:
-  1. **Checkbox & Task Name**: Kotak centang + Judul Teks Tebal.
-  2. **Descriptions**: Deskripsi ringkas 1-2 baris.
-  3. **People**: Avatar bertumpuk penanggung jawab.
-  4. **Type**: Badge indikator tipe tugas/kata dengan titik warna.
-  5. **Timeline Date**: Format tanggal (`Oct 10, 2025`).
-  6. **Priority**: Badge berbentuk _pill_ lembut (`Hard`, `Medium`, `Easy`).
+### C. Recall Workspace
+
+- **Kolom kiri — kartu soal**: satu prompt per kartu, field jawaban, tombol hint, dan progres sesi.
+- **Kolom kanan — rail nomor**: daftar nomor kartu yang terbuka berurutan, sehingga pengguna tahu posisinya tanpa kehilangan fokus pada soal.
+- **Layar review**: setelah sesi dikirim, semua jawaban benar ditampilkan bersama hasil per kartu dan opsi override untuk jawaban yang dinilai salah.
+
+### D. Analytics
+
+- Header sendiri: tombol kembali, judul, dan pemilih rentang (`7d`, `30d`, `90d`, `this-month`, `last-month`, `this-year`, `last-year`).
+- Kartu total, kartu streak (saat ini dan terbaik), bar chart kata ditambah + review, line chart akurasi recall, tabel fallback yang dapat diakses, dan daftar kata yang perlu diulang.
 
 ### E. Mobile App Shell (App Bar & Bottom Navigation)
 
@@ -151,7 +149,7 @@ Dua batang tetap (fixed) membingkai konten: app bar di atas, bottom navigation d
 - Posisi `fixed` di tepi atas, latar `#FFFFFF`, garis bawah `1px` `#E4E4E7`, `z-index` 40.
 - **Kiri** (brand, boleh `truncate`):
   - Judul `Billien` — 15px / `600` / `#09090B`.
-  - Deskripsi `Lexical Mastery Platform` — 10px / `500` / `#64748B`.
+  - Deskripsi `Learn English, one word at a time` — 10px / `500` / `#64748B` (disembunyikan di layar sangat sempit).
 - **Kanan**:
   - **Guest** → tombol `Sign in`: ikon `LogIn` 15px + label 13px/`600`, tinggi `40px`, `rounded-lg`, `border` `#E4E4E7`, latar putih.
   - **Signed in** → pill streak saja (ikon `Flame` 13px + angka 12px/`600`, `bg #FEF3C7`, `text #D97706`, `rounded-full`, tinggi `40px`). **Tidak ada tombol 3 titik / menu akun di app bar mobile**: menu `Profile` sudah tersedia di bottom navigation, dan `Sign out` dipindahkan ke halaman Profile agar bar tetap ringkas dan tidak ada dua jalur ke aksi yang sama.
@@ -179,11 +177,11 @@ Karena proyek tidak memakai plugin animasi Tailwind, animasi `animate-in` bawaan
 - **State aktif**: pill `bg #F5F3FF`, ikon `#7C3AED`, label `#7C3AED`, plus `aria-current="page"`.
 - **State non-aktif**: ikon `#94A3B8`, label `#64748B`.
 - **State fokus**: `outline` 2px `#7C3AED` di dalam batas item (offset negatif) agar tidak terpotong layar.
-- Item standar: `Discovery` (`/`) dan `Remembered` (`/remembered`), berupa `<Link>` dengan `aria-current="page"` pada halaman aktif; lalu slot kontekstual:
+- Item standar: `Discovery` (`/`), `Remembered` (`/remembered`), dan `Recall` (`/recall`), berupa `<Link>` dengan `aria-current="page"` pada halaman aktif; lalu slot kontekstual:
   - **Signed in** → `Profile` (tautan ke `/profile`).
   - **Guest** → `Sign in` (membuka modal autentikasi).
-- Maksimal **5 item**. Jika menu bertambah, sisanya dipindahkan ke halaman `More`, bukan mengecilkan ikon.
-- Bottom bar tidak ditampilkan pada halaman `/profile` (halaman itu punya tautan kembali sendiri).
+- Tepat **4 item** saat ini (3 view + 1 slot kontekstual). Jika menu bertambah, sisanya dipindahkan ke halaman `More`, bukan mengecilkan ikon.
+- Bottom bar tetap tampil di `/profile`; baris `Profile` menjadi item aktif di sana.
 
 #### E.3 Aturan Konten Mobile
 
@@ -209,13 +207,13 @@ Satu field pencarian dipakai kedua view. Tidak ada tombol submit dan **tidak per
 - **Font**: `16px` di mobile (mencegah auto-zoom iOS), `13px` di desktop.
 - **Tombol clear**: ikon `X` 14px dalam bulatan `24px`, hanya muncul saat field berisi; `aria-label="Clear search"`.
 - **Debounce**: `450ms` setelah ketikan terakhir.
-- **Validasi**: minimal `2` karakter dan hanya `[a-z'-]`; input lain tidak dikirim ke API.
-- **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik.
-- **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan.
+- **Validasi**: minimal `1` karakter dan hanya `[a-z'-]`; satu huruf adalah kata sah (`a`, `I`), sedangkan angka dan tanda baca tidak pernah dikirim ke API.
+- **Discovery**: hasil pencarian tampil sebagai **satu baris** di daftar; panel detail tetap tertutup sampai baris diklik. Di bawah hasil, pengguna masuk melihat lima kata terakhir yang disimpan.
+- **Remembered**: pencarian memfilter daftar secara lokal dan **instan** (tanpa debounce) karena tidak ada request jaringan; pencarian mencocokkan kata Inggris maupun terjemahan.
 
 * **State yang wajib ada**:
   1. _Idle_ — belum ada ketikan: petunjuk singkat, tanpa skeleton.
-  2. _Terlalu pendek / karakter tidak valid_ — petunjuk validasi, tanpa request.
+  2. _Karakter tidak valid_ — petunjuk validasi, tanpa request. Satu huruf tetap valid.
   3. _Loading_ — skeleton baris selama debounce + fetch.
   4. _Tidak ditemukan_ — pesan netral + saran periksa ejaan.
   5. _Gagal jaringan_ — `role="alert"` + tombol **Try again**.
@@ -250,13 +248,13 @@ Aturan:
 - Komposisi state kosong: ilustrasi → judul 14px/`600` `#09090B` → deskripsi 12px `#64748B` maksimal `max-w-xs` → aksi opsional, semuanya rata tengah.
 - Komposisi dialog: ilustrasi di tengah, lalu judul dan deskripsi juga rata tengah, sedangkan daftar pilihan dan tombol tetap rata kiri/penuh.
 - Selalu gunakan `next/image` dengan `sizes` sesuai tinggi render agar tidak mengunduh berkas 2048px.
-- State validasi singkat (mis. input < 2 huruf) **tidak** memakai ilustrasi agar tidak berkedip setiap ketikan.
+- State validasi karakter tidak valid **tidak** memakai ilustrasi agar tidak berkedip setiap ketikan.
 
 ### F. Detail Words Panel
 
 Panel kanan (desktop) atau dialog (mobile). Semua kartu di dalam panel memakai `rounded-lg` (`8px`) dan chip memakai `rounded-md` (`6px`) — tidak ada `rounded-full` kecuali status pill prioritas.
 
-Panel **tidak** memuat kartu ajakan drill; fitur drill dihapus dari detail kata.
+Panel detail tidak memuat kartu ajakan latihan; latihan hanya dimulai dari tab Recall.
 
 #### F.1 Urutan Blok
 
@@ -286,7 +284,7 @@ Jarak antar blok `20px` (`mt-5`) dan jarak di dalam blok `16px` (`py-4`, `gap-4`
 - **Example Sentences**: kartu `rounded-lg` `border #E4E4E7` `bg #FFFFFF`, angka di bulatan `rounded-md` `bg #F5F3FF` `text #7C3AED`, teks 13px `#3F3F46`.
 - **Synonyms**: chip `border-line` `bg-surface` `text-ink-soft`. **Antonyms**: chip `border-hard-soft` `bg-hard-soft/60` `text-hard`.
 - **Status hafalan**: kartu ringkas `bg #FAFAFA` berisi ikon `CheckCircle2` `#16A34A`, jumlah review (`N total reviews` / `No reviews yet`), dan satu tombol **`Remembered`** (compact primary, ikon `Check`, `hover:scale-105`) di sisi kanan.
-  - Tombol ini memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`, sehingga `review_count` dan `remembered_count` bertambah serta streak harian ikut naik. Ini satu-satunya cara manual menambah review karena UI drill sudah dihapus. Saat request berjalan label menjadi `Saving…` dan tombol disabled.
+  - Tombol ini memanggil `POST /api/words/[id]/review` dengan `result: "remembered"`, sehingga `review_count` dan `remembered_count` bertambah serta streak harian ikut naik. Ini satu-satunya cara manual menambah review di luar sesi Recall. Saat request berjalan label menjadi `Saving…` dan tombol disabled.
   - **Tidak ada tombol hapus di panel detail.** Un-save hanya tersedia dari baris di daftar Remembered (ikon `Trash2` saat hover) agar kartu tetap ringkas dan aksi destruktif tidak berada di dua tempat.
   - Judul `Already memorised` tidak ditampilkan; status sudah disampaikan oleh ikon centang dan konteks kartu.
 - **Source**: label 11px uppercase, tautan 12px `#7C3AED` dengan `underline`, lisensi 11px `#94A3B8`.
@@ -325,37 +323,18 @@ Setiap grup: `mt-5`, judul 11px/`600` uppercase `#64748B`, lalu kartu `rounded-x
 ## 6. Hirarki Struktur Layar (DOM / Layer Tree)
 
 ```text
-[App Root Container] (.flex .min-h-screen)
-├── [Sidebar Area] (.w-64 .bg-slate-50 .border-r)
-│   ├── [Brand Logo Header] (.flex .items-center .p-4)
-│   ├── [Nav Group: Main Menu]
-│   │   ├── [Nav Item: Dashboard] (.active)
-│   │   ├── [Nav Item: My Tasks]
-│   │   └── [Nav Item: Calendar]
-│   ├── [Nav Group: Workspaces]
-│   │   ├── [Workspace Item: Naible Studio]
-│   │   └── [Workspace Item: UIGO Studio] (.expanded)
-│   └── [Nav Group: General]
-└── [Main Content Wrapper] (.flex-1 .flex .flex-col)
-    ├── [Top Utility Header] (.flex .justify-between .p-4 .border-b)
-    │   ├── [Breadcrumb Navigation]
-    │   └── [Global Utilities: Search, Notifications, Profile]
-    ├── [Page Header Section] (.p-6)
-    │   ├── [Title & Subtitle]
-    │   └── [Team Members Bar & Primary CTA (+ Create New)]
-    ├── [Tab Bar Section] (.flex .justify-between .border-b .px-6)
-    │   ├── [Tabs List: Overview, Board, List, Table, Timeline]
-    │   └── [Actions: Share, Filter]
-    └── [Table Scroll Container] (.p-6 .space-y-6)
-        ├── [Group Section: To Do]
-        │   ├── [Accordion Header + Controls]
-        │   └── [Table Data Matrix]
-        ├── [Group Section: In Progress]
-        │   ├── [Accordion Header + Controls]
-        │   └── [Table Data Matrix]
-        └── [Group Section: Done]
-            ├── [Accordion Header + Controls]
-            └── [Table Data Matrix]
+[App Root Container] (.flex .min-h-dvh .flex-col .bg-canvas)
+└── [Content Wrapper] (.mx-auto .flex .w-full .max-w-310 .flex-col .gap-4)
+    ├── [Header Card: Brand + View Switcher] (.flex .flex-1)
+    │   ├── [Brand] (logo 28px, Billien, tagline)
+    │   └── [View Switcher] (segmented: Discovery, Remembered, Recall)
+    ├── [Header Card: Account] (pill streak + dropdown / Sign in)
+    └── [Page Content] (satu view per halaman)
+        ├── [Discovery] → [Word List Card] + [Detail Panel]
+        ├── [Remembered] → [Toolbar: sort + letter filter] + [Word List Card] + [Detail Panel]
+        ├── [Recall] → [Question Card] + [Numbered Rail]
+        ├── [Analytics] → [Own Header] + [Stats] + [Charts] + [Weakest Words]
+        └── [Profile] → [Full-bleed Cover] + [Identity] + [Settings Groups]
 ```
 
 ### Mobile (`< lg`)
@@ -363,15 +342,19 @@ Setiap grup: `mt-5`, judul 11px/`600` uppercase `#64748B`, lalu kartu `rounded-x
 ```text
 [App Root] (.flex .min-h-dvh .pt-[4.5rem] .pb-[calc(5rem+env(safe-area-inset-bottom))])
 ├── [App Bar] (.fixed .inset-x-0 .top-0 .h-14 .border-b .bg-surface .z-40)
-│   ├── [Brand] (Billien + Lexical Mastery Platform)
+│   ├── [Brand] (Billien + Learn English, one word at a time)
 │   └── [Account Controls]
 │       ├── [Guest] Sign in button
 │       └── [Signed in] Streak pill (tanpa menu akun; Sign out ada di Profile)
 ├── [Content] (.flex-1 .flex .flex-col .gap-4)
-│   └── [Word List Card] (search, filter chips, rows, pagination)
-│       └── [Detail Words] (dialog modal di atas daftar saat kata dipilih)
+│   ├── [Word List Card] (search, toolbar, rows, pagination)
+│   │   └── [Detail Words] (dialog modal di atas daftar saat kata dipilih)
+│   ├── [Recall] (question card + numbered rail, satu kolom)
+│   ├── [Analytics] (header sendiri + charts)
+│   └── [Profile] (cover full-bleed + settings)
 └── [Bottom Navigation] (.fixed .inset-x-0 .bottom-0 .border-t .bg-surface .z-40)
     ├── [Tab: Discovery]
     ├── [Tab: Remembered]
+    ├── [Tab: Recall]
     └── [Slot kontekstual: Profile / Sign in]
 ```
