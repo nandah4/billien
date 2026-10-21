@@ -1,8 +1,7 @@
 import "server-only";
 import { env } from "@/lib/env";
 import type { RawDictionary } from "@/lib/normalize";
-
-const WORD_PATTERN = /^[a-z][a-z'-]*$/i;
+import { isValidWordQuery, normalizeWordQuery } from "@/lib/word-query";
 
 export class DictionaryError extends Error {
   readonly status: number;
@@ -20,9 +19,12 @@ export class DictionaryError extends Error {
  * word format contract shared by every route.
  */
 export async function lookupWord(rawWord: string): Promise<RawDictionary> {
-  const word = rawWord.trim().toLowerCase();
-  if (!word || !WORD_PATTERN.test(word)) {
-    throw new DictionaryError("Please enter a valid English word.", 400);
+  const word = normalizeWordQuery(rawWord);
+  if (!isValidWordQuery(word)) {
+    throw new DictionaryError(
+      "Please enter a valid English word or phrase.",
+      400,
+    );
   }
 
   // Resolve configuration before the try: a missing variable must surface as a

@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { AccountControls } from "@/components/app/account-controls";
-import logoMark from "@/public/assets/logo-mark.png";
+import logo from "@/public/assets/logo.png";
 
 /**
  * Mobile app bar: brand on the left, account controls on the right. Fixed to
@@ -28,7 +28,7 @@ export function MobileAppBar({
       <div className="mx-auto flex h-14 w-full max-w-310 items-center justify-between gap-3 px-4">
         <div className="flex min-w-0 items-center gap-2">
           <Image
-            src={logoMark}
+            src={logo}
             alt=""
             aria-hidden="true"
             sizes="32px"

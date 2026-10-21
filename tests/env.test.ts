@@ -25,7 +25,7 @@ test("a required value names the variable when it is missing", () => {
       assert.ok(error instanceof MissingEnvError);
       assert.equal(error.variable, "AI_MODEL");
       assert.match(error.message, /AI_MODEL/);
-      assert.match(error.message, /\.env\.example/);
+      assert.match(error.message, /\.env\.local/);
       return true;
     },
   );

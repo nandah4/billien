@@ -5,7 +5,7 @@ import Image from "next/image";
 import { X } from "lucide-react";
 import { Modal } from "@/components/ui/modal";
 import helloImage from "@/public/assets/hello.webp";
-import logoMark from "@/public/assets/logo-mark.png";
+import logo from "@/public/assets/logo.png";
 import { authClient } from "@/lib/auth-client";
 
 function GoogleMark() {
@@ -81,7 +81,7 @@ function AuthDialogBody({
     <>
       <div className="flex items-start justify-between gap-3">
         <Image
-          src={logoMark}
+          src={logo}
           alt="Billien"
           sizes="28px"
           className="h-7 w-7 object-contain"

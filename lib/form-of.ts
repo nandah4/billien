@@ -1,6 +1,7 @@
 import "server-only";
 import { DictionaryError, lookupWord } from "./dictionary";
 import { normalizeDictionary, type NormalizedDictionary } from "./normalize";
+import { isValidWordQuery, normalizeWordQuery } from "./word-query";
 import {
   detectFormOfGloss,
   suffixCandidates,
@@ -15,7 +16,6 @@ import type { Entry, FormKind, FormOf } from "./types";
  * what keeps `his` from becoming a plural of `hi`.
  */
 const MAX_CANDIDATE_LOOKUPS = 2;
-const LOOKUP_PATTERN = /^[a-z][a-z'-]*$/i;
 
 export type FormResolution = {
   formOf: FormOf;
@@ -26,9 +26,10 @@ export type FormResolution = {
 async function fetchLemma(
   rawWord: string,
 ): Promise<NormalizedDictionary | null> {
-  const word = rawWord.trim().toLowerCase();
-  // A phrasal lemma (`give up`) is valid for the label but not for the provider.
-  if (!LOOKUP_PATTERN.test(word)) return null;
+  const word = normalizeWordQuery(rawWord);
+  // A phrasal lemma (`give up`) is a real provider entry, so the same query
+  // contract applies; only a string that cannot be looked up is skipped.
+  if (!isValidWordQuery(word)) return null;
 
   try {
     const normalized = normalizeDictionary(await lookupWord(word));

@@ -8,7 +8,7 @@ import { AccountControls } from "@/components/app/account-controls";
 import { MobileAppBar } from "@/components/app/mobile-app-bar";
 import { NAV_ITEMS, viewFromPathname, type View } from "@/lib/navigation";
 import { cardClass } from "@/lib/ui";
-import logoMark from "@/public/assets/logo-mark.png";
+import logo from "@/public/assets/logo.png";
 
 const ICONS: Record<View, typeof Compass> = {
   discovery: Compass,
@@ -55,7 +55,7 @@ export function AppHeader({
         >
           <div className="flex min-w-0 items-center gap-2">
             <Image
-              src={logoMark}
+              src={logo}
               alt=""
               aria-hidden="true"
               sizes="28px"

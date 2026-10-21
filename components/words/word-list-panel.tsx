@@ -128,12 +128,12 @@ export function WordListPanel({
             placeholder={
               view === "remembered"
                 ? "Search a word or translation…"
-                : "Search an English word…"
+                : "Search a word or phrase…"
             }
             aria-label={
               view === "remembered"
                 ? "Search a word or translation"
-                : "Search an English word"
+                : "Search a word or phrase"
             }
           />
           {search.value ? (
@@ -206,7 +206,7 @@ export function WordListPanel({
           </StateCard>
         ) : isDiscoveryTooShort ? (
           <div className="rounded-xl border border-line bg-subtle px-4 py-10 text-center text-[13px] text-muted">
-            Type an English word using letters only.
+            Type an English word or phrase using letters only.
           </div>
         ) : filteredEmpty ? (
           <StateCard>
